@@ -1,10 +1,10 @@
-import { RequestListener, IncomingMessage, ServerResponse } from "http";
+import { RequestListener } from "http";
 
 const routes = [
   {
     path: "/users",
     method: "GET",
-    handler: (req: IncomingMessage, res: ServerResponse) => {
+    handler: () => {
       return "GET /users";
     },
   },
@@ -15,9 +15,10 @@ export const app: RequestListener = (req, res) => {
     res.end(
       routes
         .find((route) => route.method === req.method && route.path === req.url)
-        ?.handler(req, res)
+        ?.handler()
     );
   } catch (error) {
-    res.end("test");
+    console.error(error);
+    res.end(error);
   }
 };
