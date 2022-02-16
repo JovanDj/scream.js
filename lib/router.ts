@@ -1,39 +1,40 @@
-import { IncomingMessage, ServerResponse } from "http";
-import { UsersController } from "../src/users/users.controller";
-import { Injector } from "./injector";
+import { IncomingMessage } from "http";
+import { HTTPContext } from "./http/http-context";
 export interface Route {
   path: string;
-  method: string;
-  handler: string;
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  handler: (context: HTTPContext) => void;
 }
 
 export class Router {
-  constructor(private _routes: Route[]) {}
+  constructor(private readonly _routes: Route[]) {}
 
-  async match(req: IncomingMessage, res: ServerResponse) {
-    const url = this.createUrl(req);
+  async match(context: HTTPContext) {
+    const { request, response } = context;
 
     // Iterate over routes array
-    for (const { path, method, handler } of this._routes) {
+    for (const route of this._routes) {
+      console.log(route);
       // Check if request matches any route
-      if (this.compareRoutes(path, method, req)) {
-        console.log(handler);
 
-        res.write(JSON.stringify(await handler()));
-        res.end();
+      const match = this.compareRoutes(route, request);
 
-        return;
-      } else {
-        return res.end("NOT FOUND");
+      if (match) {
+        response.write(route.handler(context));
+
+        return response.end();
       }
     }
+
+    response.writeHead(404);
+    return response.end("NOT FOUND");
   }
 
-  private compareRoutes(path: string, method: string, req: IncomingMessage) {
-    return path === req.url && method === req.method;
+  private compareRoutes({ path, method }: Route, request: IncomingMessage) {
+    return path === request.url && method === request.method;
   }
 
-  private createUrl(req: IncomingMessage) {
-    return new URL(req.url || "/", `http://${req.headers.host}`);
+  private createUrl(request: IncomingMessage) {
+    return new URL(request.url || "/", `http://${request.headers.host}`);
   }
 }
