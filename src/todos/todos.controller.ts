@@ -1,5 +1,7 @@
+import { HTTPContext } from "../../lib/http/http-context";
+
 export class TodosController {
-  async find() {
-    return "GET /todos";
+  find(context: HTTPContext) {
+    return `${context.request.method?.toUpperCase()} ${context.request.url}`;
   }
 }

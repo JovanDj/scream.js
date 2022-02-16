@@ -1,47 +1,66 @@
-import "reflect-metadata";
+import { EventEmitter } from "events";
 import { createServer, IncomingMessage, ServerResponse } from "http";
-import { TodosController } from "./src/todos/todos.controller";
-import { Middleware } from "./lib/middleware";
-import { RequestLogger } from "./middlewares/request-logger.middleware";
-import { JSONMiddleware } from "./middlewares/json.middleware";
+import "reflect-metadata";
 import { HTTPContext } from "./lib/http/http-context";
+import { Middleware } from "./lib/middleware";
+import { Route, Router } from "./lib/router";
 import { CorsMiddleware } from "./middlewares/cors.middleware";
-import { RouterMiddleware } from "./middlewares/router.middleware";
-import { on } from "events";
+import { RequestLogger } from "./middlewares/request-logger.middleware";
+import { TodosController } from "./src/todos/todos.controller";
 
 const todosController = new TodosController();
 
-const router = new RouterMiddleware();
-const json: Middleware = new JSONMiddleware();
-const requestLogger: Middleware = new RequestLogger(json);
+// const router: Middleware = new RouterMiddleware();
+// const json: Middleware = new JSONMiddleware();
+const requestLogger: Middleware = new RequestLogger();
 const cors: Middleware = new CorsMiddleware();
 
-const middlewares: Set<Middleware> = new Set([cors, requestLogger, router]);
+const middlewares: Set<Middleware> = new Set([cors, requestLogger]);
 
-// const routes = [
-//   {
-//     path: "/todos",
-//     method: "GET",
-//     handler: todosController.find,
-//   },
-// ];
+const routes: Route[] = [
+  {
+    path: "/",
+    method: "GET",
+    handler: (context: HTTPContext) => {
+      const body = {
+        _links: {
+          self: { href: "/" },
+          todos: { href: "http://localhost:3000/todos" }
+        }
+      };
+      context.response.writeHead(200, {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(JSON.stringify(body))
+      });
 
-// const router = new Router(routes);
+      return JSON.stringify(body);
+    }
+  },
+  {
+    path: "/todos",
+    method: "GET",
+    handler: todosController.find
+  }
+];
+
+const router = new Router(routes);
 
 const main = async () => {
+  console.log(routes);
   const server = createServer();
   server.listen(3000);
 
-  for await (const event of on(server, "request")) {
-    const [req, res]: [req: IncomingMessage, res: ServerResponse] = event;
-
+  for await (const [req, res] of EventEmitter.on(
+    server,
+    "request"
+  ) as AsyncIterableIterator<[req: IncomingMessage, res: ServerResponse]>) {
     const httpContext = new HTTPContext(req, res);
-    const { response } = httpContext;
 
     for (const middleware of middlewares) {
       middleware.handle(httpContext);
     }
-    response.end();
+
+    return router.match(httpContext);
   }
 };
 

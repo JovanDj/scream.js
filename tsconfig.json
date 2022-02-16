@@ -2,10 +2,9 @@
   "extends": "@tsconfig/node16/tsconfig.json",
 
   "compilerOptions": {
-    "lib": ["ESNext", "ES6", "ES2021"],
-    "downlevelIteration": true,
+    "lib": ["ESNext"],
     "esModuleInterop": true,
-
+    "strict": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
 
@@ -14,5 +13,5 @@
   },
   "exclude": ["node_modules"],
 
-  "include": ["src/**/*", "lib/**/*", "migrations/**/*"]
+  "include": ["main.ts"]
 }
