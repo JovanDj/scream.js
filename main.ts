@@ -5,17 +5,18 @@ import { HTTPContext } from "./lib/http/http-context";
 import { Middleware } from "./lib/middleware";
 import { Route, Router } from "./lib/router";
 import { CorsMiddleware } from "./middlewares/cors.middleware";
+import { JSONMiddleware } from "./middlewares/json.middleware";
 import { RequestLogger } from "./middlewares/request-logger.middleware";
 import { TodosController } from "./src/todos/todos.controller";
 
 const todosController = new TodosController();
 
 // const router: Middleware = new RouterMiddleware();
-// const json: Middleware = new JSONMiddleware();
+const json: Middleware = new JSONMiddleware();
 const requestLogger: Middleware = new RequestLogger();
 const cors: Middleware = new CorsMiddleware();
 
-const middlewares: Set<Middleware> = new Set([cors, requestLogger]);
+const middlewares: Set<Middleware> = new Set([cors, requestLogger, json]);
 
 const routes: Route[] = [
   {
@@ -29,7 +30,6 @@ const routes: Route[] = [
         }
       };
       context.response.writeHead(200, {
-        "Content-Type": "application/json",
         "Content-Length": Buffer.byteLength(JSON.stringify(body))
       });
 
@@ -44,12 +44,9 @@ const routes: Route[] = [
 ];
 
 const router = new Router(routes);
+export const server = createServer();
 
-const main = async () => {
-  console.log(routes);
-  const server = createServer();
-  server.listen(3000);
-
+const app = async () => {
   for await (const [req, res] of EventEmitter.on(
     server,
     "request"
@@ -64,4 +61,4 @@ const main = async () => {
   }
 };
 
-main();
+app();

@@ -7,11 +7,8 @@
     "strict": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-
     "outDir": "./dist",
     "forceConsistentCasingInFileNames": true
   },
-  "exclude": ["node_modules"],
-
-  "include": ["main.ts"]
+  "exclude": ["node_modules"]
 }
