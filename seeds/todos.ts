@@ -1,6 +1,6 @@
-import { Knex } from "knex";
 import faker from "faker";
-import { Todo } from "../src/todos/todo";
+import { Knex } from "knex";
+import { Todo } from "../src/todos/todo-gateway";
 
 export async function seed(knex: Knex): Promise<void> {
   // Deletes ALL existing entries
@@ -12,6 +12,6 @@ export async function seed(knex: Knex): Promise<void> {
     { title: faker.lorem.words(), dueDate: faker.date.future() },
     { title: faker.lorem.words(), dueDate: faker.date.future() },
     { title: faker.lorem.words(), dueDate: faker.date.future() },
-    { title: faker.lorem.words(), dueDate: faker.date.future() },
+    { title: faker.lorem.words(), dueDate: faker.date.future() }
   ]);
 }
