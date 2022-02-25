@@ -28,6 +28,38 @@ export class TodoGateway {
     return todo;
   }
 
+  async first(): Promise<TodoGateway> {
+    const query = `SELECT * FROM ${this._table} ORDER BY ROWID ASC LIMIT 1`;
+    const preparedStatement = await this.db.prepare(query);
+
+    const result = await preparedStatement.get();
+
+    await preparedStatement.finalize();
+
+    const todo = new TodoGateway(this.db);
+
+    todo.id = result.id;
+    todo.title = result.title;
+
+    return todo;
+  }
+
+  async last(): Promise<TodoGateway> {
+    const query = `SELECT * FROM ${this._table} ORDER BY ROWID DESC LIMIT 1;`;
+    const preparedStatement = await this.db.prepare(query);
+
+    const result = await preparedStatement.get();
+
+    await preparedStatement.finalize();
+
+    const todo = new TodoGateway(this.db);
+
+    todo.id = result.id;
+    todo.title = result.title;
+
+    return todo;
+  }
+
   async findAll(): Promise<TodoGateway[]> {
     const query = `SELECT * FROM ${this._table}`;
     const preparedStatement = await this.db.prepare(query);

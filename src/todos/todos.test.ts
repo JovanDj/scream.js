@@ -42,6 +42,24 @@ describe.only("Todo", () => {
     expect(todo.title).toEqual("test1");
   });
 
+  it("should find first", async () => {
+    const todo = await todoGateway.first();
+
+    expect(todo).toBeInstanceOf(TodoGateway);
+    expect(todo.id).toEqual(1);
+    expect(todo.title).toEqual("test1");
+  });
+
+  it("should find last", async () => {
+    await db.run("INSERT INTO todos (title) VALUES (?)", "test2");
+
+    const todo = await todoGateway.last();
+
+    expect(todo).toBeInstanceOf(TodoGateway);
+    expect(todo.id).toEqual(2);
+    expect(todo.title).toEqual("test2");
+  });
+
   it("should find all", async () => {
     const todos = await todoGateway.findAll();
     const todo = todos[0];
