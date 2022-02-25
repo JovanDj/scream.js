@@ -1,6 +1,8 @@
 import { Database } from "sqlite";
 
 export class TodoGateway {
+  private readonly _table = "todos";
+
   private _id = 1;
   private _title = "";
   private _updatedAt = new Date();
@@ -27,7 +29,7 @@ export class TodoGateway {
   }
 
   async findAll(): Promise<TodoGateway[]> {
-    const query = "SELECT * FROM todos";
+    const query = `SELECT * FROM ${this._table}`;
     const preparedStatement = await this.db.prepare(query);
     const results = await preparedStatement.all();
     await preparedStatement.finalize();
@@ -49,7 +51,7 @@ export class TodoGateway {
   }: {
     title: TodoGateway["title"];
   }): Promise<TodoGateway> {
-    const query = "INSERT INTO todos (title) VALUES($title)";
+    const query = `INSERT INTO ${this._table} (title) VALUES($title)`;
     const preparedStatement = await this.db.prepare(query);
     await preparedStatement.bind({ $title: title });
 
@@ -57,6 +59,38 @@ export class TodoGateway {
     await preparedStatement.finalize();
 
     return this.findById(lastID);
+  }
+
+  async update(
+    id: TodoGateway["id"],
+    todo: Partial<TodoGateway>
+  ): Promise<number> {
+    let set: string[] = [];
+
+    for (const key of Object.keys(todo)) {
+      set = [...set, `${key} = ?`];
+    }
+
+    const query = `UPDATE ${this._table} SET ${set.join(", ")} WHERE id = ?`;
+    console.log({ query });
+    const preparedStatement = await this.db.prepare(query);
+    await preparedStatement.bind([...Object.values(todo), id]);
+
+    const { changes = 0 } = await preparedStatement.run();
+    await preparedStatement.finalize();
+
+    return changes;
+  }
+
+  async delete(id: TodoGateway["id"]): Promise<number> {
+    const query = `DELETE FROM ${this._table} WHERE id = $id`;
+    const preparedStatement = await this.db.prepare(query);
+    await preparedStatement.bind({ $id: id });
+
+    const { changes = 0 } = await preparedStatement.run();
+    await preparedStatement.finalize();
+
+    return changes;
   }
 
   get id(): number {

@@ -61,4 +61,20 @@ describe.only("Todo", () => {
     expect(todo.id).toEqual(2);
     expect(todo.title).toEqual(title);
   });
+
+  it("should update todo", async () => {
+    const id = 1;
+    const changes = await todoGateway.update(id, {
+      title: "test UPDATED"
+    });
+
+    expect(changes).toEqual(1);
+  });
+
+  it("should delete todo", async () => {
+    const id = 1;
+    const changes = await todoGateway.delete(id);
+
+    expect(changes).toEqual(1);
+  });
 });
