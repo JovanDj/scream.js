@@ -1,9 +1,10 @@
 import { Database, open } from "sqlite";
 import sqlite3 from "sqlite3";
-import { TodoGateway } from "./todo-gateway";
+import { Todo } from "./todo";
+import { TodoMapper } from "./todo-mapper";
 
-describe.only("Todo", () => {
-  let todoGateway: TodoGateway;
+describe.only("TodoMapper", () => {
+  let todoMapper: TodoMapper;
   let db: Database;
 
   beforeEach(async () => {
@@ -16,7 +17,7 @@ describe.only("Todo", () => {
       console.log(err);
     }
 
-    todoGateway = new TodoGateway(db);
+    todoMapper = new TodoMapper(db);
 
     await db.run(
       "CREATE TABLE todos (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL)"
@@ -31,21 +32,21 @@ describe.only("Todo", () => {
   });
 
   it("should create todo gateway", () => {
-    expect(todoGateway).toBeInstanceOf(TodoGateway);
+    expect(todoMapper).toBeInstanceOf(TodoMapper);
   });
 
   it("should find by id", async () => {
-    const todo = await todoGateway.findById(1);
+    const todo = await todoMapper.findById(1);
 
-    expect(todo).toBeInstanceOf(TodoGateway);
+    expect(todo).toBeInstanceOf(Todo);
     expect(todo.id).toEqual(1);
     expect(todo.title).toEqual("test1");
   });
 
   it("should find first", async () => {
-    const todo = await todoGateway.first();
+    const todo = await todoMapper.first();
 
-    expect(todo).toBeInstanceOf(TodoGateway);
+    expect(todo).toBeInstanceOf(Todo);
     expect(todo.id).toEqual(1);
     expect(todo.title).toEqual("test1");
   });
@@ -53,36 +54,35 @@ describe.only("Todo", () => {
   it("should find last", async () => {
     await db.run("INSERT INTO todos (title) VALUES (?)", "test2");
 
-    const todo = await todoGateway.last();
+    const todo = await todoMapper.last();
 
-    expect(todo).toBeInstanceOf(TodoGateway);
+    expect(todo).toBeInstanceOf(Todo);
     expect(todo.id).toEqual(2);
     expect(todo.title).toEqual("test2");
   });
 
   it("should find all", async () => {
-    const todos = await todoGateway.findAll();
+    const todos = await todoMapper.findAll();
     const todo = todos[0];
 
-    expect(todo).toBeInstanceOf(TodoGateway);
+    expect(todo).toBeInstanceOf(Todo);
+    expect(todos.length).toBe(1);
     expect(todo.id).toEqual(1);
     expect(todo.title).toEqual("test1");
   });
 
   it("should create todo", async () => {
     const title = "test2";
-    const todo = await todoGateway.insert({ title });
+    const todo = await todoMapper.insert({ title });
 
-    console.log(todo);
-
-    expect(todo).toBeInstanceOf(TodoGateway);
+    expect(todo).toBeInstanceOf(Todo);
     expect(todo.id).toEqual(2);
     expect(todo.title).toEqual(title);
   });
 
   it("should update todo", async () => {
     const id = 1;
-    const changes = await todoGateway.update(id, {
+    const changes = await todoMapper.update(id, {
       title: "test UPDATED"
     });
 
@@ -91,7 +91,7 @@ describe.only("Todo", () => {
 
   it("should delete todo", async () => {
     const id = 1;
-    const changes = await todoGateway.delete(id);
+    const changes = await todoMapper.delete(id);
 
     expect(changes).toEqual(1);
   });
