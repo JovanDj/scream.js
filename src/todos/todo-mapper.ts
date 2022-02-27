@@ -1,17 +1,12 @@
 import { Database } from "sqlite";
+import { Todo } from "./todo";
 
-export class TodoGateway {
+export class TodoMapper {
   private readonly _table = "todos";
-
-  private _id = 1;
-  private _title = "";
-  private _updatedAt = new Date();
-  private _createdAt = new Date();
-  private _dueDate = new Date();
 
   constructor(private readonly db: Database) {}
 
-  async findById(id: number): Promise<TodoGateway> {
+  async findById(id: number): Promise<Todo> {
     const query = "SELECT * FROM todos WHERE id = $id";
     const preparedStatement = await this.db.prepare(query);
 
@@ -20,7 +15,7 @@ export class TodoGateway {
 
     await preparedStatement.finalize();
 
-    const todo = new TodoGateway(this.db);
+    const todo = new Todo();
 
     todo.id = result.id;
     todo.title = result.title;
@@ -28,7 +23,7 @@ export class TodoGateway {
     return todo;
   }
 
-  async first(): Promise<TodoGateway> {
+  async first(): Promise<Todo> {
     const query = `SELECT * FROM ${this._table} ORDER BY ROWID ASC LIMIT 1`;
     const preparedStatement = await this.db.prepare(query);
 
@@ -36,7 +31,7 @@ export class TodoGateway {
 
     await preparedStatement.finalize();
 
-    const todo = new TodoGateway(this.db);
+    const todo = new Todo();
 
     todo.id = result.id;
     todo.title = result.title;
@@ -44,7 +39,7 @@ export class TodoGateway {
     return todo;
   }
 
-  async last(): Promise<TodoGateway> {
+  async last(): Promise<Todo> {
     const query = `SELECT * FROM ${this._table} ORDER BY ROWID DESC LIMIT 1;`;
     const preparedStatement = await this.db.prepare(query);
 
@@ -52,7 +47,7 @@ export class TodoGateway {
 
     await preparedStatement.finalize();
 
-    const todo = new TodoGateway(this.db);
+    const todo = new Todo();
 
     todo.id = result.id;
     todo.title = result.title;
@@ -60,15 +55,15 @@ export class TodoGateway {
     return todo;
   }
 
-  async findAll(): Promise<TodoGateway[]> {
+  async findAll(): Promise<Todo[]> {
     const query = `SELECT * FROM ${this._table}`;
     const preparedStatement = await this.db.prepare(query);
     const results = await preparedStatement.all();
     await preparedStatement.finalize();
 
-    const todos: TodoGateway[] = [];
+    const todos: Todo[] = [];
     for (const result of results) {
-      const todo = new TodoGateway(this.db);
+      const todo = new Todo();
 
       todo.id = result.id;
       todo.title = result.title;
@@ -78,11 +73,7 @@ export class TodoGateway {
     return todos;
   }
 
-  async insert({
-    title
-  }: {
-    title: TodoGateway["title"];
-  }): Promise<TodoGateway> {
+  async insert({ title }: { title: Todo["title"] }): Promise<Todo> {
     const query = `INSERT INTO ${this._table} (title) VALUES($title)`;
     const preparedStatement = await this.db.prepare(query);
     await preparedStatement.bind({ $title: title });
@@ -93,10 +84,7 @@ export class TodoGateway {
     return this.findById(lastID);
   }
 
-  async update(
-    id: TodoGateway["id"],
-    todo: Partial<TodoGateway>
-  ): Promise<number> {
+  async update(id: Todo["id"], todo: Partial<Todo>): Promise<number> {
     let set: string[] = [];
 
     for (const key of Object.keys(todo)) {
@@ -114,7 +102,7 @@ export class TodoGateway {
     return changes;
   }
 
-  async delete(id: TodoGateway["id"]): Promise<number> {
+  async delete(id: Todo["id"]): Promise<number> {
     const query = `DELETE FROM ${this._table} WHERE id = $id`;
     const preparedStatement = await this.db.prepare(query);
     await preparedStatement.bind({ $id: id });
@@ -123,45 +111,5 @@ export class TodoGateway {
     await preparedStatement.finalize();
 
     return changes;
-  }
-
-  get id(): number {
-    return this._id;
-  }
-
-  set id(id) {
-    this._id = id;
-  }
-
-  get dueDate(): Date {
-    return this._dueDate;
-  }
-
-  set dueDate(date) {
-    this._dueDate = date;
-  }
-
-  get createdAt(): Date {
-    return this._createdAt;
-  }
-
-  set createdAt(date) {
-    this._createdAt = date;
-  }
-
-  get updatedAt(): Date {
-    return this._updatedAt;
-  }
-
-  set updatedAt(date) {
-    this._updatedAt = date;
-  }
-
-  get title(): string {
-    return this._title;
-  }
-
-  set title(title) {
-    this._title = title;
   }
 }
