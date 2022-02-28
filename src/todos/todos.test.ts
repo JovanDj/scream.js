@@ -1,11 +1,13 @@
 import { Database, open } from "sqlite";
 import sqlite3 from "sqlite3";
 import { Todo } from "./todo";
+import { TodoGateway } from "./todo-gateway";
 import { TodoMapper } from "./todo-mapper";
 
 describe.only("TodoMapper", () => {
   let todoMapper: TodoMapper;
   let db: Database;
+  let todoGateway: TodoGateway;
 
   beforeEach(async () => {
     try {
@@ -17,7 +19,8 @@ describe.only("TodoMapper", () => {
       console.log(err);
     }
 
-    todoMapper = new TodoMapper(db);
+    todoGateway = new TodoGateway(db);
+    todoMapper = new TodoMapper(todoGateway);
 
     await db.run(
       "CREATE TABLE todos (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL)"
@@ -31,7 +34,7 @@ describe.only("TodoMapper", () => {
     await db.close();
   });
 
-  it("should create todo gateway", () => {
+  it("should create todo mapper", () => {
     expect(todoMapper).toBeInstanceOf(TodoMapper);
   });
 
