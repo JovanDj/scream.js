@@ -48,10 +48,10 @@ export class TodoGateway {
     return result;
   }
 
-  async insert({ title }: { title: Todo["title"] }): Promise<Todo["id"]> {
+  async insert(todo: Partial<Todo>): Promise<Todo["id"]> {
     const query = `INSERT INTO ${this._table} (title) VALUES($title)`;
     const preparedStatement = await this.db.prepare(query);
-    await preparedStatement.bind({ $title: title });
+    await preparedStatement.bind({ $title: todo.title });
 
     const { lastID = 0 } = await preparedStatement.run();
     await preparedStatement.finalize();

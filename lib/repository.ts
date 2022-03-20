@@ -1,7 +1,7 @@
 export interface Repository<T> {
-  find(id: number): T;
-  insert(entity: T): void;
-  update(entity: T): void;
-  delete(entity: T): void;
-  save(): void;
+  // findById(id: number): Promise<T>;
+  findAll(): Promise<T[]>;
+  insert(entity: Partial<T>): Promise<T>;
+  // update(id: number, entity: Partial<T>): Promise<number>;
+  // delete(id: number): Promise<number>;
 }
