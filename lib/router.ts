@@ -20,7 +20,7 @@ export class Router {
       const match = this.compareRoutes(route, request);
 
       if (match) {
-        response.write(route.handler(context));
+        response.write(await route.handler(context));
 
         return response.end();
       }
