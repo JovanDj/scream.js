@@ -3,15 +3,15 @@ import { IncomingMessage } from "http";
 export class Request {
   constructor(private readonly req: IncomingMessage) {}
 
+  get method() {
+    return this.req.method;
+  }
+
   get headers() {
     return this.req.headers;
   }
 
   get url() {
-    return this.req.url || "";
-  }
-
-  get origin() {
-    return `${this.protocol}://${this.host}`;
+    return this.req.url;
   }
 }

@@ -7,7 +7,7 @@ import { TodoMapper } from "./todo-mapper";
 import { TodoRepository } from "./todo-repository";
 import { TodosController } from "./todos.controller";
 
-describe.only("Todo Module", () => {
+describe("Todo Module", () => {
   let todosController: TodosController;
   let todoRepository: Repository<Todo>;
   let todoMapper: TodoMapper;
