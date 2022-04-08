@@ -51,7 +51,6 @@
       "eslint --fix"
     ]
   },
-  "type": "module",
   "dependencies": {
     "@types/jsdom": "^16.2.14",
     "@types/knex": "^0.16.1",
