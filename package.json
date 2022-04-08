@@ -48,7 +48,8 @@
   "lint-staged": {
     "*.{js,ts,css,md,json}": "prettier --write",
     "*.{js,ts}": [
-      "eslint --fix"
+      "eslint --fix",
+      "cross-env NODE_ENV=test jest --bail"
     ]
   },
   "dependencies": {

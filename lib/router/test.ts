@@ -1,7 +1,7 @@
 import { HTTPContext } from "../http/http-context";
 import { Router } from "./router";
 
-describe.only("Router", () => {
+describe("Router", () => {
   let router: Router;
 
   beforeEach(() => {
