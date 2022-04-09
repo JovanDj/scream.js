@@ -1,23 +1,20 @@
-import { Console } from "console";
 import { EventEmitter } from "events";
 import { createServer, IncomingMessage, ServerResponse } from "http";
-import { stderr, stdout } from "node:process";
 import "reflect-metadata";
 import { Database, open } from "sqlite";
 import sqlite3 from "sqlite3";
 import { HTTPContext } from "./lib/http/http-context";
 import { Request } from "./lib/http/request";
 import { Response } from "./lib/http/response";
+import { LoggerFactory } from "./lib/logger/logger-factory";
 import { Logger } from "./lib/logger/logger.interface";
-import { ScreamLogger } from "./lib/logger/scream-logger";
 import { Router } from "./lib/router/router";
 import { TodoGateway } from "./src/todos/todo-gateway";
 import { TodoMapper } from "./src/todos/todo-mapper";
 import { TodosController } from "./src/todos/todos.controller";
 
 const app = async () => {
-  const console = new Console({ stdout, stderr, colorMode: true });
-  const logger: Logger = new ScreamLogger(console);
+  const logger: Logger = LoggerFactory.createLogger();
 
   let db: Database;
   try {
