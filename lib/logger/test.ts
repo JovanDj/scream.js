@@ -1,15 +1,12 @@
-import { Console } from "node:console";
-import { stderr, stdout } from "node:process";
+import { LoggerFactory } from "./logger-factory";
 import { Logger } from "./logger.interface";
 import { ScreamLogger } from "./scream-logger";
 
 describe("ScreamLogger", () => {
   let logger: Logger;
-  let console: Console;
 
   beforeEach(() => {
-    console = new Console({ stdout, stderr, colorMode: true });
-    logger = new ScreamLogger(console);
+    logger = LoggerFactory.createLogger();
   });
 
   it("should create logger", () => {
