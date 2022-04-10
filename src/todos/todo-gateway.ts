@@ -7,7 +7,6 @@ export class TodoGateway {
   constructor(private readonly db: Database) {}
 
   async findById(id: number): Promise<Partial<Todo>> {
-    console.log("ok");
     const query = `SELECT * FROM ${this._table} WHERE id = $id`;
     const preparedStatement = await this.db.prepare(query);
 

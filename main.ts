@@ -1,8 +1,7 @@
 import { EventEmitter } from "events";
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import "reflect-metadata";
-import { Database, open } from "sqlite";
-import sqlite3 from "sqlite3";
+import { ConnectionFactory } from "./lib/database/connection-factory";
 import { HTTPContext } from "./lib/http/http-context";
 import { Request } from "./lib/http/request";
 import { Response } from "./lib/http/response";
@@ -15,17 +14,7 @@ import { TodosController } from "./src/todos/todos.controller";
 
 const app = async () => {
   const logger: Logger = LoggerFactory.createLogger();
-
-  let db: Database;
-  try {
-    db = await open({
-      filename: "test-database.db",
-      driver: sqlite3.Database
-    });
-    logger.log("connected to db");
-  } catch (err) {
-    logger.error(err);
-  }
+  const db = await ConnectionFactory.createConnection();
 
   await db.run(
     "CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL)"
@@ -94,4 +83,4 @@ const app = async () => {
   }
 };
 
-app().then();
+app();
