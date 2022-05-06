@@ -2,23 +2,19 @@ import { Todo } from "./todo";
 import { TodoGateway } from "./todo-gateway";
 
 export class TodoMapper {
-  private cache = new Map<Todo["id"], Todo>();
-
   constructor(private readonly gateway: TodoGateway) {}
 
   async findById(id: number): Promise<Todo> {
-    if (this.cache.has(id)) {
-      return this.cache.get(id);
-    }
-
     const result = await this.gateway.findById(id);
 
     const todo = new Todo();
+    console.log(Object.keys(result));
 
-    todo.id = result.id;
-    todo.title = result.title;
-
-    this.cache.set(id, todo);
+    for (const [key, value]: [string, unknown] of Object.entries<Todo>(
+      result
+    )) {
+      todo[key] = value;
+    }
 
     return todo;
   }

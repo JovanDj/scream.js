@@ -6,13 +6,17 @@ export class TodoGateway {
 
   constructor(private readonly db: Database) {}
 
-  async findById(id: number): Promise<Partial<Todo>> {
+  async findById(id: number): Promise<Todo> {
     const query = `SELECT * FROM ${this._table} WHERE id = $id`;
     const preparedStatement = await this.db.prepare(query);
 
     await preparedStatement.bind({ $id: id });
-    const result = await preparedStatement.get<Partial<Todo>>();
+    const result = await preparedStatement.get<Todo>();
     await preparedStatement.finalize();
+
+    if (!result) {
+      throw new Error("Not found.");
+    }
 
     return result;
   }
@@ -25,6 +29,10 @@ export class TodoGateway {
 
     await preparedStatement.finalize();
 
+    if (!result) {
+      throw new Error("Not found.");
+    }
+
     return result;
   }
 
@@ -34,15 +42,19 @@ export class TodoGateway {
 
     const result = await preparedStatement.get<Todo>();
 
-    await preparedStatement.finalize();
+    if (!result) {
+      throw new Error("Not found.");
+    } else {
+      await preparedStatement.finalize();
 
-    return result;
+      return result;
+    }
   }
 
   async findAll(): Promise<Todo[]> {
     const query = `SELECT * FROM ${this._table}`;
     const preparedStatement = await this.db.prepare(query);
-    const result = await preparedStatement.all<Todo[]>();
+    const result = (await preparedStatement.all<Todo[]>()) ?? [];
     await preparedStatement.finalize();
 
     return result;

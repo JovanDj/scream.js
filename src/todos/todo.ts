@@ -1,6 +1,4 @@
 export class Todo {
-  private readonly _table = "todos";
-
   private _id = 1;
   private _title = "";
   private _updatedAt = new Date();
