@@ -1,6 +1,6 @@
 import { IncomingMessage } from "http";
 import { HTTPContext } from "./http/http-context";
-export interface Route {
+export interface Route<T> {
   path: string;
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   handler: (context: HTTPContext) => void;

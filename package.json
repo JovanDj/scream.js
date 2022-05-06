@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "dev": "tsnd --respawn main.ts",
-    "test:watch": "cross-env NODE_ENV=test jest --watchAll --bail",
+    "test:watch": "cross-env NODE_ENV=test jest --watch --bail",
     "prepare": "husky install",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx --ignore-path .gitignore .",
     "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx --ignore-path .gitignore . --fix"
