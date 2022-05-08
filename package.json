@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "dev": "tsnd --respawn main.ts",
-    "test:watch": "cross-env NODE_ENV=test jest --watch --bail",
+    "test": "vitest",
     "prepare": "husky install",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx --ignore-path .gitignore .",
     "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx --ignore-path .gitignore . --fix"
@@ -18,26 +18,22 @@
   ],
   "license": "ISC",
   "devDependencies": {
-    "@ava/get-port": "^1.0.0",
-    "@ava/typescript": "^3.0.1",
     "@faker-js/faker": "^6.0.0",
     "@tsconfig/node16": "^1.0.2",
-    "@types/jest": "^27.4.1",
     "@types/sqlite3": "^3.1.8",
     "@types/supertest": "^2.0.12",
     "@typescript-eslint/eslint-plugin": "5.12.0",
     "@typescript-eslint/parser": "5.12.0",
+    "c8": "^7.11.2",
     "cross-env": "^7.0.3",
     "eslint": "8.9.0",
     "eslint-config-prettier": "8.3.0",
     "eslint-plugin-node": "11.1.0",
     "eslint-plugin-prettier": "4.0.0",
     "husky": "^7.0.4",
-    "jest": "^27.5.1",
     "lint-staged": "^12.3.7",
     "prettier": "2.5.1",
     "supertest": "^6.2.2",
-    "ts-jest": "^27.1.4",
     "ts-node": "^10.7.0",
     "ts-node-dev": "^1.1.8",
     "typescript": "^4.6.3"
@@ -49,7 +45,7 @@
     "*.{js,ts,css,md,json}": "prettier --write",
     "*.{js,ts}": [
       "eslint --fix",
-      "cross-env NODE_ENV=test jest --bail"
+      "vitest run"
     ]
   },
   "dependencies": {
@@ -62,7 +58,9 @@
     "reflect-metadata": "^0.1.13",
     "sqlite": "^4.0.25",
     "sqlite3": "^5.0.2",
-    "ts-mockito": "^2.6.1"
+    "ts-mockito": "^2.6.1",
+    "vite": "^2.9.8",
+    "vitest": "^0.12.0"
   },
   "volta": {
     "node": "16.14.2"
