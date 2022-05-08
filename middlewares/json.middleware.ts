@@ -7,8 +7,6 @@ export class JSONMiddleware implements Middleware {
   handle(context: HTTPContext): void {
     // const hash = createHash("sha256");
 
-    context.response.setHeader("content-type", "application/hal+json");
-
     // const body = JSON.stringify({
     //   firstName: "Jovan",
     //   lastName: "Djukic",

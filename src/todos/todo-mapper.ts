@@ -8,13 +8,9 @@ export class TodoMapper {
     const result = await this.gateway.findById(id);
 
     const todo = new Todo();
-    console.log(Object.keys(result));
 
-    for (const [key, value]: [string, unknown] of Object.entries<Todo>(
-      result
-    )) {
-      todo[key] = value;
-    }
+    todo.id = result.id;
+    todo.title = result.title;
 
     return todo;
   }
