@@ -1,3 +1,5 @@
+*.sqlite
+
 
 # Created by https://www.toptal.com/developers/gitignore/api/node,visualstudiocode,webstorm+all,linux,windows,git
 # Edit at https://www.toptal.com/developers/gitignore?templates=node,visualstudiocode,webstorm+all,linux,windows,git

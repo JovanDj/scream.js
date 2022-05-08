@@ -1,5 +1,5 @@
-import { Database, open } from "sqlite";
-import sqlite3 from "sqlite3";
+import { Database } from "sqlite";
+import { ConnectionFactory } from "../../lib/database/connection-factory";
 import { Repository } from "../../lib/repository";
 import { Todo } from "./todo";
 import { TodoGateway } from "./todo-gateway";
@@ -16,14 +16,8 @@ describe("Todo Module", () => {
 
   describe("Integration", () => {
     beforeEach(async () => {
-      try {
-        db = await open({
-          filename: "test-database.db",
-          driver: sqlite3.Database
-        });
-      } catch (err) {
-        console.error(err);
-      }
+      db = await ConnectionFactory.createConnection();
+
       todoGateway = new TodoGateway(db);
       todoMapper = new TodoMapper(todoGateway);
       todoRepository = new TodoRepository(todoMapper);
