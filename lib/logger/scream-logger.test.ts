@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LoggerFactory } from "./logger-factory";
 import { Logger } from "./logger.interface";
 import { ScreamLogger } from "./scream-logger";
 
-describe("ScreamLogger", () => {
+describe.concurrent("ScreamLogger", () => {
   let logger: Logger;
 
   beforeEach(() => {
@@ -14,16 +16,16 @@ describe("ScreamLogger", () => {
   });
 
   it("should log", () => {
-    const spy = jest.spyOn(logger, "log");
+    const spy = vi.spyOn(logger, "log").mockImplementation(() => {});
     logger.log("test");
+
     expect(spy).toHaveBeenCalledWith("test");
-    spy.mockRestore();
   });
 
   it("should log error", () => {
-    const spy = jest.spyOn(logger, "error");
+    const spy = vi.spyOn(logger, "error").mockImplementation(() => {});
     logger.error("test");
+
     expect(spy).toHaveBeenCalledWith("test");
-    spy.mockRestore();
   });
 });
