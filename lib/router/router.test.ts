@@ -1,4 +1,4 @@
-import { HTTPContext } from "../http/http-context";
+import { beforeEach, describe, expect, it } from "vitest";
 import { Router } from "./router";
 
 describe("Router", () => {
@@ -20,7 +20,7 @@ describe("Router", () => {
     expect(router.routes.length).toEqual(1);
     expect(router.routes[0].path).toEqual("/");
     expect(router.routes[0].method).toEqual("GET");
-    expect(router.routes[0].handler({} as HTTPContext)).toEqual("success");
+    expect(router.routes[0].handler()).toEqual("success");
   });
 
   it("should add get async route", async () => {
@@ -31,9 +31,7 @@ describe("Router", () => {
     expect(router.routes.length).toEqual(1);
     expect(router.routes[0].path).toEqual("/");
     expect(router.routes[0].method).toEqual("GET");
-    expect(await router.routes[0].handler({} as HTTPContext)).toEqual(
-      "success"
-    );
+    expect(await router.routes[0].handler()).toEqual("success");
   });
 
   it("should get both sync async functions", async () => {
@@ -47,13 +45,11 @@ describe("Router", () => {
 
     expect(router.routes[0].path).toEqual("/sync");
     expect(router.routes[0].method).toEqual("GET");
-    expect(router.routes[0].handler({} as HTTPContext)).toEqual("success");
+    expect(router.routes[0].handler()).toEqual("success");
 
     expect(router.routes[1].path).toEqual("/async");
     expect(router.routes[1].method).toEqual("GET");
-    expect(await router.routes[1].handler({} as HTTPContext)).toEqual(
-      "success"
-    );
+    expect(await router.routes[1].handler()).toEqual("success");
   });
 
   it("should add post route", async () => {
@@ -63,8 +59,6 @@ describe("Router", () => {
 
     expect(router.routes[0].path).toEqual("/post");
     expect(router.routes[0].method).toEqual("POST");
-    expect(await router.routes[0].handler({} as HTTPContext)).toEqual(
-      "success"
-    );
+    expect(await router.routes[0].handler()).toEqual("success");
   });
 });
