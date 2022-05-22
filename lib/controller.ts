@@ -1,11 +1,13 @@
-import "reflect-metadata";
-import { Injector } from "./injector";
+import { Repository } from "./repository";
 
-export type Constructor<T> = new (...args: unknown[]) => T;
-export type GenericClassDecorator<T> = (target: T) => void;
+export abstract class Controller<T> {
+  constructor(private readonly repository: Repository<T>) {}
 
-export const Controller = (): ClassDecorator => {
-  return (target) => {
-    Injector.resolve(target);
-  };
-};
+  async findAll() {
+    return this.repository.findAll();
+  }
+
+  create(model: T) {
+    return this.repository.insert(model);
+  }
+}

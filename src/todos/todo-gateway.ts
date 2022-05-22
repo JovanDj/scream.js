@@ -1,101 +1,10 @@
-import { Database } from "sqlite";
+import { Gateway } from "../../lib/gateway";
 import { Todo } from "./todo";
 
-export class TodoGateway {
-  private readonly _table = "todos";
+export class TodoGateway extends Gateway<Todo> {
+  private readonly table = "todos";
 
-  constructor(private readonly db: Database) {}
-
-  async findById(id: number): Promise<Todo> {
-    const query = `SELECT * FROM ${this._table} WHERE id = $id`;
-    const preparedStatement = await this.db.prepare(query);
-
-    await preparedStatement.bind({ $id: id });
-    const result = await preparedStatement.get<Todo>();
-    await preparedStatement.finalize();
-
-    if (!result) {
-      throw new Error("Not found.");
-    }
-
-    return result;
-  }
-
-  async first(): Promise<Todo> {
-    const query = `SELECT * FROM ${this._table} ORDER BY ROWID ASC LIMIT 1`;
-    const preparedStatement = await this.db.prepare(query);
-
-    const result = await preparedStatement.get<Todo>();
-
-    await preparedStatement.finalize();
-
-    if (!result) {
-      throw new Error("Not found.");
-    }
-
-    return result;
-  }
-
-  async last(): Promise<Todo> {
-    const query = `SELECT * FROM ${this._table} ORDER BY ROWID DESC LIMIT 1;`;
-    const preparedStatement = await this.db.prepare(query);
-
-    const result = await preparedStatement.get<Todo>();
-
-    if (!result) {
-      throw new Error("Not found.");
-    } else {
-      await preparedStatement.finalize();
-
-      return result;
-    }
-  }
-
-  async findAll(): Promise<Todo[]> {
-    const query = `SELECT * FROM ${this._table}`;
-    const preparedStatement = await this.db.prepare(query);
-    const result = (await preparedStatement.all<Todo[]>()) ?? [];
-    await preparedStatement.finalize();
-
-    return result;
-  }
-
-  async insert(todo: Partial<Todo>): Promise<Todo["id"]> {
-    const query = `INSERT INTO ${this._table} (title) VALUES($title)`;
-    const preparedStatement = await this.db.prepare(query);
-    await preparedStatement.bind({ $title: todo.title });
-
-    const { lastID = 0 } = await preparedStatement.run();
-    await preparedStatement.finalize();
-
-    return lastID;
-  }
-
-  async update(id: Todo["id"], todo: Partial<Todo>): Promise<number> {
-    let set: string[] = [];
-
-    for (const key of Object.keys(todo)) {
-      set = [...set, `${key} = ?`];
-    }
-
-    const query = `UPDATE ${this._table} SET ${set.join(", ")} WHERE id = ?`;
-    const preparedStatement = await this.db.prepare(query);
-    await preparedStatement.bind([...Object.values(todo), id]);
-
-    const { changes = 0 } = await preparedStatement.run();
-    await preparedStatement.finalize();
-
-    return changes;
-  }
-
-  async delete(id: Todo["id"]): Promise<number> {
-    const query = `DELETE FROM ${this._table} WHERE id = $id`;
-    const preparedStatement = await this.db.prepare(query);
-    await preparedStatement.bind({ $id: id });
-
-    const { changes = 0 } = await preparedStatement.run();
-    await preparedStatement.finalize();
-
-    return changes;
+  constructor(private readonly db: Database) {
+    super(db);
   }
 }
