@@ -14,7 +14,6 @@ export class Router {
 
     // Iterate over routes array
     for (const route of this._routes) {
-      console.log(route);
       // Check if request matches any route
 
       const match = this.compareRoutes(route, request);

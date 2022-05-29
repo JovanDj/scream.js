@@ -1,17 +1,15 @@
-import { unlink } from "node:fs/promises";
 import { Database } from "sqlite";
-import { instance, mock, reset, verify, when } from "ts-mockito";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Controller } from "../../lib/controller";
-import { ConnectionFactory } from "../../lib/database/connection-factory";
-import { Gateway } from "../../lib/gateway";
-import { Mapper } from "../../lib/mapper";
-import { Repository } from "../../lib/repository";
-import { Todo } from "./todo";
-import { TodoGateway } from "./todo-gateway";
-import { TodoMapper } from "./todo-mapper";
-import { TodoRepository } from "./todo-repository";
-import { TodosController } from "./todos.controller";
+import { Controller } from "../../../lib/controller";
+import { ConnectionFactory } from "../../../lib/database/connection-factory";
+import { Gateway } from "../../../lib/gateway";
+import { Mapper } from "../../../lib/mapper";
+import { Repository } from "../../../lib/repository";
+import { Todo } from "../todo";
+import { TodoGateway } from "../todo-gateway";
+import { TodoMapper } from "../todo-mapper";
+import { TodoRepository } from "../todo-repository";
+import { TodosController } from "../todos.controller";
 
 describe.concurrent("Todo Module", () => {
   let todosController: Controller<Todo>;
@@ -42,7 +40,6 @@ describe.concurrent("Todo Module", () => {
     afterEach(async () => {
       await db.run("DROP TABLE todos");
       await db.close();
-      await unlink("test-database.db");
     });
 
     describe("Todo Controller", () => {
@@ -186,50 +183,6 @@ describe.concurrent("Todo Module", () => {
 
         expect(rows).toStrictEqual(1);
         expect(updated).toStrictEqual({ id: 1, title: "updated" });
-      });
-    });
-  });
-
-  describe("Unit", () => {
-    describe("TodoController", () => {
-      let todoRepositoryMock: Repository<Todo>;
-      let todosController: TodosController;
-
-      beforeEach(() => {
-        todoRepositoryMock = mock<Repository<Todo>>();
-
-        when(todoRepositoryMock.findAll()).thenResolve([]);
-        when(todoRepositoryMock.insert()).thenResolve(new Todo());
-
-        todosController = new TodosController(instance(todoRepositoryMock));
-      });
-      afterEach(() => {
-        reset(todoRepositoryMock);
-      });
-
-      it("should be defined", () => {
-        expect(todosController).toBeInstanceOf(TodosController);
-      });
-
-      it("should return todos", async () => {
-        const todos = await todosController.findAll();
-        verify(todoRepositoryMock.findAll()).once();
-
-        expect(todos.length).toBe(0);
-      });
-    });
-
-    describe("Todo", () => {
-      it("should set title", () => {
-        const todo = new Todo();
-        todo.title = "test";
-        expect(todo.title).toEqual("test");
-      });
-
-      it("should get title", () => {
-        const todo = new Todo();
-        todo.title = "test";
-        expect(todo.title).toEqual("test");
       });
     });
   });
