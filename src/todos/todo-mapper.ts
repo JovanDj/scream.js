@@ -1,51 +1,35 @@
+import { Gateway } from "../../lib/gateway";
+import { Mapper } from "../../lib/mapper";
 import { Todo } from "./todo";
-import { TodoGateway } from "./todo-gateway";
 
-export class TodoMapper {
-  constructor(private readonly gateway: TodoGateway) {}
+export class TodoMapper extends Mapper<Todo> {
+  constructor(private readonly gateway: Gateway<Todo>) {
+    super(gateway);
+  }
 
   async findById(id: number): Promise<Todo> {
     const result = await this.gateway.findById(id);
 
-    const todo = new Todo();
-
-    todo.id = result.id;
-    todo.title = result.title;
-
-    return todo;
+    return this.columnsToModel(result, new Todo());
   }
 
   async first(): Promise<Todo> {
     const result = await this.gateway.first();
 
-    const todo = new Todo();
-
-    todo.id = result.id;
-    todo.title = result.title;
-
-    return todo;
+    return this.columnsToModel(result, new Todo());
   }
 
   async last(): Promise<Todo> {
     const result = await this.gateway.last();
 
-    const todo = new Todo();
-
-    todo.id = result.id;
-    todo.title = result.title;
-
-    return todo;
+    return this.columnsToModel(result, new Todo());
   }
 
   async findAll(): Promise<Todo[]> {
     const results = await this.gateway.findAll();
 
     return results.map(result => {
-      const todo = new Todo();
-
-      todo.id = result.id;
-      todo.title = result.title;
-      return todo;
+      return this.columnsToModel(result, new Todo());
     });
   }
 

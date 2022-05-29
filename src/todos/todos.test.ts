@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Controller } from "../../lib/controller";
 import { ConnectionFactory } from "../../lib/database/connection-factory";
 import { Gateway } from "../../lib/gateway";
+import { Mapper } from "../../lib/mapper";
 import { Repository } from "../../lib/repository";
 import { Todo } from "./todo";
 import { TodoGateway } from "./todo-gateway";
@@ -15,7 +16,7 @@ import { TodosController } from "./todos.controller";
 describe.concurrent("Todo Module", () => {
   let todosController: Controller<Todo>;
   let todoRepository: Repository<Todo>;
-  let todoMapper: TodoMapper;
+  let todoMapper: Mapper<Todo>;
   let todoGateway: Gateway<Todo>;
   let db: Database;
 

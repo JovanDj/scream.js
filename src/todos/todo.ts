@@ -1,5 +1,5 @@
 export class Todo {
-  private _id = 1;
+  private _id = 0;
   private _title = "";
   private _updatedAt = new Date();
   private _createdAt = new Date();

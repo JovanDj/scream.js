@@ -1,3 +1,4 @@
+import { Database } from "sqlite";
 import { Gateway } from "../../lib/gateway";
 import { Todo } from "./todo";
 
