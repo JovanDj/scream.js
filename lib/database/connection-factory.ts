@@ -1,10 +1,10 @@
 import { open } from "sqlite";
-import sqlite3 from "sqlite3";
+import { Database } from "sqlite3";
 
 export type ConnectionOptions = { database: string };
 
 const defaultConnectionOptions: ConnectionOptions = {
-  database: "test-database.db"
+  database: ":memory:"
 };
 
 export class ConnectionFactory {
@@ -14,7 +14,7 @@ export class ConnectionFactory {
     try {
       return open({
         filename: connectionOptions.database,
-        driver: sqlite3.Database
+        driver: Database
       });
     } catch (error) {
       throw error;

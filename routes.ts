@@ -20,7 +20,6 @@ export const routes: Route[] = [
     path: "/users",
     method: "GET",
     handler: async (context: HTTPContext) => {
-      console.log("users index");
       return UsersController.index(context);
     }
   }
