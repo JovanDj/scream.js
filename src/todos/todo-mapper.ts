@@ -50,7 +50,7 @@ export class TodoMapper {
   }
 
   async insert(todo: Partial<Todo>): Promise<Todo> {
-    return this.findById(await this.gateway.insert(todo));
+    return this.findById((await this.gateway.insert(todo)).lastID);
   }
 
   async update(id: Todo["id"], todo: Partial<Todo>): Promise<number> {

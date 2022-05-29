@@ -6,7 +6,6 @@ export class TodoRepository implements Repository<Todo> {
   constructor(private readonly mapper: TodoMapper) {}
 
   findAll(): Promise<Todo[]> {
-    console.log("repo");
     return this.mapper.findAll();
   }
 
