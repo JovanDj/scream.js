@@ -1,9 +1,15 @@
+import { Database } from "sqlite";
+
 export class Todo {
   private _id = 0;
   private _title = "";
   private _updatedAt = new Date();
   private _createdAt = new Date();
   private _dueDate = new Date();
+
+  constructor(private readonly db: Database) {}
+
+  // Setters & Getters
 
   get id(): number {
     return this._id;
@@ -43,5 +49,27 @@ export class Todo {
 
   set title(title) {
     this._title = title;
+  }
+
+  // Active record
+
+  async findAll() {
+    const query = `SELECT * FROM todos`;
+    const preparedStatement = await this.db.prepare(query);
+    const result = await preparedStatement.all<Todo[]>();
+
+    await preparedStatement.finalize();
+
+    return result;
+  }
+
+  async findOne(id: Todo["id"]) {
+    const query = `SELECT * FROM todos WHERE todos.id = ?`;
+    const preparedStatement = await this.db.prepare(query, [id]);
+    const result = await preparedStatement.get<Todo>();
+
+    await preparedStatement.finalize();
+
+    return result;
   }
 }

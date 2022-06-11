@@ -1,5 +1,7 @@
 import { open } from "sqlite";
-import { Database } from "sqlite3";
+import sqlite3 from "sqlite3";
+
+sqlite3.verbose();
 
 export type ConnectionOptions = { database: string };
 
@@ -14,7 +16,7 @@ export class ConnectionFactory {
     try {
       return open({
         filename: connectionOptions.database,
-        driver: Database
+        driver: sqlite3.cached.Database
       });
     } catch (error) {
       throw error;
