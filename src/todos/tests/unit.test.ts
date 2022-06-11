@@ -4,7 +4,7 @@ import { Repository } from "../../../lib/repository";
 import { Todo } from "../todo";
 import { TodosController } from "../todos.controller";
 
-describe.concurrent("Todo Module", () => {
+describe.skip("Todo Module", () => {
   describe("Unit", () => {
     describe("TodoController", () => {
       let todoRepositoryMock: Repository<Todo>;
