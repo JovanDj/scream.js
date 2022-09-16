@@ -3,7 +3,7 @@
 
   "compilerOptions": {
     "target": "esnext",
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "ES6"],
     "esModuleInterop": true,
     "strict": true,
     "experimentalDecorators": true,
