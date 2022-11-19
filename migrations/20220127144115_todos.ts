@@ -1,17 +1,17 @@
-import { Knex } from "knex";
+import { Database } from "sqlite";
+import { Migration } from "../lib/migration";
 
-const tableName = "todos";
+export class TodosMigration implements Migration {
+  async up(database: Database) {
+    database.exec(`
+      CREATE TABLE todos (
+        todo_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        due_date TEXT NOT NULL
+      )`);
+  }
 
-export async function up(knex: Knex): Promise<void> {
-  return knex.schema.createTable(tableName, (table) => {
-    table.increments("todo_id");
-    table.string("title");
-    table.dateTime("dueDate");
-
-    table.timestamps(false, true);
-  });
-}
-
-export async function down(knex: Knex): Promise<void> {
-  return knex.schema.dropTable(tableName);
+  async down(database: Database) {
+    database.exec("DROP TABLE todos");
+  }
 }

@@ -1,27 +1,9 @@
 {
-  "extends": "@tsconfig/node16/tsconfig.json",
-
-  "compilerOptions": {
-    "target": "esnext",
-    "lib": ["ESNext", "ES6"],
-    "esModuleInterop": true,
-    "strict": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "outDir": "./dist",
-    "forceConsistentCasingInFileNames": true,
-    "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
-    "exactOptionalPropertyTypes": false,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "strictNullChecks": false,
-    "sourceMap": true
+  "extends": "@tsconfig/node-lts-strictest-esm/tsconfig.json",
+  "ts-node": {
+    // Tell ts-node CLI to install the --loader automatically, explained below
+    "esm": true,
+    "pretty": true
   },
   "exclude": ["node_modules"],
   "include": ["./main.ts"]
