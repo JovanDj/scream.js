@@ -1,31 +1,38 @@
-import express from "express";
-import { ConnectionFactory } from "./lib/database/connection-factory";
-import { Todo } from "./src/todos/todo";
-import { TodosController } from "./src/todos/todos.controller";
+import { createApplication } from "./create-application.js";
 
-export const app = async () => {
-  const app = express();
-  app.use(express.json());
+export class User {
+  get name() {
+    return this._name;
+  }
+  set name(name) {
+    this._name = name;
+  }
 
-  const db = await ConnectionFactory.createConnection();
+  get id() {
+    return this._id;
+  }
 
-  await db.run(
-    "CREATE TABLE todos (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL)"
-  );
+  set id(id) {
+    this._id = id;
+  }
+  constructor(private _id: number, private _name: string) {}
+}
 
-  await db.run("INSERT INTO todos (title) VALUES (?)", "test1");
+const app = createApplication();
 
-  const todo = new Todo(db);
-  const todosController = new TodosController(todo);
+await app.database.schema.createTableIfNotExists("users", table => {
+  table.increments("user_id", { primaryKey: true });
+  table.string("name").notNullable();
+});
 
-  app.get("/todos", async (_req, res) => {
-    res.json(await todosController.findAll());
+app.use(async ctx => {
+  const { name } = ctx.query;
+  await app.database.insert({ name }).into("users");
+
+  ctx.body = await app.renderFile("./index.html", {
+    name: ctx.query["name"],
+    message: "Hello"
   });
+});
 
-  app.get("/todos/:id", async (req, res) => {
-    console.log();
-    res.json(await todosController.findOne(+req.params.id));
-  });
-
-  return app;
-};
+app.listen();
