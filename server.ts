@@ -1,57 +1,69 @@
+import "reflect-metadata";
+
 import {
   createServer,
   IncomingMessage,
   ServerResponse,
-  STATUS_CODES
+  STATUS_CODES,
 } from "node:http";
 
-class TodosController {
-  async findAll({ res }: HTTPContext) {
-    res.end("FIND ALL");
-  }
-
-  async findOne({ res }: HTTPContext) {
-    res.end("FIND ONE");
-  }
+export interface HTTPContext {
+  req: IncomingMessage;
+  res: Response;
 }
 
-const todosController = Reflect.construct(
-  TodosController,
-  []
-) as TodosController;
+export type Handler = (context: HTTPContext) => void;
 
-type HTTPContext = {
-  req: IncomingMessage;
-  res: ServerResponse;
-};
+export class Response {
+  constructor(private readonly response: ServerResponse) {}
 
-type Routes = {
-  [key: string]: {
-    [key: string]: ({ req, res }: HTTPContext) => void;
-  };
-};
-
-const routes: Routes = {
-  GET: {
-    "/todos": todosController.findAll,
-    "/todos/1": todosController.findOne
+  json(body: unknown) {
+    return this.response.end(JSON.stringify(body));
   }
-};
 
-const get = (path: string, handler: ({}: HTTPContext) => void) => {
-  routes["GET"][path] = handler;
-};
-
-get("/", ({ res }) => res.end("ROOT"));
-
-const server = createServer((req, res) => {
-  try {
-    routes[req.method][req.url]({ req, res });
-  } catch (error) {
-    res.writeHead(404);
-    res.write(STATUS_CODES[404]);
-    res.end();
+  end(chunk: unknown) {
+    return this.response.end(chunk);
   }
-});
+}
+export class Router {
+  private readonly _layers = new Map<string, Handler>();
+  private readonly _routes = new Map<string, typeof this.layers>();
 
-server.listen(3000, () => console.log("Listening on port 3000."));
+  get layers() {
+    return this._layers;
+  }
+
+  get routes() {
+    return this._routes;
+  }
+
+  get(path: string, handler: Handler) {
+    return this.routes.set("GET", this.layers.set(path, handler));
+  }
+
+  match(req: IncomingMessage, res: ServerResponse) {
+    const { method = "GET", url = "/" } = req;
+
+    console.log({ method, url });
+    return this.routes.get(method)?.get(url)?.({ req, res: new Response(res) });
+  }
+}
+export class Application {
+  constructor(private readonly _router: Router) {}
+
+  get router() {
+    return this._router;
+  }
+
+  createServer() {
+    return createServer((req, res) => {
+      try {
+        return this.router.match(req, res);
+      } catch (error) {
+        res.writeHead(404);
+        res.write(STATUS_CODES[404]);
+        return res.end();
+      }
+    });
+  }
+}

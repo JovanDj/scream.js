@@ -6,7 +6,7 @@ export class ScreamQueryBuilder implements QueryBuilder {
 
   select(fields: string[]): this {
     this.statement = "";
-    this.statement = `SELECT ${fields ? fields.join(" ") : "*"}`;
+    this.statement = `SELECT ${fields.length > 0 ? fields.join(" ") : "*"}`;
 
     this.previous = this.select.name.toLocaleLowerCase();
 

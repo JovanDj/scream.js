@@ -1,7 +1,7 @@
 import "reflect-metadata";
 
 export class Injector {
-  static injections: Map<string, unknown> = new Map();
+  static injections = new Map<string, unknown>();
 
   static resolve<T>(target: ReturnType<ClassDecorator>): T {
     if (target) {
@@ -27,7 +27,7 @@ export class Injector {
       this.injections.set(target.name, construct);
 
       console.log("Registered dependecy: ", this.injections.get(target.name));
-      return construct as T;
+      return construct;
     } else {
       return {} as T;
     }

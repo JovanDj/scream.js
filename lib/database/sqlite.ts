@@ -11,7 +11,7 @@ export class SqliteDatabase implements Database {
     try {
       const db = await sqlite.open({
         filename: this.database,
-        driver: sqlite.Database
+        driver: sqlite.Database,
       });
       this.db = db;
     } catch (err) {
@@ -20,10 +20,10 @@ export class SqliteDatabase implements Database {
   }
 
   async query(queryString: string, param = "") {
-    this.db.exec(queryString, param);
+    return await this.db.exec(queryString, param);
   }
 
   async close(): Promise<void> {
-    this.db.close();
+    return await this.db.close();
   }
 }
