@@ -6,7 +6,7 @@ export class RequestLogger implements Middleware {
   constructor(readonly next?: Middleware) {}
 
   handle(context: HTTPContext): void {
-    const { method, url } = context.request;
+    const { method = "", url = "" } = context.request;
     console.log("RequestLogger middleware");
 
     const dateFormat = new Intl.DateTimeFormat("sr-Latn-RS", {

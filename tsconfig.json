@@ -5,6 +5,12 @@
     "esm": true,
     "pretty": true
   },
-  "exclude": ["node_modules"],
-  "include": ["./main.ts"]
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "nodenext",
+    "lib": ["es6", "ESNext"],
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true
+  },
+  "include": ["**/*.ts"]
 }

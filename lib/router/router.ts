@@ -1,10 +1,10 @@
 import { HTTPContext } from "../http/http-context";
 
-export type Route = {
+export interface Route {
   path: string;
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD";
   handler: (context: HTTPContext) => void;
-};
+}
 
 export class Router {
   private _routes: Route[] = [];

@@ -1,14 +1,11 @@
-import { Todo } from "./todo";
+import type { HTTPContext } from "../../server.js";
 
 export class TodosController {
-  constructor(private readonly todo: Todo) {}
-
-  async findAll() {
-    const todos = this.todo.findAll();
-    return todos;
+  findAll({ res }: HTTPContext) {
+    res.end("FIND ALL");
   }
 
-  async findOne(id: Todo["id"]) {
-    return this.todo.findOne(id);
+  findOne({ res }: HTTPContext) {
+    res.end("FIND ONE");
   }
 }

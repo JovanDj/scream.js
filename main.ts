@@ -1,38 +1,13 @@
-import { createApplication } from "./create-application.js";
+import { Application, Router } from "./server.js";
+import { TodosController } from "./src/todos/todos.controller.js";
 
-export class User {
-  get name() {
-    return this._name;
-  }
-  set name(name) {
-    this._name = name;
-  }
+const router = new Router();
+const app = new Application(router);
+const todosController = new TodosController();
 
-  get id() {
-    return this._id;
-  }
+router.get("/todos", ({ req, res }) => todosController.findAll({ req, res }));
+router.get("/todos/1", ({ req, res }) => todosController.findOne({ req, res }));
 
-  set id(id) {
-    this._id = id;
-  }
-  constructor(private _id: number, private _name: string) {}
-}
-
-const app = createApplication();
-
-await app.database.schema.createTableIfNotExists("users", table => {
-  table.increments("user_id", { primaryKey: true });
-  table.string("name").notNullable();
-});
-
-app.use(async ctx => {
-  const { name } = ctx.query;
-  await app.database.insert({ name }).into("users");
-
-  ctx.body = await app.renderFile("./index.html", {
-    name: ctx.query["name"],
-    message: "Hello"
-  });
-});
-
-app.listen();
+export const server = app
+  .createServer()
+  .listen(3000, () => console.log("listening on port 3000"));
