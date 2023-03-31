@@ -1,46 +1,17 @@
-import { createServer } from "node:http";
+import { createExpressFacade } from "./express-facade.js";
+import { TodosController } from "./src/todos/todos.controller.js";
 
-import { TodoController } from "./src/todos/todos.controller";
-class UserController {
-  findAll() {
-    return "FIND ALL USERS";
-  }
-}
+const app = createExpressFacade({ port: 3000 });
+const todosController = new TodosController();
 
-export const server = createServer((req, res) => {
-  const { method = "GET", url = "/" } = req;
-  const { pathname } = new URL(
-    url,
-    `http://${req.headers.host ?? "localhost"}`
-  );
+const todosRouter = app.createRouter();
 
-  if (pathname.match("/todos")) {
-    const todosController = new TodoController();
-    if (method === "GET") {
-      if (url === "/todos") {
-        return res.end(todosController.findAll());
-      }
-      if (url === "/todos/1") {
-        return res.end(todosController.findOne());
-      }
-    }
+todosRouter.get("/", (req, res) => todosController.findAll({ req, res }));
+todosRouter.get("/:id", (req, res) => todosController.findOne({ req, res }));
+todosRouter.post("/", (req, res) => todosController.create({ req, res }));
 
-    if (method === "POST") {
-      if (url === "/todos") {
-        return res.end(todosController.create());
-      }
-    }
-  }
+app.useRouter("/todos", todosRouter);
 
-  if (pathname.match("/users")) {
-    const usersController = new UserController();
-
-    if (method === "GET") {
-      if (url === "/users") {
-        return res.end(usersController.findAll());
-      }
-    }
-  }
-
-  return res.writeHead(404, "NOT FOUND").end("NOT FOUND");
-});
+export const server = app.listen(3000, () =>
+  console.log("listening on port 3000")
+);
