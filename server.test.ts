@@ -1,5 +1,3 @@
-import "reflect-metadata";
-
 import { describe, expect, it } from "vitest";
 import supertest from "supertest";
 import { server } from "./main.js";
@@ -38,5 +36,14 @@ describe.only("Server", () => {
     expect(res.ok).toBeTruthy();
 
     expect(res.text).toStrictEqual("FIND ALL USERS");
+  });
+
+  it("creates todo", async () => {
+    const res = await supertest(server)
+      .post("/todos")
+      .set("Accept", "application/json")
+      .field("title", "todo title");
+
+    expect(res.text).toStrictEqual("CREATE");
   });
 });

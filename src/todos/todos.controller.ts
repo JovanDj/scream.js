@@ -1,13 +1,14 @@
-export class TodoController {
-  findAll() {
-    return "FIND ALL";
+export class TodosController {
+  findAll({ res }) {
+    return res.end("FIND ALL");
   }
 
-  findOne() {
-    return "FIND ONE";
+  findOne({ res }: HTTPContext) {
+    return res.end("FIND ONE");
   }
 
-  create() {
-    return "CREATE";
+  create({ req, res }: HTTPContext) {
+    console.log(req.body);
+    return res.end("CREATE");
   }
 }

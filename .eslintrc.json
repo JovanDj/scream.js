@@ -17,5 +17,8 @@
     "plugin:@typescript-eslint/strict",
     "plugin:promise/recommended",
     "prettier"
-  ]
+  ],
+  "rules": {
+    "@typescript-eslint/no-unsafe-return": "error"
+  }
 }
