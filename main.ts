@@ -1,13 +1,46 @@
-import { Application, Router } from "./server.js";
-import { TodosController } from "./src/todos/todos.controller.js";
+import { createServer } from "node:http";
 
-const router = new Router();
-const app = new Application(router);
-const todosController = new TodosController();
+import { TodoController } from "./src/todos/todos.controller";
+class UserController {
+  findAll() {
+    return "FIND ALL USERS";
+  }
+}
 
-router.get("/todos", ({ req, res }) => todosController.findAll({ req, res }));
-router.get("/todos/1", ({ req, res }) => todosController.findOne({ req, res }));
+export const server = createServer((req, res) => {
+  const { method = "GET", url = "/" } = req;
+  const { pathname } = new URL(
+    url,
+    `http://${req.headers.host ?? "localhost"}`
+  );
 
-export const server = app
-  .createServer()
-  .listen(3000, () => console.log("listening on port 3000"));
+  if (pathname.match("/todos")) {
+    const todosController = new TodoController();
+    if (method === "GET") {
+      if (url === "/todos") {
+        return res.end(todosController.findAll());
+      }
+      if (url === "/todos/1") {
+        return res.end(todosController.findOne());
+      }
+    }
+
+    if (method === "POST") {
+      if (url === "/todos") {
+        return res.end(todosController.create());
+      }
+    }
+  }
+
+  if (pathname.match("/users")) {
+    const usersController = new UserController();
+
+    if (method === "GET") {
+      if (url === "/users") {
+        return res.end(usersController.findAll());
+      }
+    }
+  }
+
+  return res.writeHead(404, "NOT FOUND").end("NOT FOUND");
+});

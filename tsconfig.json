@@ -1,16 +1,18 @@
 {
-  "extends": "@tsconfig/node-lts-strictest-esm/tsconfig.json",
+  "extends": [
+    "@tsconfig/recommended/tsconfig.json",
+    "@tsconfig/node18/tsconfig.json",
+    "@tsconfig/strictest/tsconfig.json",
+    "@tsconfig/esm/tsconfig.json"
+  ],
   "ts-node": {
     // Tell ts-node CLI to install the --loader automatically, explained below
     "esm": true,
     "pretty": true
   },
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "nodenext",
-    "lib": ["es6", "ESNext"],
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    "outDir": "dist"
   },
-  "include": ["**/*.ts"]
+
+  "include": ["./server.ts", "./src/**/*.ts"]
 }
