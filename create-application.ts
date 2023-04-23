@@ -13,8 +13,8 @@ export const createApplication = () => {
       pool: { min: 0 },
       connection: {
         debug: true,
-        filename: "./mydb.sqlite"
-      }
+        filename: "./mydb.sqlite",
+      },
     })
   );
 };
