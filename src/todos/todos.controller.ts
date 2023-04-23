@@ -1,14 +1,15 @@
+import { type Request, type Response } from "express";
+
 export class TodosController {
-  findAll({ res }) {
-    return res.end("FIND ALL");
+  findAll({ res }: { req: Request; res: Response }) {
+    return res.status(200).send("FIND ALL");
   }
 
-  findOne({ res }: HTTPContext) {
-    return res.end("FIND ONE");
+  findOne({ res }: { req: Request; res: Response }) {
+    return res.status(200).send("FIND ONE");
   }
 
-  create({ req, res }: HTTPContext) {
-    console.log(req.body);
-    return res.end("CREATE");
+  create({ res }: { req: Request; res: Response }) {
+    return res.status(201).send("CREATE");
   }
 }

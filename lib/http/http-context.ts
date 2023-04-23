@@ -1,12 +1,10 @@
-import { Logger } from "../logger/logger.interface";
-import { Request } from "./request";
-import { Response } from "./response";
+import type { Request } from "./request.js";
+import type { Response } from "./response.js";
 
 export class HTTPContext {
   constructor(
     private readonly _request: Request,
-    private readonly _response: Response,
-    private readonly _logger: Logger
+    private readonly _response: Response
   ) {}
 
   get request() {
@@ -15,9 +13,5 @@ export class HTTPContext {
 
   get response() {
     return this._response;
-  }
-
-  get logger() {
-    return this._logger;
   }
 }

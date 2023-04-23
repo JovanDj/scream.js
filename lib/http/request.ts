@@ -1,10 +1,10 @@
-import { IncomingMessage } from "http";
+import type { IncomingMessage } from "http";
 
 export class Request {
   constructor(private readonly req: IncomingMessage) {}
 
   get method() {
-    return this.req.method;
+    return this.req.method ?? "GET";
   }
 
   get headers() {

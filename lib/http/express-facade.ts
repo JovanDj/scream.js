@@ -1,4 +1,8 @@
-import express, { RequestHandler, Router, RouterOptions } from "express";
+import express, {
+  type RequestHandler,
+  Router,
+  type RouterOptions,
+} from "express";
 import type { Server } from "http";
 import cors from "cors";
 import helmet from "helmet";
@@ -10,7 +14,7 @@ interface ExpressOptions {
   middleware: express.Handler[];
 }
 
-class ExpressFacade {
+export class ExpressFacade {
   private _app = express();
   private _server?: Server;
   private _port = 3000;
@@ -48,7 +52,8 @@ class ExpressFacade {
   }
 
   get(path: string, handler: RequestHandler) {
-    return this.app.get(path, handler);
+    this.app.get(path, handler);
+    return this;
   }
 
   post(path: string, handler: RequestHandler) {

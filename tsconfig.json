@@ -5,14 +5,10 @@
     "@tsconfig/strictest/tsconfig.json",
     "@tsconfig/esm/tsconfig.json"
   ],
-  "ts-node": {
-    // Tell ts-node CLI to install the --loader automatically, explained below
-    "esm": true,
-    "pretty": true
-  },
+
   "compilerOptions": {
     "outDir": "dist"
   },
 
-  "include": ["./server.ts", "./src/**/*.ts"]
+  "include": ["server.ts"]
 }
