@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import supertest from "supertest";
 import { app } from "./main.js";
 
-describe.only("Server", () => {
-  it.only("finds missing route", async () => {
+describe("Server", () => {
+  it("finds missing route", async () => {
     const res = await supertest(app.app).get("/missing");
 
     expect(res.notFound).toBeTruthy();
     expect(res.text).toContain("/missing");
   });
 
-  it.only("finds all todos", async () => {
+  it("finds all todos", async () => {
     const res = await supertest(app.app).get("/todos");
 
     expect(res.ok).toBeTruthy();

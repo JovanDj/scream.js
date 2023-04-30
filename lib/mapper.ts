@@ -1,7 +1,7 @@
 export abstract class Mapper<T> {
   constructor(private readonly gateway: Gateway<T>) {}
 
-  async findById(id: number): Promise<T> {
+  async findById(id: number) {
     const result = await this.gateway.findById(id);
 
     return this.columnsToModel(result, new T());

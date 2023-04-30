@@ -1,13 +1,21 @@
 import { Database } from "sqlite";
 
-export class Todo {
+export abstract class Entity {
+  static routes: Record<string, string>;
+}
+
+export class Todo extends Entity {
   private _id = 0;
   private _title = "";
   private _updatedAt = new Date();
   private _createdAt = new Date();
   private _dueDate = new Date();
 
-  constructor(private readonly db: Database) {}
+  static routes = { findAll: "/todos", findOne: "/todos/:id" };
+
+  constructor(private readonly db: Database) {
+    super();
+  }
 
   // Setters & Getters
 
