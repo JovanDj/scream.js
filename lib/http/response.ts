@@ -16,4 +16,8 @@ export class Response {
   end(chunk?: string) {
     return this.res.end(chunk);
   }
+
+  status(code: number) {
+    this.res.statusCode = code;
+  }
 }
