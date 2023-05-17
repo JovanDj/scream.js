@@ -3,20 +3,15 @@ import cors from "cors";
 import express, { type RequestHandler } from "express";
 import session from "express-session";
 import helmet from "helmet";
-import { ExpressRouter } from "../router/express-router";
-import { createExpressRouter } from "../router/express-router-factory";
-import { HTTPContext } from "./http-context";
-import { Request } from "./request";
-import { Response } from "./response";
-import { Server } from "./server.interface";
-interface ExpressOptions {
+
+export interface ExpressOptions {
   port: number;
   middleware: express.Handler[];
 }
 
-export class ExpressFacade implements Server {
+export class ExpressFacade {
   private _app = express();
-  private _server?: Server;
+  private _server?: ReturnType<(typeof this._app)["listen"]>;
   private _port = 3000;
 
   constructor(options: ExpressOptions) {
@@ -24,12 +19,9 @@ export class ExpressFacade implements Server {
       this.app.use(middleware);
     });
   }
-  get(path: string, handler: (context: HTTPContext) => void) {
-    return this.app.get(path, (req, res) => {
-      const request = new Request(req);
-      const response = new Response(res);
-      return handler(new HTTPContext(request, response));
-    });
+
+  get(path: string, handler: express.RequestHandler) {
+    return this.app.get(path, handler);
   }
 
   get app() {
@@ -54,8 +46,11 @@ export class ExpressFacade implements Server {
     return this;
   }
 
-  useRouter(root: string, router: ExpressRouter) {
-    return this.app.use(root, router.router);
+  useRouter(
+    root: Parameters<(typeof this.app)["use"]>[0],
+    router: express.Router
+  ) {
+    return this.app.use(root, router);
   }
 
   post(path: string, handler: RequestHandler) {
@@ -73,8 +68,8 @@ export class ExpressFacade implements Server {
     return this;
   }
 
-  listen(port: number, callback?: () => void) {
-    return this.app.listen(port || this.port, callback);
+  listen(port = this.port, callback?: () => void) {
+    return this.app.listen(port, callback);
   }
 
   useErrorHandler(handler: express.ErrorRequestHandler) {
@@ -111,28 +106,4 @@ export class ExpressFacade implements Server {
     this.app.use(express.json());
     return this;
   }
-
-  createRouter(options: Parameters<typeof express.Router>[0]) {
-    return createExpressRouter(options);
-  }
-}
-
-const DEFAULT_PORT = 3000;
-const DEFAULT_MIDDLEWARE = [
-  express.json(),
-  express.urlencoded({ extended: true }),
-];
-
-export function createExpressFacade(options: Partial<ExpressOptions> = {}) {
-  const port = options.port ?? DEFAULT_PORT;
-  const middleware = options.middleware ?? DEFAULT_MIDDLEWARE;
-  const expressOptions: ExpressOptions = { port, middleware };
-
-  return new ExpressFacade(expressOptions)
-    .useBodyParser()
-    .useCookieParser()
-    .useCors()
-    .useHelmet()
-    .useSession({ secret: "secret" })
-    .setPort(port);
 }
