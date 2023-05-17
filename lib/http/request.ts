@@ -1,17 +1,17 @@
-import type { IncomingMessage } from "http";
+import type { IncomingMessage } from "node:http";
 
 export class Request {
-  constructor(private readonly req: IncomingMessage) {}
+  constructor(private readonly _req: IncomingMessage) {}
 
   get method() {
-    return this.req.method ?? "GET";
+    return this._req.method ?? "GET";
   }
 
   get headers() {
-    return this.req.headers;
+    return this._req.headers;
   }
 
   get url() {
-    return this.req.url;
+    return this._req.url;
   }
 }
