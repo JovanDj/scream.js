@@ -1,15 +1,18 @@
-import { type Request, type Response } from "express";
+import { HTTPContext } from "../../lib/http/http-context";
 
 export class TodosController {
-  findAll({ res }: { req: Request; res: Response }) {
-    return res.status(200).send("FIND ALL");
+  findAll({ response }: HTTPContext) {
+    response.status(200);
+    response.end("FIND ALL");
   }
 
-  findOne({ res }: { req: Request; res: Response }) {
-    return res.status(200).send("FIND ONE");
+  findOne({ response }: HTTPContext) {
+    response.status(200);
+    response.end("FIND ONE");
   }
 
-  create({ res }: { req: Request; res: Response }) {
-    return res.status(201).send("CREATE");
+  create({ response }: HTTPContext) {
+    response.status(201);
+    response.end("CREATE");
   }
 }

@@ -1,20 +1,20 @@
-import express, {
-  type RequestHandler,
-  Router,
-  type RouterOptions,
-} from "express";
-import type { Server } from "http";
-import cors from "cors";
-import helmet from "helmet";
-import session from "express-session";
 import cookieParser from "cookie-parser";
-
+import cors from "cors";
+import express, { type RequestHandler } from "express";
+import session from "express-session";
+import helmet from "helmet";
+import { ExpressRouter } from "../router/express-router";
+import { createExpressRouter } from "../router/express-router-factory";
+import { HTTPContext } from "./http-context";
+import { Request } from "./request";
+import { Response } from "./response";
+import { Server } from "./server.interface";
 interface ExpressOptions {
   port: number;
   middleware: express.Handler[];
 }
 
-export class ExpressFacade {
+export class ExpressFacade implements Server {
   private _app = express();
   private _server?: Server;
   private _port = 3000;
@@ -22,6 +22,13 @@ export class ExpressFacade {
   constructor(options: ExpressOptions) {
     options.middleware.forEach((middleware) => {
       this.app.use(middleware);
+    });
+  }
+  get(path: string, handler: (context: HTTPContext) => void) {
+    return this.app.get(path, (req, res) => {
+      const request = new Request(req);
+      const response = new Response(res);
+      return handler(new HTTPContext(request, response));
     });
   }
 
@@ -47,13 +54,8 @@ export class ExpressFacade {
     return this;
   }
 
-  useRouter(root: string, router: Router) {
-    return this.app.use(root, router);
-  }
-
-  get(path: string, handler: RequestHandler) {
-    this.app.get(path, handler);
-    return this;
+  useRouter(root: string, router: ExpressRouter) {
+    return this.app.use(root, router.router);
   }
 
   post(path: string, handler: RequestHandler) {
@@ -110,8 +112,8 @@ export class ExpressFacade {
     return this;
   }
 
-  createRouter(options?: RouterOptions) {
-    return Router(options);
+  createRouter(options: Parameters<typeof express.Router>[0]) {
+    return createExpressRouter(options);
   }
 }
 
