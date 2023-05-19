@@ -3,6 +3,7 @@ import cors from "cors";
 import express, { type RequestHandler } from "express";
 import session from "express-session";
 import helmet from "helmet";
+import path from "node:path";
 
 export interface ExpressOptions {
   port: number;
@@ -18,6 +19,9 @@ export class ExpressFacade {
     options.middleware.forEach((middleware) => {
       this.app.use(middleware);
     });
+
+    this.app.set("views", path.join(process.cwd(), "views"));
+    this.app.set("view engine", "ejs");
   }
 
   get(path: string, handler: express.RequestHandler) {
