@@ -1,16 +1,18 @@
-import { createKoaFacade } from "./lib/http/create-koa-facade.js";
-import { createKoaRouter } from "./lib/router/create-koa-router.js";
+import type { Server } from "./lib/http/server.interface.js";
+import { createExpressFacade } from "./lib/http/create-express-facade.js";
+import { ExpressServer } from "./lib/http/express-server.js";
 
-export const app = createKoaFacade({ port: 3000 });
+const express = createExpressFacade();
+export const app: Server = new ExpressServer(express);
 
 app.get("/", (ctx) => {
-  ctx.body = "Hello";
+  ctx.response.end("hello world");
 });
 
-const todosRouter = createKoaRouter();
-todosRouter.get("/", (ctx) => (ctx.body = "FIND ALL"));
-todosRouter.get("/:id", (ctx) => (ctx.body = "FIND ONE"));
-todosRouter.post("/", (ctx) => (ctx.body = "CREATE"));
-todosRouter.patch("/:id", (ctx) => (ctx.body = "UPDATE"));
+app.get("/asdf", (ctx) => {
+  ctx.response.end("hello world asdf");
+});
 
-app.useRouter("/todos", todosRouter);
+app.get("/json", (ctx) => {
+  ctx.response.json({ message: "hello world" });
+});
