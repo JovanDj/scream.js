@@ -1,18 +1,24 @@
 import type { Server } from "./lib/http/server.interface.js";
-import { createExpressFacade } from "./lib/http/create-express-facade.js";
-import { ExpressServer } from "./lib/http/express-server.js";
+import { createKoaServer } from "./lib/http/create-koa-server.js";
 
-const express = createExpressFacade();
-export const app: Server = new ExpressServer(express);
+export const app: Server = createKoaServer();
 
-app.get("/", (ctx) => {
-  ctx.response.end("hello world");
+app.get("/todos", (ctx) => {
+  ctx.response.status(200);
+  ctx.response.end("FIND ALL");
 });
 
-app.get("/asdf", (ctx) => {
-  ctx.response.end("hello world asdf");
+app.get("/todos/:id", (ctx) => {
+  ctx.response.status(200);
+  ctx.response.end("FIND ONE");
 });
 
-app.get("/json", (ctx) => {
-  ctx.response.json({ message: "hello world" });
+app.post("/todos", (ctx) => {
+  ctx.response.status(200);
+  ctx.response.end("CREATE");
+});
+
+app.patch("/todos/:id", (ctx) => {
+  ctx.response.status(200);
+  ctx.response.end("UPDATE");
 });

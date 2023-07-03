@@ -1,9 +1,12 @@
+import type { Database } from "sqlite";
 import { HTTPContext } from "../../lib/http/http-context";
+import { Todo } from "./todo";
 
 export class TodosController {
-  findAll({ response }: HTTPContext) {
-    response.status(200);
-    response.end("FIND ALL");
+  constructor(private readonly db: Database) {}
+
+  async findAll() {
+    return this.db.all<Todo[]>("SELECT * FROM todos");
   }
 
   findOne({ response }: HTTPContext) {

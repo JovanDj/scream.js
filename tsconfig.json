@@ -11,5 +11,5 @@
     "lib": ["ESNext"]
   },
 
-  "include": ["server.ts"]
+  "include": ["server.ts", "lib", "src", "main.ts"]
 }
