@@ -1,13 +1,7 @@
-import { Repository } from "./repository";
+import type { CommandController } from "./command.controller";
+import type { Entity } from "./database/entity";
+import type { QueryController } from "./query.controller";
 
-export abstract class Controller<T> {
-  constructor(private readonly repository: Repository<T>) {}
-
-  async findAll() {
-    return this.repository.findAll();
-  }
-
-  create(model: T) {
-    return this.repository.insert(model);
-  }
-}
+export interface Controller<T = Entity>
+  extends QueryController<T>,
+    CommandController<T> {}

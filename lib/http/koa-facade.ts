@@ -33,6 +33,34 @@ export class KoaFacade {
     return this.router.get(name, middleware);
   }
 
+  post(
+    name: Parameters<(typeof this.router)["get"]>[0],
+    middleware: Parameters<(typeof this.router)["get"]>[1]
+  ) {
+    return this.router.post(name, middleware);
+  }
+
+  patch(
+    name: Parameters<(typeof this.router)["get"]>[0],
+    middleware: Parameters<(typeof this.router)["get"]>[1]
+  ) {
+    return this.router.patch(name, middleware);
+  }
+
+  put(
+    name: Parameters<(typeof this.router)["get"]>[0],
+    middleware: Parameters<(typeof this.router)["get"]>[1]
+  ) {
+    return this.router.post(name, middleware);
+  }
+
+  delete(
+    name: Parameters<(typeof this.router)["get"]>[0],
+    middleware: Parameters<(typeof this.router)["get"]>[1]
+  ) {
+    return this.router.delete(name, middleware);
+  }
+
   useRouter(
     prefix: Parameters<(typeof this.router)["prefix"]>[0],
     router: KoaRouter

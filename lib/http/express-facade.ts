@@ -67,6 +67,11 @@ export class ExpressFacade {
     return this;
   }
 
+  patch(path: string, handler: RequestHandler) {
+    this.app.patch(path, handler);
+    return this;
+  }
+
   delete(path: string, handler: RequestHandler) {
     this.app.delete(path, handler);
     return this;

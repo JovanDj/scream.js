@@ -12,7 +12,28 @@ export class KoaServer implements Server {
   }
 
   get(path: string, handler: (context: HTTPContext) => void) {
-    return this.server.get(path, (ctx) => {
+    this.server.get(path, (ctx) => {
+      handler(new HTTPContext(new Request(ctx.req), new Response(ctx.res)));
+    });
+  }
+
+  post(path: string, handler: (context: HTTPContext) => unknown): void {
+    this.server.post(path, (ctx) => {
+      handler(new HTTPContext(new Request(ctx.req), new Response(ctx.res)));
+    });
+  }
+  patch(path: string, handler: (context: HTTPContext) => unknown): void {
+    this.server.patch(path, (ctx) => {
+      handler(new HTTPContext(new Request(ctx.req), new Response(ctx.res)));
+    });
+  }
+  put(path: string, handler: (context: HTTPContext) => unknown): void {
+    this.server.put(path, (ctx) => {
+      handler(new HTTPContext(new Request(ctx.req), new Response(ctx.res)));
+    });
+  }
+  delete(path: string, handler: (context: HTTPContext) => unknown): void {
+    this.server.delete(path, (ctx) => {
       handler(new HTTPContext(new Request(ctx.req), new Response(ctx.res)));
     });
   }
