@@ -1,7 +1,6 @@
-import type { Server } from "./lib/http/server.interface.js";
-import { createKoaServer } from "./lib/http/create-koa-server.js";
+import { createServer } from "./lib/http/create-server.js";
 
-export const app: Server = createKoaServer();
+export const app = createServer();
 
 app.get("/todos", (ctx) => {
   ctx.response.status(200);
