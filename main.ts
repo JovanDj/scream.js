@@ -1,5 +1,12 @@
 import { createServer } from "./lib/http/create-server.js";
-export const app = createServer("koa");
+export const app = createServer();
+
+app.get("/", (ctx) => {
+  ctx.response.render("./index", {
+    name: "Jovan",
+    message: "Rendered with ejs",
+  });
+});
 
 app.get("/todos", (ctx) => {
   ctx.response.status(200);
