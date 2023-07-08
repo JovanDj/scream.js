@@ -1,6 +1,5 @@
 import { createServer } from "./lib/http/create-server.js";
-
-export const app = createServer();
+export const app = createServer("koa");
 
 app.get("/todos", (ctx) => {
   ctx.response.status(200);
