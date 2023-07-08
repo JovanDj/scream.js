@@ -7,8 +7,7 @@
   ],
 
   "compilerOptions": {
-    "outDir": "dist",
-    "lib": ["ESNext"]
+    "outDir": "dist"
   },
 
   "include": ["server.ts", "lib", "src", "main.ts"]
