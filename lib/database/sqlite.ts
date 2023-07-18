@@ -1,29 +1,53 @@
-import sqlite from "sqlite";
-import { ConnectionOptions } from "../connection-options";
-import { Database } from "./database";
+import { Database as sqliteDB, type ISqlite } from "sqlite";
+import { type ConnectionOptions } from "../connection-options";
+import sqlite3 from "sqlite3";
+import type { Database } from "./database";
 
 export class SqliteDatabase implements Database {
-  private db: sqlite.Database;
+  private readonly _db;
 
-  constructor(private readonly database: ConnectionOptions["database"]) {}
+  constructor(
+    private readonly database: ConnectionOptions["database"] = ":memory:"
+  ) {
+    this._db = new sqliteDB({
+      driver: sqlite3.Database,
+      filename: this.database,
+    });
+  }
+
+  get db() {
+    return this._db;
+  }
 
   async connect() {
-    try {
-      const db = await sqlite.open({
-        filename: this.database,
-        driver: sqlite.Database,
-      });
-      this.db = db;
-    } catch (err) {
-      console.error(err);
-    }
+    return this.db.open();
   }
 
-  async query(queryString: string, param = "") {
-    return await this.db.exec(queryString, param);
+  /**
+   *  Executes multiple queries
+   * @param queryString
+   * @param params
+   * @returns Database
+   */
+  async execute(queryString: ISqlite.SqlType, params: string[] = []) {
+    return this.db.exec(queryString, params);
   }
 
-  async close(): Promise<void> {
-    return await this.db.close();
+  /**
+   * Execute single query
+   * @param queryString
+   * @param params
+   * @returns
+   */
+  async run(queryString: ISqlite.SqlType, params: string[] = []) {
+    return this.db.run(queryString, params);
+  }
+
+  async all(queryString: ISqlite.SqlType, params: string[] = []) {
+    return this.db.all(queryString, params);
+  }
+
+  async close() {
+    return this.db.close();
   }
 }
