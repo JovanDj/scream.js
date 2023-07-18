@@ -3,15 +3,26 @@ import supertest from "supertest";
 import { server } from "./server.js";
 
 describe("Server", () => {
+  let res: Awaited<supertest.Test>;
+
   it("finds missing route", async () => {
     const res = await supertest(server).get("/missing");
 
     expect(res.notFound).toBeTruthy();
   });
 
-  describe("GET /todos", () => {
-    let res;
+  describe("render html", () => {
+    beforeEach(async () => {
+      res = await supertest(server).get("/");
+    });
 
+    it("should return status 200", () => expect(res.ok).toBeTruthy());
+
+    it("should return html document", () =>
+      expect(res.type).toContain("text/html"));
+  });
+
+  describe("GET /todos", () => {
     beforeEach(async () => {
       res = await supertest(server).get("/todos");
     });

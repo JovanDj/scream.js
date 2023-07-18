@@ -4,7 +4,7 @@ import { LoggerFactory } from "./logger-factory.js";
 import { Logger } from "./logger.interface.js";
 import { ScreamLogger } from "./scream-logger.js";
 
-describe.concurrent("ScreamLogger", () => {
+describe("ScreamLogger", () => {
   let logger: Logger;
 
   beforeEach(() => {
