@@ -1,7 +1,7 @@
 import express from "express";
+import { ExpressResponse } from "../http/express-response.js";
 import { HTTPContext } from "../http/http-context.js";
 import { Request } from "../http/request.js";
-import { Response } from "../http/response.js";
 import { type Router } from "./router.interface.js";
 export class ExpressRouter implements Router {
   constructor(private readonly _router: express.Router) {}
@@ -13,7 +13,7 @@ export class ExpressRouter implements Router {
   get(path: string, handler: (context: HTTPContext) => void) {
     return this._router.get(path, (req, res) => {
       const request = new Request(req);
-      const response = new Response(res);
+      const response = new ExpressResponse(res);
       const context = new HTTPContext(request, response);
 
       return handler(context);
@@ -22,7 +22,7 @@ export class ExpressRouter implements Router {
   post(path: string, handler: (context: HTTPContext) => void) {
     return this._router.post(path, (req, res) => {
       const request = new Request(req);
-      const response = new Response(res);
+      const response = new ExpressResponse(res);
 
       return handler(new HTTPContext(request, response));
     });

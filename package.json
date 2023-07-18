@@ -42,7 +42,7 @@
     "husky": "^8.0.3",
     "lint-staged": "^13.2.3",
     "node-dev": "^8.0.0",
-    "prettier": "2.8",
+    "prettier": "^3.0.0",
     "supertest": "^6.3.3",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
@@ -54,7 +54,11 @@
     "node": "^18"
   },
   "lint-staged": {
-    "*.{js,ts,css,md,json}": "prettier --write"
+    "*.{js,ts,css,md,json}": "prettier --write",
+    ".ts": [
+      "tsc --noEmit",
+      "npm run test"
+    ]
   },
   "type": "module",
   "dependencies": {
