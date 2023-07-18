@@ -1,4 +1,4 @@
-import { HTTPContext } from "./http/http-context";
+import { HTTPContext } from "./http/http-context.js";
 
 export interface Middleware {
   next?: Middleware;

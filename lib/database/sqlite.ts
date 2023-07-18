@@ -1,7 +1,7 @@
 import { Database as sqliteDB, type ISqlite } from "sqlite";
-import { type ConnectionOptions } from "../connection-options";
 import sqlite3 from "sqlite3";
-import type { Database } from "./database";
+import { ConnectionOptions } from "../connection-options.js";
+import { Database } from "./database.js";
 
 export class SqliteDatabase implements Database {
   private readonly _db;
@@ -29,8 +29,8 @@ export class SqliteDatabase implements Database {
    * @param params
    * @returns Database
    */
-  async execute(queryString: ISqlite.SqlType, params: string[] = []) {
-    return this.db.exec(queryString, params);
+  async execute(queryString: ISqlite.SqlType) {
+    return this.db.exec(queryString);
   }
 
   /**

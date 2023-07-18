@@ -1,5 +1,4 @@
-import type { Database } from "../../lib/database/database";
-import type { Entity } from "../../lib/database/entity";
+import { Entity } from "../../lib/database/entity.js";
 
 export class Todo implements Entity {
   private _id = 0;
@@ -7,8 +6,6 @@ export class Todo implements Entity {
   private _updatedAt = new Date();
   private _createdAt = new Date();
   private _dueDate = new Date();
-
-  constructor(private readonly db: Database) {}
 
   // Setters & Getters
 

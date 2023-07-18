@@ -1,20 +1,20 @@
-import type { Repository } from "../../lib/database/repository";
-import type { Todo } from "./todo";
+import type { Repository } from "../../lib/database/repository.js";
+import type { Todo } from "./todo.js";
 
 export class TodoRepository implements Repository<Todo> {
-  findById(id: string | number): Promise<Todo> {
+  findById(): Promise<Todo> {
     throw new Error("Method not implemented.");
   }
   findAll(): Promise<Todo[]> {
     throw new Error("Method not implemented.");
   }
-  insert(entity: Partial<Todo>): Promise<Todo> {
+  insert(): Promise<Todo> {
     throw new Error("Method not implemented.");
   }
-  update(id: string | number, entity: Partial<Todo>): Promise<number> {
+  update(): Promise<number> {
     throw new Error("Method not implemented.");
   }
-  delete(id: string | number): Promise<number> {
+  delete(): Promise<number> {
     throw new Error("Method not implemented.");
   }
 }

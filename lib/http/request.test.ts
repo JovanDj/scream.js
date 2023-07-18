@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
-import { mock, when, instance, reset } from "ts-mockito";
+import { mock, when, instance } from "ts-mockito";
 import { IncomingMessage } from "node:http";
 import { Request } from "./request.js";
 

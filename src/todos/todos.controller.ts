@@ -1,7 +1,10 @@
-import { HTTPContext } from "../../lib/http/http-context";
+import { HTTPContext } from "../../lib/http/http-context.js";
 
 export class TodosController {
-  async findAll() {}
+  findAll({ response }: HTTPContext) {
+    response.status(200);
+    response.end("FIND ALL");
+  }
 
   findOne({ response }: HTTPContext) {
     response.status(200);

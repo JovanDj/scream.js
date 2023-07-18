@@ -1,8 +1,8 @@
 import express from "express";
-import { HTTPContext } from "../http/http-context";
-import { Request } from "../http/request";
-import { Response } from "../http/response";
-import { type Router } from "./router.interface";
+import { HTTPContext } from "../http/http-context.js";
+import { Request } from "../http/request.js";
+import { Response } from "../http/response.js";
+import { type Router } from "./router.interface.js";
 export class ExpressRouter implements Router {
   constructor(private readonly _router: express.Router) {}
 

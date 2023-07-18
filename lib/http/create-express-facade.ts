@@ -1,7 +1,7 @@
 import express from "express";
-import { type ExpressOptions, ExpressFacade } from "./express-facade";
 import type { HelmetOptions } from "helmet";
-import type { Session, SessionOptions } from "express-session";
+import type { SessionOptions } from "express-session";
+import { ExpressFacade, ExpressOptions } from "./express-facade.js";
 
 const DEFAULT_PORT = 3000;
 const DEFAULT_MIDDLEWARE = [

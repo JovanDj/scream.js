@@ -1,5 +1,5 @@
 import { Console } from "node:console";
-import { ScreamLogger } from "./scream-logger";
+import { ScreamLogger } from "./scream-logger.js";
 
 export class LoggerFactory {
   static createLogger() {
