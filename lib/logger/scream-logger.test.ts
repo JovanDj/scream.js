@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { LoggerFactory } from "./logger-factory";
-import { Logger } from "./logger.interface";
-import { ScreamLogger } from "./scream-logger";
+import { LoggerFactory } from "./logger-factory.js";
+import { Logger } from "./logger.interface.js";
+import { ScreamLogger } from "./scream-logger.js";
 
 describe.concurrent("ScreamLogger", () => {
   let logger: Logger;

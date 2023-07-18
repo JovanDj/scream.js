@@ -1,4 +1,4 @@
-import { Logger } from "./logger.interface";
+import { Logger } from "./logger.interface.js";
 
 export class ScreamLogger implements Logger {
   constructor(private readonly console: Console) {}

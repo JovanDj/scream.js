@@ -1,4 +1,4 @@
-import { KoaFacade } from "./koa-facade";
+import { KoaFacade } from "./koa-facade.js";
 import Koa from "koa";
 import KoaRouter from "@koa/router";
 

@@ -1,4 +1,4 @@
-import type { Entity } from "./entity";
+import { Entity } from "./entity.js";
 
 export interface Repository<T = Entity> {
   findById(id: Entity["id"]): Promise<T>;

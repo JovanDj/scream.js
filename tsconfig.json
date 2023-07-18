@@ -2,13 +2,11 @@
   "extends": [
     "@tsconfig/recommended/tsconfig.json",
     "@tsconfig/node18/tsconfig.json",
-    "@tsconfig/strictest/tsconfig.json",
-    "@tsconfig/esm/tsconfig.json"
+    "@tsconfig/strictest/tsconfig.json"
   ],
 
   "compilerOptions": {
-    "outDir": "dist",
-    "lib": ["ESNext"]
+    "outDir": "dist"
   },
 
   "include": ["server.ts", "lib", "src", "main.ts"]

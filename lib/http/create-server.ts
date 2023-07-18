@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createExpressServer } from "./create-express-server";
-import { createKoaServer } from "./create-koa-server";
-import type { Server } from "./server.interface";
+import { createExpressServer } from "./create-express-server.js";
+import { createKoaServer } from "./create-koa-server.js";
+import type { Server } from "./server.interface.js";
 
 type ServerImplementation = "express" | "koa";
 
