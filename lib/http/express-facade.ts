@@ -1,18 +1,24 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import express, { type RequestHandler } from "express";
+import express, {
+  Router,
+  type ErrorRequestHandler,
+  type RequestHandler,
+  type Handler,
+} from "express";
 import session from "express-session";
-import helmet from "helmet";
+import helmet, { type HelmetOptions } from "helmet";
 import path from "node:path";
 
 export interface ExpressOptions {
   port: number;
-  middleware: express.Handler[];
+  middleware: Handler[];
+  static: Parameters<ExpressFacade["useStatic"]>;
 }
 
 export class ExpressFacade {
   private _app = express();
-  private _server?: ReturnType<(typeof this._app)["listen"]>;
+  private _server?: ReturnType<typeof this._app.listen>;
   private _port = 3000;
 
   constructor(options: ExpressOptions) {
@@ -45,15 +51,12 @@ export class ExpressFacade {
     return this;
   }
 
-  use(middleware: express.Handler) {
+  use(middleware: Handler) {
     this.app.use(middleware);
     return this;
   }
 
-  useRouter(
-    root: Parameters<(typeof this.app)["use"]>[0],
-    router: express.Router
-  ) {
+  useRouter(root: Parameters<typeof this.app.use>[0], router: Router) {
     return this.app.use(root, router);
   }
 
@@ -77,16 +80,22 @@ export class ExpressFacade {
     return this;
   }
 
-  listen(port = this.port, callback?: () => void) {
+  listen(
+    port: Parameters<typeof this.app.listen>[0] = this.port,
+    callback?: () => void
+  ) {
     return this.app.listen(port, callback);
   }
 
-  useErrorHandler(handler: express.ErrorRequestHandler) {
+  useErrorHandler(handler: ErrorRequestHandler) {
     this.app.use(handler);
     return this;
   }
 
-  useStatic(path: string, root: string) {
+  useStatic(
+    path: Parameters<typeof this.app.use>[0],
+    root: Parameters<typeof express.static>[0]
+  ) {
     this.app.use(path, express.static(root));
     return this;
   }
@@ -96,8 +105,8 @@ export class ExpressFacade {
     return this;
   }
 
-  useHelmet() {
-    this.app.use(helmet());
+  useHelmet(options: HelmetOptions) {
+    this.app.use(helmet(options));
     return this;
   }
 
