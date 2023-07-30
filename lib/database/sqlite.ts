@@ -7,7 +7,7 @@ export class SqliteDatabase implements Database {
   private readonly _db;
 
   constructor(
-    private readonly database: ConnectionOptions["database"] = ":memory:"
+    private readonly database: ConnectionOptions["database"] = ":memory:",
   ) {
     this._db = new sqliteDB({
       driver: sqlite3.Database,
@@ -20,27 +20,22 @@ export class SqliteDatabase implements Database {
   }
 
   async connect() {
-    return this.db.open();
+    await this.db.open();
+    await this.db.run("PRAGMA foreign_keys = ON;");
   }
 
   /**
    *  Executes multiple queries
    * @param queryString
    * @param params
-   * @returns Database
    */
   async execute(queryString: ISqlite.SqlType) {
     return this.db.exec(queryString);
   }
 
-  /**
-   * Execute single query
-   * @param queryString
-   * @param params
-   * @returns
-   */
-  async run(queryString: ISqlite.SqlType, params: string[] = []) {
-    return this.db.run(queryString, params);
+  async run(queryString: string, params: string[] = []) {
+    await this.db.run(queryString, params);
+    return this;
   }
 
   async all(queryString: ISqlite.SqlType, params: string[] = []) {

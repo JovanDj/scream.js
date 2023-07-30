@@ -6,7 +6,7 @@ export class ScreamLogger implements Logger {
     this.console.log(message);
   }
 
-  error(message: string | unknown) {
+  error(message: string) {
     this.console.error(message);
   }
 }

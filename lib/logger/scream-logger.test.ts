@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { LoggerFactory } from "./logger-factory.js";
+import { createLogger } from "./logger-factory.js";
 import { Logger } from "./logger.interface.js";
 import { ScreamLogger } from "./scream-logger.js";
 
@@ -8,7 +8,7 @@ describe("ScreamLogger", () => {
   let logger: Logger;
 
   beforeEach(() => {
-    logger = LoggerFactory.createLogger();
+    logger = createLogger();
   });
 
   it("should create logger", () => {
