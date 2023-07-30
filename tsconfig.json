@@ -9,5 +9,12 @@
     "outDir": "dist"
   },
 
-  "include": ["server.ts", "lib", "src", "main.ts"]
+  "include": [
+    "server.ts",
+    "lib",
+    "./src/**/*.ts",
+    "main.ts",
+    "vite.config.ts",
+    "./*.ts"
+  ]
 }
