@@ -1,4 +1,4 @@
-import { Database } from "sqlite";
+import { Database } from "./database/database.js";
 
 export interface Migration {
   up(database: Database): Promise<void>;

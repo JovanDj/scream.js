@@ -1,14 +1,12 @@
 import { Console } from "node:console";
+import { Logger } from "./logger.interface.js";
 import { ScreamLogger } from "./scream-logger.js";
 
-export class LoggerFactory {
-  static createLogger() {
-    return new ScreamLogger(
-      new Console({
-        stdout: process.stdout,
-        stderr: process.stderr,
-        colorMode: true,
-      })
-    );
-  }
-}
+export const createLogger: () => Logger = () =>
+  new ScreamLogger(
+    new Console({
+      stdout: process.stdout,
+      stderr: process.stderr,
+      colorMode: true,
+    }),
+  );

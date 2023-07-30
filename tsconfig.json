@@ -6,7 +6,8 @@
   ],
 
   "compilerOptions": {
-    "outDir": "dist"
+    "outDir": "dist",
+    "lib": ["ES6", "ESNext"]
   },
 
   "include": [
@@ -15,6 +16,7 @@
     "./src/**/*.ts",
     "main.ts",
     "vite.config.ts",
-    "./*.ts"
+    "./*.ts",
+    "./migrations/**/*.ts"
   ]
 }
