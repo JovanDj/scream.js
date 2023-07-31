@@ -11,6 +11,16 @@ try {
   // Import each file and run its methods
   console.log("Migrating:", files.length);
 
+  await database.connect();
+
+  await database.run(`
+    CREATE TABLE IF NOT EXISTS migrations (
+      migration_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      name TEXT NOT NULL
+    )
+  `);
+
   for (const file of files) {
     const module = await import(`./migrations/${file}`);
 
@@ -20,8 +30,17 @@ try {
       const migrationClass = module[key];
       const migration: Migration = new migrationClass();
 
+      console.log({ migrationClass });
       await migrate(migration, database);
-      console.log("Migrated: ", key);
+
+      await database.run(
+        `
+        INSERT INTO migrations(date, name) VALUES(?, ?)
+      `,
+        [new Date().toISOString(), key],
+      );
+
+      console.log("Migrated: ", migrationClass.name);
     }
   }
 } catch (error) {
@@ -31,8 +50,6 @@ try {
 }
 
 async function migrate(migration: Migration, database: Database) {
-  await database.connect();
-
   try {
     await migration.up(database);
   } catch (error) {
