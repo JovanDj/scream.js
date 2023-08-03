@@ -7,8 +7,12 @@ import type { Server } from "./server.interface.js";
 export class ExpressServer implements Server {
   constructor(private readonly server: ExpressFacade) {}
 
-  listen(port: number, cb?: () => void) {
+  listen(port?: number, cb?: () => void) {
     return this.server.listen(port, cb);
+  }
+
+  close() {
+    this.server.close();
   }
 
   get(path: string, handler: (context: HTTPContext) => void) {

@@ -3,11 +3,11 @@ import cors from "cors";
 import express, {
   Router,
   type ErrorRequestHandler,
-  type RequestHandler,
   type Handler,
+  type RequestHandler,
 } from "express";
 import session from "express-session";
-import helmet, { type HelmetOptions } from "helmet";
+import helmet from "helmet";
 import path from "node:path";
 
 export interface ExpressOptions {
@@ -82,7 +82,7 @@ export class ExpressFacade {
 
   listen(
     port: Parameters<typeof this.app.listen>[0] = this.port,
-    callback?: () => void
+    callback?: () => void,
   ) {
     return this.app.listen(port, callback);
   }
@@ -94,7 +94,7 @@ export class ExpressFacade {
 
   useStatic(
     path: Parameters<typeof this.app.use>[0],
-    root: Parameters<typeof express.static>[0]
+    root: Parameters<typeof express.static>[0],
   ) {
     this.app.use(path, express.static(root));
     return this;
@@ -105,12 +105,18 @@ export class ExpressFacade {
     return this;
   }
 
-  useHelmet(options: HelmetOptions) {
-    this.app.use(helmet(options));
+  useHelmet() {
+    this.app.use(helmet());
     return this;
   }
 
-  useSession(options?: session.SessionOptions) {
+  useSession(
+    options: session.SessionOptions = {
+      secret: "secret",
+      resave: false,
+      saveUninitialized: false,
+    },
+  ) {
     this.app.use(session(options));
     return this;
   }
@@ -123,5 +129,9 @@ export class ExpressFacade {
   useBodyParser() {
     this.app.use(express.json());
     return this;
+  }
+
+  close() {
+    this.server?.close();
   }
 }

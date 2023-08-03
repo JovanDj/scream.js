@@ -2,7 +2,6 @@ import { readdir } from "node:fs/promises";
 import { Database } from "./lib/database/database.js";
 import { SqliteDatabase } from "./lib/database/sqlite.js";
 import { Migration } from "./lib/migration.js";
-
 const database = new SqliteDatabase("migration-test.sqlite");
 
 try {

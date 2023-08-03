@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createLogger } from "./logger-factory.js";
 import { Logger } from "./logger.interface.js";

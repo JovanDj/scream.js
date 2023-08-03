@@ -11,6 +11,10 @@ export class KoaServer implements Server {
     return this.server.listen(port, cb ? cb : () => {});
   }
 
+  close() {
+    this.server.close();
+  }
+
   get(path: string, handler: (context: HTTPContext) => void) {
     this.server.get(path, (ctx) => {
       handler(
