@@ -1,8 +1,8 @@
-import { HTTPContext } from "./http-context.js";
+import { HTTPContext } from "../http-context.js";
+import { Request } from "../request.js";
+import { Server } from "../server.interface.js";
 import { KoaFacade } from "./koa-facade.js";
 import { KoaResponse } from "./koa-response.js";
-import { Request } from "./request.js";
-import type { Server } from "./server.interface.js";
 
 export class KoaServer implements Server {
   constructor(private readonly server: KoaFacade) {}

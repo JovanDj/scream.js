@@ -1,14 +1,12 @@
-// CommonFacade.test.ts
 import supertest from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { getRandomPort } from "../getRandomPort.js";
-import { createExpressServer } from "./create-express-server.js";
-import { createKoaServer } from "./create-koa-server.js";
+import { createServer } from "./create-server.js";
 import { Server } from "./server.interface.js";
 
 const servers: Server[] = [
-  createExpressServer({ port: await getRandomPort() }),
-  createKoaServer({ port: await getRandomPort() }),
+  createServer("express", { port: await getRandomPort() }),
+  createServer("koa", { port: await getRandomPort() }),
 ];
 
 describe.concurrent.each(servers)("Servers", (server) => {
