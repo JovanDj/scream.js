@@ -1,6 +1,4 @@
 import express from "express";
-import type { HelmetOptions } from "helmet";
-import type { SessionOptions } from "express-session";
 import { ExpressFacade, ExpressOptions } from "./express-facade.js";
 
 const DEFAULT_PORT = 3000;
@@ -10,20 +8,16 @@ const DEFAULT_MIDDLEWARE = [
 ];
 
 interface CreateExpressFacadeOptions {
-  express: Partial<ExpressOptions>;
-  helmet: HelmetOptions;
-  session: SessionOptions;
+  port: number;
 }
 
 export function createExpressFacade(
   options: CreateExpressFacadeOptions = {
-    express: {},
-    helmet: {},
-    session: { secret: "secret", resave: false, saveUninitialized: false },
-  }
+    port: 3000,
+  },
 ) {
-  const port = options.express.port ?? DEFAULT_PORT;
-  const middleware = options.express.middleware ?? DEFAULT_MIDDLEWARE;
+  const port = options.port ?? DEFAULT_PORT;
+  const middleware = DEFAULT_MIDDLEWARE;
   const expressOptions: ExpressOptions = {
     port,
     middleware,
@@ -34,7 +28,7 @@ export function createExpressFacade(
     .useBodyParser()
     .useCookieParser()
     .useCors()
-    .useHelmet(options.helmet)
-    .useSession(options.session)
+    .useHelmet()
+    .useSession()
     .setPort(port);
 }

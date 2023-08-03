@@ -6,13 +6,12 @@
   ],
 
   "compilerOptions": {
-    "outDir": "dist",
-    "lib": ["ES6", "ESNext"]
+    "outDir": "dist"
   },
 
   "include": [
     "server.ts",
-    "lib",
+    "./lib/**/*.ts",
     "./src/**/*.ts",
     "main.ts",
     "vite.config.ts",
