@@ -4,16 +4,12 @@ export default defineConfig({
   test: {
     environment: "node",
     bail: 1,
+    sequence: { shuffle: true },
     typecheck: {
       checker: "tsc",
       tsconfig: "./tsconfig.json",
     },
+    coverage: { enabled: true },
     reporters: ["verbose"],
-    include: [
-      "./server.test.ts",
-      "./integration.test.ts",
-      "./src/**/*.test.ts",
-      "./lib/**/*.test.ts",
-    ],
   },
 });

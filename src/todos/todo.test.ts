@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Todo } from "./todo.js";
 
-describe("Todo", () => {
+describe.concurrent("Todo", () => {
   it("should exist", () => {
     const todo = new Todo();
     expect(todo).toBeInstanceOf(Todo);

@@ -1,5 +1,5 @@
 import type { Response as Res } from "express";
-import type { Response } from "./response.js";
+import { Response } from "../response.js";
 
 export class ExpressResponse implements Response {
   constructor(private readonly res: Res) {}

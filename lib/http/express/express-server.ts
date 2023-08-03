@@ -1,8 +1,8 @@
+import { HTTPContext } from "../http-context.js";
+import { Request } from "../request.js";
+import type { Server } from "../server.interface.js";
 import type { ExpressFacade } from "./express-facade.js";
 import { ExpressResponse } from "./express-response.js";
-import { HTTPContext } from "./http-context.js";
-import { Request } from "./request.js";
-import type { Server } from "./server.interface.js";
 
 export class ExpressServer implements Server {
   constructor(private readonly server: ExpressFacade) {}

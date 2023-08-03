@@ -3,7 +3,7 @@ import { createLogger } from "./logger-factory.js";
 import { Logger } from "./logger.interface.js";
 import { ScreamLogger } from "./scream-logger.js";
 
-describe("ScreamLogger", () => {
+describe.concurrent("ScreamLogger", () => {
   let logger: Logger;
 
   beforeEach(() => {
@@ -15,14 +15,14 @@ describe("ScreamLogger", () => {
   });
 
   it("should log", () => {
-    const spy = vi.spyOn(logger, "log").mockImplementation(() => {});
+    const spy = vi.spyOn(logger, "log");
     logger.log("test");
 
     expect(spy).toHaveBeenCalledWith("test");
   });
 
   it("should log error", () => {
-    const spy = vi.spyOn(logger, "error").mockImplementation(() => {});
+    const spy = vi.spyOn(logger, "error");
     logger.error("test");
 
     expect(spy).toHaveBeenCalledWith("test");

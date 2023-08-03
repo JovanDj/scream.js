@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { mock, when, instance } from "ts-mockito";
 import { IncomingMessage } from "node:http";
+import { instance, mock, when } from "ts-mockito";
 import { Request } from "./request.js";
 
-describe("Request", () => {
+describe.concurrent("Request", () => {
   let request: Request;
   let incomingMessage: ReturnType<typeof mock<IncomingMessage>>;
 
@@ -25,7 +25,7 @@ describe("Request", () => {
       (method) => {
         when(incomingMessage.method).thenReturn(method);
         expect(request.method).toStrictEqual(method);
-      }
+      },
     );
   });
 
