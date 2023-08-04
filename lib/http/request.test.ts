@@ -4,7 +4,7 @@ import { IncomingMessage } from "node:http";
 import { instance, mock, when } from "ts-mockito";
 import { Request } from "./request.js";
 
-describe.concurrent("Request", () => {
+describe("Request", () => {
   let request: Request;
   let incomingMessage: ReturnType<typeof mock<IncomingMessage>>;
 
