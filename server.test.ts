@@ -2,7 +2,7 @@ import supertest from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { server } from "./server.js";
 
-describe.concurrent("Server", () => {
+describe("Server", () => {
   let res: Awaited<supertest.Test>;
 
   it("finds missing route", async () => {

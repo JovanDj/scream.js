@@ -9,7 +9,7 @@ const servers: Server[] = [
   createServer("koa", { port: await getRandomPort() }),
 ];
 
-describe.concurrent.each(servers)("Servers", (server) => {
+describe.each(servers)("Servers", (server) => {
   let app: ReturnType<typeof server.listen>;
 
   beforeEach(async () => {
