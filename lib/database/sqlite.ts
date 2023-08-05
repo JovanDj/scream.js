@@ -38,8 +38,12 @@ export class SqliteDatabase implements Database {
     return this;
   }
 
-  async all(queryString: ISqlite.SqlType, params: string[] = []) {
-    return this.db.all(queryString, params);
+  async all<T>(sqlString: string, params?: string[] | undefined) {
+    return this.db.all<T>(sqlString, params);
+  }
+
+  async get<T>(sqlString: string, params: string[] = []) {
+    return this.db.get<T>(sqlString, params);
   }
 
   async close() {

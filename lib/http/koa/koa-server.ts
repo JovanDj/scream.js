@@ -1,7 +1,7 @@
 import { HTTPContext } from "../http-context.js";
-import { Request } from "../request.js";
 import { Server } from "../server.interface.js";
 import { KoaFacade } from "./koa-facade.js";
+import { KoaRequest } from "./koa-request.js";
 import { KoaResponse } from "./koa-response.js";
 
 export class KoaServer implements Server {
@@ -18,36 +18,51 @@ export class KoaServer implements Server {
   get(path: string, handler: (context: HTTPContext) => void) {
     this.server.get(path, (ctx) => {
       handler(
-        new HTTPContext(new Request(ctx.req), new KoaResponse(ctx.response)),
+        new HTTPContext(
+          new KoaRequest(ctx.request),
+          new KoaResponse(ctx.response),
+        ),
       );
     });
   }
 
-  post(path: string, handler: (context: HTTPContext) => unknown): void {
+  post(path: string, handler: (context: HTTPContext) => unknown) {
     this.server.post(path, (ctx) => {
       handler(
-        new HTTPContext(new Request(ctx.req), new KoaResponse(ctx.response)),
+        new HTTPContext(
+          new KoaRequest(ctx.request),
+          new KoaResponse(ctx.response),
+        ),
       );
     });
   }
-  patch(path: string, handler: (context: HTTPContext) => unknown): void {
+  patch(path: string, handler: (context: HTTPContext) => unknown) {
     this.server.patch(path, (ctx) => {
       handler(
-        new HTTPContext(new Request(ctx.req), new KoaResponse(ctx.response)),
+        new HTTPContext(
+          new KoaRequest(ctx.request),
+          new KoaResponse(ctx.response),
+        ),
       );
     });
   }
-  put(path: string, handler: (context: HTTPContext) => unknown): void {
+  put(path: string, handler: (context: HTTPContext) => unknown) {
     this.server.put(path, (ctx) => {
       handler(
-        new HTTPContext(new Request(ctx.req), new KoaResponse(ctx.response)),
+        new HTTPContext(
+          new KoaRequest(ctx.request),
+          new KoaResponse(ctx.response),
+        ),
       );
     });
   }
-  delete(path: string, handler: (context: HTTPContext) => unknown): void {
+  delete(path: string, handler: (context: HTTPContext) => unknown) {
     this.server.delete(path, (ctx) => {
       handler(
-        new HTTPContext(new Request(ctx.req), new KoaResponse(ctx.response)),
+        new HTTPContext(
+          new KoaRequest(ctx.request),
+          new KoaResponse(ctx.response),
+        ),
       );
     });
   }

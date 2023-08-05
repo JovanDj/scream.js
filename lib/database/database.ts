@@ -9,4 +9,6 @@ export interface Database {
    * @param params
    */
   run(sqlString: string, params?: string[]): Promise<Database>;
+  all<T>(sqlString: string, params?: string[]): Promise<T[]>;
+  get<T>(sqlString: string, params?: string[]): Promise<T | undefined>;
 }
