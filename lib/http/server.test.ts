@@ -2,14 +2,16 @@ import supertest from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { getRandomPort } from "../getRandomPort.js";
 import { createServer } from "./create-server.js";
-import { Server } from "./server.interface.js";
 
-const servers: Server[] = [
-  createServer("express", { port: await getRandomPort() }),
-  createServer("koa", { port: await getRandomPort() }),
+const servers = [
+  {
+    server: createServer("express", { port: await getRandomPort() }),
+    name: "express",
+  },
+  { server: createServer("koa", { port: await getRandomPort() }), name: "koa" },
 ];
 
-describe.each(servers)("Servers", (server) => {
+describe.each(servers)("$name", ({ server }) => {
   let app: ReturnType<typeof server.listen>;
 
   beforeEach(async () => {
