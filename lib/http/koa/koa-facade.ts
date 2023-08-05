@@ -6,10 +6,11 @@ export class KoaFacade {
 
   constructor(
     private readonly _koa: Koa,
-    private readonly router: KoaRouter,
+    private readonly _router: KoaRouter,
     private readonly _options: { port: number } = { port: 3333 },
   ) {
     this.app.use(this.router.routes());
+    this.app.use(this.router.allowedMethods());
   }
 
   get app() {
@@ -34,11 +35,17 @@ export class KoaFacade {
     return this.server;
   }
 
+  get router() {
+    return this._router;
+  }
+
   get(
     name: Parameters<(typeof this.router)["get"]>[0],
     middleware: Parameters<(typeof this.router)["get"]>[1],
   ) {
-    return this.router.get(name, middleware);
+    this.router.get(name, middleware);
+    console.log(name);
+    return this.router;
   }
 
   post(

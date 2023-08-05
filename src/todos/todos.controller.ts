@@ -1,18 +1,19 @@
+import { Repository } from "../../lib/database/repository.js";
 import { HTTPContext } from "../../lib/http/http-context.js";
+import { Todo } from "./todo.js";
 
 export class TodosController {
-  findAll({ response }: HTTPContext) {
-    response.status(200);
-    response.end("FIND ALL");
+  constructor(private readonly todoRepository: Repository<Todo>) {}
+
+  async findAll({}: HTTPContext) {
+    return this.todoRepository.findAll();
   }
 
-  findOne({ response }: HTTPContext) {
-    response.status(200);
-    response.end("FIND ONE");
+  async findOne({}: HTTPContext) {
+    return this.todoRepository.findById(1);
   }
 
-  create({ response }: HTTPContext) {
-    response.status(201);
-    response.end("CREATE");
+  async create() {
+    return this.todoRepository.insert(new Todo());
   }
 }

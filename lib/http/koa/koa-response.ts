@@ -1,19 +1,20 @@
-import { type Response as Res } from "koa";
-import type { Response } from "./response.js";
+import { Context } from "koa";
+import { Response } from "../response.js";
 
 export class KoaResponse implements Response {
-  constructor(private readonly res: Res) {}
+  constructor(private readonly ctx: Context["response"]) {}
 
   json(data: unknown) {
-    this.res.body = data;
+    this.ctx.type = "application/json";
+    this.ctx.body = data;
   }
 
   end(chunk?: string) {
-    this.res.res.end(chunk);
+    this.ctx.res.end(chunk);
   }
 
   status(code: number) {
-    this.res.status = code;
+    this.ctx.status = code;
   }
 
   render() {
