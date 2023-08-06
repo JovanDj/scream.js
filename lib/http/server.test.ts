@@ -1,5 +1,5 @@
 import supertest from "supertest";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { getRandomPort } from "../getRandomPort.js";
 import { createServer } from "./create-server.js";
 
@@ -15,13 +15,11 @@ describe.each(servers)("$name", ({ server }) => {
   let app: ReturnType<typeof server.listen>;
 
   beforeEach(async () => {
-    // Start the server for each implementation before the tests
-    app = server.listen(await getRandomPort()); // Start on a random port
-  });
-
-  afterEach(() => {
     // Close the server after all tests for each implementation
     server.close();
+
+    // Start the server for each implementation before the tests
+    app = server.listen(await getRandomPort()); // Start on a random port
   });
 
   it("should handle GET requests and return a response", async () => {
