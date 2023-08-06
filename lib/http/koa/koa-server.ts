@@ -5,18 +5,18 @@ import { KoaRequest } from "./koa-request.js";
 import { KoaResponse } from "./koa-response.js";
 
 export class KoaServer implements Server {
-  constructor(private readonly server: KoaFacade) {}
+  constructor(private readonly app: KoaFacade) {}
 
   listen(port: number, cb?: () => void) {
-    return this.server.listen(port, cb ? cb : () => {});
+    return this.app.listen(port, cb ? cb : () => {});
   }
 
   close() {
-    this.server.close();
+    this.app.close();
   }
 
   get(path: string, handler: (context: HTTPContext) => void) {
-    this.server.get(path, (ctx) => {
+    this.app.get(path, (ctx) => {
       handler(
         new HTTPContext(
           new KoaRequest(ctx.request),
@@ -27,7 +27,7 @@ export class KoaServer implements Server {
   }
 
   post(path: string, handler: (context: HTTPContext) => unknown) {
-    this.server.post(path, (ctx) => {
+    this.app.post(path, (ctx) => {
       handler(
         new HTTPContext(
           new KoaRequest(ctx.request),
@@ -37,7 +37,7 @@ export class KoaServer implements Server {
     });
   }
   patch(path: string, handler: (context: HTTPContext) => unknown) {
-    this.server.patch(path, (ctx) => {
+    this.app.patch(path, (ctx) => {
       handler(
         new HTTPContext(
           new KoaRequest(ctx.request),
@@ -47,7 +47,7 @@ export class KoaServer implements Server {
     });
   }
   put(path: string, handler: (context: HTTPContext) => unknown) {
-    this.server.put(path, (ctx) => {
+    this.app.put(path, (ctx) => {
       handler(
         new HTTPContext(
           new KoaRequest(ctx.request),
@@ -57,7 +57,7 @@ export class KoaServer implements Server {
     });
   }
   delete(path: string, handler: (context: HTTPContext) => unknown) {
-    this.server.delete(path, (ctx) => {
+    this.app.delete(path, (ctx) => {
       handler(
         new HTTPContext(
           new KoaRequest(ctx.request),

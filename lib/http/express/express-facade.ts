@@ -17,8 +17,8 @@ export interface ExpressOptions {
 }
 
 export class ExpressFacade {
-  private _app = express();
-  private _server?: ReturnType<typeof this._app.listen>;
+  private readonly _app = express();
+  private readonly _server?: ReturnType<typeof this._app.listen>;
   private _port = 3000;
 
   constructor(options: ExpressOptions) {
@@ -28,10 +28,6 @@ export class ExpressFacade {
 
     this.app.set("views", path.join(process.cwd(), "views"));
     this.app.set("view engine", "ejs");
-  }
-
-  get(path: string, handler: express.RequestHandler) {
-    return this.app.get(path, handler);
   }
 
   get app() {
@@ -44,6 +40,10 @@ export class ExpressFacade {
 
   get port() {
     return this._port;
+  }
+
+  get(path: string, handler: express.RequestHandler) {
+    return this.app.get(path, handler);
   }
 
   setPort(port: number) {

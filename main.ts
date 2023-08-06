@@ -18,7 +18,6 @@ app.get("/todos", async (ctx) => {
   const todosController = new TodosController(todoRepository);
 
   const todos = await todosController.findAll(ctx);
-  console.log(ctx.request);
 
   ctx.response.status(200);
   ctx.response.json({ todos });

@@ -25,6 +25,10 @@ export class KoaFacade {
     return this._options.port;
   }
 
+  get router() {
+    return this._router;
+  }
+
   use(middleware: Parameters<(typeof this.app)["use"]>[0]) {
     return this.app.use(middleware);
   }
@@ -35,17 +39,11 @@ export class KoaFacade {
     return this.server;
   }
 
-  get router() {
-    return this._router;
-  }
-
   get(
     name: Parameters<(typeof this.router)["get"]>[0],
     middleware: Parameters<(typeof this.router)["get"]>[1],
   ) {
-    this.router.get(name, middleware);
-    console.log(name);
-    return this.router;
+    return this.router.get(name, middleware);
   }
 
   post(
