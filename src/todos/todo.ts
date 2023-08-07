@@ -1,6 +1,7 @@
 import { Entity } from "../../lib/database/entity.js";
+import { Serializable } from "../../lib/http/serializable.js";
 
-export class Todo implements Entity {
+export class Todo implements Entity, Serializable<Todo> {
   private _id = 0;
   private _title = "";
   private _updatedAt = new Date();
@@ -45,5 +46,15 @@ export class Todo implements Entity {
 
   set title(title) {
     this._title = title;
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      title: this.title,
+      updatedAt: this.updatedAt,
+      createdAt: this.createdAt,
+      dueDate: this.dueDate,
+    };
   }
 }
