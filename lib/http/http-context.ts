@@ -14,4 +14,12 @@ export class HTTPContext {
   get response() {
     return this._response;
   }
+
+  json(data: Parameters<typeof this.response.json>[0]) {
+    this.response.json(data);
+  }
+
+  status(code: Parameters<typeof this.response.status>[0]) {
+    this.response.status(code);
+  }
 }
