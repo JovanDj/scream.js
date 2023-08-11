@@ -5,8 +5,11 @@ import { Todo } from "./todo.js";
 export class TodosController {
   constructor(private readonly todoRepository: Repository<Todo>) {}
 
-  async findAll({}: HTTPContext) {
-    return this.todoRepository.findAll();
+  async findAll(ctx: HTTPContext) {
+    const todos = await this.todoRepository.findAll();
+
+    ctx.status(200);
+    ctx.json({ todos });
   }
 
   async findOne({}: HTTPContext) {
