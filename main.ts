@@ -1,5 +1,6 @@
 import { SqliteDatabase } from "./lib/database/sqlite.js";
 import { createServer } from "./lib/http/create-server.js";
+import { todoController } from "./src/todos/index.js";
 import { TodoRepository } from "./src/todos/todo.repository.js";
 import { TodosController } from "./src/todos/todos.controller.js";
 
@@ -12,16 +13,7 @@ app.get("/", (ctx) => {
   });
 });
 
-app.get("/todos", async (ctx) => {
-  const db = new SqliteDatabase("migration-test.sqlite");
-  const todoRepository = new TodoRepository(db);
-  const todosController = new TodosController(todoRepository);
-
-  const todos = await todosController.findAll(ctx);
-
-  ctx.response.status(200);
-  ctx.response.json({ todos });
-});
+app.get("/todos", async (ctx) => todoController.findAll(ctx));
 
 app.get("/todos/:id", async (ctx) => {
   const db = new SqliteDatabase("migration-test.sqlite");

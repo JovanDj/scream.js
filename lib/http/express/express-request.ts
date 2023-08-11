@@ -1,8 +1,8 @@
-import { Request as Req } from "express";
+import express from "express";
 import { Request } from "../request.js";
 
 export class ExpressRequest implements Request {
-  constructor(private readonly req: Req) {}
+  constructor(private readonly req: express.Request) {}
 
   method() {
     return this.req.method;
