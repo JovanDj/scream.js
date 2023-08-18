@@ -8,6 +8,8 @@ export class TodosMigration implements Migration {
         todo_id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         due_date TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        created_at TEXT NOT NULL,
         user_id INTEGER,
         FOREIGN KEY(user_id) REFERENCES users(user_id)
       )`);

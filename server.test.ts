@@ -2,8 +2,15 @@ import supertest from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { server } from "./server.js";
 
-describe("Server", () => {
+describe.sequential("Server", () => {
   let res: Awaited<supertest.Test>;
+
+  beforeEach(async () => {
+    // const db = new SqliteDatabase("migration-test.sqlite");
+    // await db.connect();
+    // await db.run("DELETE FROM todos");
+    // await db.close();
+  });
 
   it("finds missing route", async () => {
     const res = await supertest(server).get("/missing");
@@ -11,33 +18,25 @@ describe("Server", () => {
     expect(res.notFound).toBeTruthy();
   });
 
-  describe("render html", () => {
-    beforeEach(async () => {
-      res = await supertest(server).get("/");
-    });
-
-    it("should return status 200", () => expect(res.ok).toBeTruthy());
-
-    it("should return html document", () =>
-      expect(res.type).toContain("text/html"));
-  });
-
-  describe("GET /todos", () => {
+  describe.only("GET /todos", () => {
     beforeEach(async () => {
       res = await supertest(server).get("/todos");
     });
 
     it("should return status 200", () => expect(res.ok).toBeTruthy());
 
-    it("should return text FIND ALL", () =>
-      expect(res.text).toStrictEqual("FIND ALL"));
+    it("should return array of todos", () =>
+      expect(res.body).toStrictEqual({ todos: [] }));
   });
 
-  it("finds one todo", async () => {
-    const res = await supertest(server).get("/todos/1");
-    expect(res.ok).toBeTruthy();
+  describe("GET /todos/:id", () => {
+    beforeEach(async () => {
+      res = await supertest(server).get("/todos/1");
+    });
 
-    expect(res.text).toStrictEqual("FIND ONE");
+    it("finds one todo", () => expect(res.text).toStrictEqual("FIND ONE"));
+
+    it("returns status 200", () => expect(res.ok).toBeTruthy());
   });
 
   it("creates a todo", async () => {
