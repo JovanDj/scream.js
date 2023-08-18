@@ -42,7 +42,7 @@ export class SqliteDatabase implements Database {
     return this.db.all<T>(sqlString, params);
   }
 
-  async get<T>(sqlString: string, params: string[] = []) {
+  async get<T>(sqlString: string, params: string[] | undefined) {
     return this.db.get<T>(sqlString, params);
   }
 

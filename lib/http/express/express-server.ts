@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, Response, Router } from "express";
 import { HTTPContext } from "../http-context.js";
 import type { Server } from "../server.interface.js";
 import type { ExpressFacade } from "./express-facade.js";
@@ -41,6 +41,10 @@ export class ExpressServer implements Server {
     this.server.delete(path, (req, res) =>
       handler(this.createContext(req, res)),
     );
+  }
+
+  createRouter() {
+    return Router();
   }
 
   private createContext(req: Request, res: Response) {

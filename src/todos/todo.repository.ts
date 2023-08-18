@@ -9,19 +9,31 @@ export class TodoRepository implements Repository<Todo> {
   async findById(id: Entity["id"]) {
     await this.db.connect();
 
-    const row = await this.db.get<{
+    let row: {
       todo_id: number;
       title: string;
       updated_at: string;
       created_at: string;
       due_date: string;
-    }>("SELECT * FROM todos WHERE todo_id = ?", [id.toString()]);
+    };
 
-    await this.db.close();
+    try {
+      row = await this.db.get<{
+        todo_id: number;
+        title: string;
+        updated_at: string;
+        created_at: string;
+        due_date: string;
+      }>("SELECT * FROM todos WHERE todo_id = ?", [id.toString()]);
+    } catch (error) {
+      throw error;
+    }
 
     if (!row) {
       throw new Error("Todo not found.");
     }
+
+    await this.db.close();
 
     const todo = new Todo();
 
@@ -61,13 +73,18 @@ export class TodoRepository implements Repository<Todo> {
     return todos;
   }
 
-  async insert() {
+  async insert(todo: Todo) {
     await this.db.connect();
 
-    await this.db.run("INSERT INTO todos(title, due_date) VALUES(?, ?) ", [
-      "test",
-      new Date().toISOString(),
-    ]);
+    await this.db.run(
+      "INSERT INTO todos(title, due_date, updated_at, created_at) VALUES(?, ?, ?, ?) ",
+      [
+        todo.title,
+        new Date().toISOString(),
+        new Date().toISOString(),
+        todo.dueDate.toISOString(),
+      ],
+    );
 
     const result = await this.db.get<{ "last_insert_rowid()": number }>(
       "SELECT last_insert_rowid()",

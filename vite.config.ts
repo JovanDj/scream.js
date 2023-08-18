@@ -3,9 +3,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    restoreMocks: true,
     bail: 1,
-    sequence: { shuffle: true, concurrent: true },
+    sequence: { shuffle: true },
     typecheck: {
       checker: "tsc",
       tsconfig: "./tsconfig.json",
