@@ -27,13 +27,13 @@ export class TodoRepository implements Repository<Todo> {
       }>("SELECT * FROM todos WHERE todo_id = ?", [id.toString()]);
     } catch (error) {
       throw error;
+    } finally {
+      await this.db.close();
     }
 
     if (!row) {
-      throw new Error("Todo not found.");
+      return undefined;
     }
-
-    await this.db.close();
 
     const todo = new Todo();
 
