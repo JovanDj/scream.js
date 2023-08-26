@@ -13,10 +13,15 @@ export class TodosController {
   }
 
   async findOne(ctx: HTTPContext) {
-    const todo = await this.todoRepository.findById();
+    const todo = await this.todoRepository.findById(1);
+
+    if (!todo) {
+      ctx.status(404);
+      return ctx.response.end();
+    }
 
     ctx.status(200);
-    ctx.json({ todo });
+    return ctx.json({ todo });
   }
 
   async create(ctx: HTTPContext) {

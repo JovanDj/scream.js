@@ -1,7 +1,7 @@
 import { Entity } from "./entity.js";
 
 export interface Repository<T = Entity> {
-  findById(id: Entity["id"]): Promise<T>;
+  findById(id: Entity["id"]): Promise<T | undefined>;
   findAll(): Promise<T[]>;
   insert(entity: Partial<T>): Promise<T>;
   update(id: Entity["id"], entity: Partial<T>): Promise<number>;
