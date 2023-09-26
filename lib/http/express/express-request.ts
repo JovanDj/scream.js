@@ -4,6 +4,10 @@ import { Request } from "../request.js";
 export class ExpressRequest implements Request {
   constructor(private readonly req: express.Request) {}
 
+  get params() {
+    return { ...this.req.params };
+  }
+
   method() {
     return this.req.method;
   }

@@ -19,4 +19,12 @@ export class ExpressResponse implements Response {
   render(template: string, locals = {}) {
     this.res.render(template, locals);
   }
+
+  location(url: string): void {
+    this.res.location(url);
+  }
+
+  redirect(url: string): void {
+    this.res.redirect(url);
+  }
 }

@@ -80,6 +80,11 @@ export class ExpressFacade {
     return this;
   }
 
+  route(path: string) {
+    this.app.route(path);
+    return this;
+  }
+
   listen(
     port: Parameters<typeof this.app.listen>[0] = this.port,
     callback?: () => void,

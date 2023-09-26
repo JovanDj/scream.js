@@ -1,46 +1,51 @@
 import { Request, Response, Router } from "express";
 import { HTTPContext } from "../http-context.js";
-import type { Server } from "../server.interface.js";
+import type { Application } from "../server.interface.js";
 import type { ExpressFacade } from "./express-facade.js";
 import { ExpressRequest } from "./express-request.js";
 import { ExpressResponse } from "./express-response.js";
 import { Handler } from "./handler.js";
 
-export class ExpressServer implements Server {
-  constructor(private readonly server: ExpressFacade) {}
+export class ExpressApplication implements Application {
+  constructor(private readonly _app: ExpressFacade) {}
+
+  get app() {
+    return this._app;
+  }
 
   listen(port?: number, cb?: () => void) {
-    return this.server.listen(port, cb);
+    return this.app.listen(port, cb);
   }
 
   close() {
-    this.server.close();
+    this.app.close();
   }
 
   get(path: string, handler: Handler) {
-    this.server.get(path, (req, res) => handler(this.createContext(req, res)));
+    this.app.get(path, (req, res) => handler(this.createContext(req, res)));
+    return this;
   }
 
   post(path: string, handler: (context: HTTPContext) => void) {
-    this.server.post(path, (req, res) => handler(this.createContext(req, res)));
+    this.app.post(path, (req, res) => handler(this.createContext(req, res)));
+    return this;
   }
 
   patch(path: string, handler: (context: HTTPContext) => void) {
-    this.server.patch(path, (req, res) =>
-      handler(this.createContext(req, res)),
-    );
+    this.app.patch(path, (req, res) => handler(this.createContext(req, res)));
   }
 
   put(path: string, handler: (context: HTTPContext) => void) {
-    this.server.patch(path, (req, res) =>
-      handler(this.createContext(req, res)),
-    );
+    this.app.patch(path, (req, res) => handler(this.createContext(req, res)));
   }
 
   delete(path: string, handler: (context: HTTPContext) => void) {
-    this.server.delete(path, (req, res) =>
-      handler(this.createContext(req, res)),
-    );
+    this.app.delete(path, (req, res) => handler(this.createContext(req, res)));
+  }
+
+  route(path: string) {
+    this.app.route(path);
+    return this;
   }
 
   createRouter() {
