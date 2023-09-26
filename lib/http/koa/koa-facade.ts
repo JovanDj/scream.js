@@ -8,10 +8,7 @@ export class KoaFacade {
     private readonly _koa: Koa,
     private readonly _router: KoaRouter,
     private readonly _options: { port: number } = { port: 3333 },
-  ) {
-    this.app.use(this.router.routes());
-    this.app.use(this.router.allowedMethods());
-  }
+  ) {}
 
   get app() {
     return this._koa;
@@ -34,6 +31,8 @@ export class KoaFacade {
   }
 
   listen(port = 3000, cb: () => void) {
+    this.app.use(this.router.allowedMethods()).use(this.router.routes());
+
     const server = this.app.listen(port).on("listening", cb);
     this._server = server;
     return this.server;

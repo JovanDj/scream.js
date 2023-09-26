@@ -2,7 +2,7 @@
 
 import { createExpressServer } from "./express/create-express-server.js";
 import { createKoaServer } from "./koa/create-koa-server.js";
-import type { Server } from "./server.interface.js";
+import type { Application } from "./server.interface.js";
 
 type ServerImplementation = "express" | "koa";
 
@@ -12,7 +12,7 @@ interface ServerOptions {
 
 const servers = new Map<
   ServerImplementation,
-  (options: ServerOptions) => Server
+  (options: ServerOptions) => Application
 >();
 
 servers.set("express", createExpressServer);

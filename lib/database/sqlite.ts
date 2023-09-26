@@ -2,6 +2,7 @@ import { Database as sqliteDB, type ISqlite } from "sqlite";
 import sqlite3 from "sqlite3";
 import { ConnectionOptions } from "../connection-options.js";
 import { Database } from "./database.js";
+import { InsertResult } from "./insert-result.js";
 
 export class SqliteDatabase implements Database {
   private readonly _db;
@@ -34,8 +35,17 @@ export class SqliteDatabase implements Database {
   }
 
   async run(queryString: string, params: string[] = []) {
-    await this.db.run(queryString, params);
-    return this;
+    const result = await this.db.run(queryString, params);
+
+    if (!result.lastID) {
+      throw new Error("Could not get last row id.");
+    }
+
+    if (!result.changes) {
+      throw new Error("Could not get number of changes.");
+    }
+
+    return new InsertResult(result.lastID, result.changes);
   }
 
   async all<T>(sqlString: string, params?: string[] | undefined) {

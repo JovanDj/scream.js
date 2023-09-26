@@ -1,10 +1,10 @@
 import { HTTPContext } from "../http-context.js";
-import { Server } from "../server.interface.js";
+import { Application } from "../server.interface.js";
 import { KoaFacade } from "./koa-facade.js";
 import { KoaRequest } from "./koa-request.js";
 import { KoaResponse } from "./koa-response.js";
 
-export class KoaServer implements Server {
+export class KoaServer implements Application {
   constructor(private readonly app: KoaFacade) {}
 
   listen(port: number, cb?: () => void) {
@@ -19,7 +19,7 @@ export class KoaServer implements Server {
     this.app.get(path, (ctx) => {
       handler(
         new HTTPContext(
-          new KoaRequest(ctx.request),
+          new KoaRequest(ctx.request, this.app.router),
           new KoaResponse(ctx.response),
         ),
       );
@@ -30,7 +30,7 @@ export class KoaServer implements Server {
     this.app.post(path, (ctx) => {
       handler(
         new HTTPContext(
-          new KoaRequest(ctx.request),
+          new KoaRequest(ctx.request, this.app.router),
           new KoaResponse(ctx.response),
         ),
       );
@@ -40,7 +40,7 @@ export class KoaServer implements Server {
     this.app.patch(path, (ctx) => {
       handler(
         new HTTPContext(
-          new KoaRequest(ctx.request),
+          new KoaRequest(ctx.request, this.app.router),
           new KoaResponse(ctx.response),
         ),
       );
@@ -50,7 +50,7 @@ export class KoaServer implements Server {
     this.app.put(path, (ctx) => {
       handler(
         new HTTPContext(
-          new KoaRequest(ctx.request),
+          new KoaRequest(ctx.request, this.app.router),
           new KoaResponse(ctx.response),
         ),
       );
@@ -60,7 +60,7 @@ export class KoaServer implements Server {
     this.app.delete(path, (ctx) => {
       handler(
         new HTTPContext(
-          new KoaRequest(ctx.request),
+          new KoaRequest(ctx.request, this.app.router),
           new KoaResponse(ctx.response),
         ),
       );

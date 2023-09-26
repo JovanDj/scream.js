@@ -9,13 +9,15 @@ export class TodoRepository implements Repository<Todo> {
   async findById(id: Entity["id"]) {
     await this.db.connect();
 
-    let row: {
-      todo_id: number;
-      title: string;
-      updated_at: string;
-      created_at: string;
-      due_date: string;
-    };
+    let row:
+      | {
+          todo_id: number;
+          title: string;
+          updated_at: string;
+          created_at: string;
+          due_date: string;
+        }
+      | undefined;
 
     try {
       row = await this.db.get<{
@@ -76,7 +78,7 @@ export class TodoRepository implements Repository<Todo> {
   async insert(todo: Todo) {
     await this.db.connect();
 
-    await this.db.run(
+    const result = await this.db.run(
       "INSERT INTO todos(title, due_date, updated_at, created_at) VALUES(?, ?, ?, ?) ",
       [
         todo.title,
@@ -86,17 +88,9 @@ export class TodoRepository implements Repository<Todo> {
       ],
     );
 
-    const result = await this.db.get<{ "last_insert_rowid()": number }>(
-      "SELECT last_insert_rowid()",
-      [],
-    );
     await this.db.close();
 
-    if (!result) {
-      throw new Error("Todo not found");
-    }
-
-    return this.findById(result["last_insert_rowid()"]);
+    return result;
   }
 
   update(): Promise<number> {

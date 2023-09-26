@@ -1,3 +1,5 @@
+import { InsertResult } from "./insert-result.js";
+
 export interface Database {
   connect(): Promise<void>;
   execute(queryString: string, params: string[]): Promise<void>;
@@ -8,7 +10,7 @@ export interface Database {
    * @param queryString
    * @param params
    */
-  run(sqlString: string, params?: string[]): Promise<Database>;
+  run(sqlString: string, params?: string[]): Promise<InsertResult>;
   all<T>(sqlString: string, params?: string[]): Promise<T[]>;
   get<T>(sqlString: string, params?: string[]): Promise<T | undefined>;
 }

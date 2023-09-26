@@ -15,6 +15,14 @@ export class HTTPContext {
     return this._response;
   }
 
+  get id() {
+    if (!this.request.params["id"]) {
+      throw new Error("No id param present.");
+    }
+
+    return +this.request.params["id"];
+  }
+
   json(data: Parameters<typeof this.response.json>[0]) {
     this.response.json(data);
   }
@@ -28,5 +36,10 @@ export class HTTPContext {
     locals: Parameters<typeof this.response.render>[1],
   ) {
     this.response.render(template, locals);
+  }
+
+  notFound() {
+    this.status(404);
+    return this.response.end();
   }
 }

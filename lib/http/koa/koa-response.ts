@@ -9,8 +9,7 @@ export class KoaResponse implements Response {
   }
 
   json(data: unknown) {
-    this.ctx.type = "application/json";
-    this.ctx.body = data;
+    this._ctx.body = data;
   }
 
   end(chunk?: string) {
@@ -23,5 +22,13 @@ export class KoaResponse implements Response {
 
   render() {
     this.end();
+  }
+
+  location(url: string): void {
+    this.ctx.redirect(url);
+  }
+
+  redirect(url: string): void {
+    this.ctx.redirect(url);
   }
 }

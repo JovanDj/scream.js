@@ -1,6 +1,6 @@
 import type { HTTPContext } from "./http-context.js";
 
-export interface Server {
+export interface Application {
   listen(port?: number, cb?: () => void): void;
   get(path: string, handler: (context: HTTPContext) => unknown): void;
   post(path: string, handler: (context: HTTPContext) => unknown): void;
