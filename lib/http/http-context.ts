@@ -29,6 +29,7 @@ export class HTTPContext {
 
   status(code: Parameters<typeof this.response.status>[0]) {
     this.response.status(code);
+    return this;
   }
 
   render(
@@ -36,6 +37,10 @@ export class HTTPContext {
     locals: Parameters<typeof this.response.render>[1],
   ) {
     this.response.render(template, locals);
+  }
+
+  redirect(url: string) {
+    this.response.redirect(url);
   }
 
   notFound() {
