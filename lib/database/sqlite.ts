@@ -4,7 +4,7 @@ import { ConnectionOptions } from "../connection-options.js";
 import { Database } from "./database.js";
 import { InsertResult } from "./insert-result.js";
 
-export class SqliteDatabase implements Database {
+export class SqliteDatabase implements Database, AsyncDisposable {
   private readonly _db;
 
   constructor(
@@ -23,6 +23,7 @@ export class SqliteDatabase implements Database {
   async connect() {
     await this.db.open();
     await this.db.run("PRAGMA foreign_keys = ON;");
+    return this;
   }
 
   /**
@@ -58,5 +59,9 @@ export class SqliteDatabase implements Database {
 
   async close() {
     return this.db.close();
+  }
+
+  [Symbol.asyncDispose]() {
+    return this.close();
   }
 }

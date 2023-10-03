@@ -1,7 +1,7 @@
 import { InsertResult } from "./insert-result.js";
 
 export interface Database {
-  connect(): Promise<void>;
+  connect(): Promise<Database>;
   execute(queryString: string, params: string[]): Promise<void>;
   close(): Promise<void>;
 
