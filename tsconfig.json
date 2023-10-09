@@ -16,6 +16,7 @@
     "main.ts",
     "vite.config.ts",
     "./*.ts",
-    "./migrations/**/*.ts"
+    "./migrations/**/*.ts",
+    "config"
   ]
 }
