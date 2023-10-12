@@ -7,34 +7,16 @@ export class TodoRepository implements Repository<Todo> {
   constructor(private readonly db: Database) {}
 
   async findById(id: Entity["id"]) {
-    await this.db.connect();
-
-    let row:
-      | {
-          todo_id: number;
-          title: string;
-          updated_at: string;
-          created_at: string;
-          due_date: string;
-        }
-      | undefined;
-
-    try {
-      row = await this.db.get<{
-        todo_id: number;
-        title: string;
-        updated_at: string;
-        created_at: string;
-        due_date: string;
-      }>("SELECT * FROM todos WHERE todo_id = ?", [id.toString()]);
-    } catch (error) {
-      throw error;
-    } finally {
-      await this.db.close();
-    }
+    const row = await this.db.get<{
+      todo_id: number;
+      title: string;
+      updated_at: string;
+      created_at: string;
+      due_date: string;
+    }>("SELECT * FROM todos WHERE todo_id = ?", [id.toString()]);
 
     if (!row) {
-      return undefined;
+      return;
     }
 
     const todo = new Todo();
@@ -49,8 +31,6 @@ export class TodoRepository implements Repository<Todo> {
   }
 
   async findAll() {
-    await this.db.connect();
-
     const rows = await this.db.all<{
       todo_id: number;
       title: string;
@@ -58,8 +38,6 @@ export class TodoRepository implements Repository<Todo> {
       created_at: string;
       due_date: string;
     }>("SELECT * FROM todos");
-
-    await this.db.close();
 
     const todos = rows.map((row) => {
       const todo = new Todo();
@@ -76,8 +54,6 @@ export class TodoRepository implements Repository<Todo> {
   }
 
   async insert(todo: Todo) {
-    await this.db.connect();
-
     const result = await this.db.run(
       "INSERT INTO todos(title, due_date, updated_at, created_at) VALUES(?, ?, ?, ?) ",
       [
@@ -87,8 +63,6 @@ export class TodoRepository implements Repository<Todo> {
         todo.dueDate.toISOString(),
       ],
     );
-
-    await this.db.close();
 
     return result;
   }
