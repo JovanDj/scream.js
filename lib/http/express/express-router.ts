@@ -1,9 +1,9 @@
 import express from "express";
-import { ExpressRequest } from "../http/express/express-request.js";
-import { ExpressResponse } from "../http/express/express-response.js";
-import { Handler } from "../http/handler.js";
-import { HTTPContext } from "../http/http-context.js";
-import { type Router } from "./router.interface.js";
+import { Handler } from "../handler.js";
+import { HTTPContext } from "../http-context.js";
+import { type Router } from "../router.interface.js";
+import { ExpressRequest } from "./express-request.js";
+import { ExpressResponse } from "./express-response.js";
 
 export class ExpressRouter implements Router {
   constructor(private readonly _router: express.Router) {}
@@ -21,7 +21,7 @@ export class ExpressRouter implements Router {
   }
 
   post(path: string, handler: Handler) {
-    return this.router.post(path, (req, res) => {
+    this.router.post(path, (req, res) => {
       const context = this.createContext(req, res);
 
       return handler(context);

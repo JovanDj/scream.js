@@ -1,25 +1,25 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
+import type { Application } from "./application.interface.js";
 import { createExpressServer } from "./express/create-express-server.js";
 import { createKoaServer } from "./koa/create-koa-server.js";
-import type { Application } from "./server.interface.js";
 
-type ServerImplementation = "express" | "koa";
+type ApplicationImplementation = "express" | "koa";
 
-interface ServerOptions {
+export interface ApplicationOptions {
   port: number;
 }
 
 const servers = new Map<
-  ServerImplementation,
-  (options: ServerOptions) => Application
+  ApplicationImplementation,
+  (options: ApplicationOptions) => Application
 >();
 
 servers.set("express", createExpressServer);
 servers.set("koa", createKoaServer);
 
 export const createServer = (
-  server: ServerImplementation = "express",
+  server: ApplicationImplementation = "express",
   options = { port: 3000 },
 ) => {
   return servers.get(server)!(options);

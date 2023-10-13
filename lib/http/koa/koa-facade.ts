@@ -1,12 +1,10 @@
 import KoaRouter from "@koa/router";
 import Koa from "koa";
+import { KoaServer } from "./koa-server.js";
 
 export class KoaFacade {
-  private _server?: ReturnType<(typeof this.app)["listen"]>;
-
   constructor(
     private readonly _koa: Koa,
-    private readonly _router: KoaRouter,
     private readonly _options: { port: number } = { port: 3333 },
   ) {}
 
@@ -14,16 +12,8 @@ export class KoaFacade {
     return this._koa;
   }
 
-  get server() {
-    return this._server;
-  }
-
   get port() {
     return this._options.port;
-  }
-
-  get router() {
-    return this._router;
   }
 
   use(middleware: Parameters<(typeof this.app)["use"]>[0]) {
@@ -31,56 +21,12 @@ export class KoaFacade {
   }
 
   listen(port = 3000, cb: () => void) {
-    this.app.use(this.router.allowedMethods()).use(this.router.routes());
-
-    const server = this.app.listen(port).on("listening", cb);
-    this._server = server;
-    return this.server;
+    return new KoaServer(this.app.listen(port, cb));
   }
 
-  get(
-    name: Parameters<(typeof this.router)["get"]>[0],
-    middleware: Parameters<(typeof this.router)["get"]>[1],
-  ) {
-    return this.router.get(name, middleware);
-  }
-
-  post(
-    name: Parameters<(typeof this.router)["get"]>[0],
-    middleware: Parameters<(typeof this.router)["get"]>[1],
-  ) {
-    return this.router.post(name, middleware);
-  }
-
-  patch(
-    name: Parameters<(typeof this.router)["get"]>[0],
-    middleware: Parameters<(typeof this.router)["get"]>[1],
-  ) {
-    return this.router.patch(name, middleware);
-  }
-
-  put(
-    name: Parameters<(typeof this.router)["get"]>[0],
-    middleware: Parameters<(typeof this.router)["get"]>[1],
-  ) {
-    return this.router.post(name, middleware);
-  }
-
-  delete(
-    name: Parameters<(typeof this.router)["get"]>[0],
-    middleware: Parameters<(typeof this.router)["get"]>[1],
-  ) {
-    return this.router.delete(name, middleware);
-  }
-
-  useRouter(
-    prefix: Parameters<(typeof this.router)["prefix"]>[0],
-    router: KoaRouter,
-  ) {
-    return this.app.use(router.prefix(prefix).routes());
-  }
-
-  close() {
-    this.server?.close();
+  useRouter(prefix: Parameters<KoaRouter["prefix"]>[0], router: KoaRouter) {
+    router.prefix(prefix);
+    this.app.use(router.routes());
+    this.app.use(router.allowedMethods());
   }
 }

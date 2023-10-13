@@ -1,4 +1,4 @@
-import { createServer } from "./lib/http/create-server.js";
+import { createServer } from "./lib/http/create-application.js";
 import { todoController } from "./src/todos/index.js";
 
 export const app = createServer();

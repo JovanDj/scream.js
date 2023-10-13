@@ -1,4 +1,4 @@
-import { Handler } from "../http/handler.js";
+import { Handler } from "./handler.js";
 
 export interface Router {
   get(path: string, handler: Handler): void;
