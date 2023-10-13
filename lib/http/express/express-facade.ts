@@ -1,31 +1,16 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import express, {
-  Router,
-  type ErrorRequestHandler,
-  type Handler,
-  type RequestHandler,
-} from "express";
+import express, { Router } from "express";
 import session from "express-session";
 import helmet from "helmet";
 import path from "node:path";
-
-export interface ExpressOptions {
-  port: number;
-  middleware: Handler[];
-  static: Parameters<ExpressFacade["useStatic"]>;
-}
 
 export class ExpressFacade {
   private readonly _app = express();
   private readonly _server?: ReturnType<typeof this._app.listen>;
   private _port = 3000;
 
-  constructor(options: ExpressOptions) {
-    options.middleware.forEach((middleware) => {
-      this.app.use(middleware);
-    });
-
+  constructor() {
     this.app.set("views", path.join(process.cwd(), "views"));
     this.app.set("view engine", "ejs");
   }
@@ -51,7 +36,7 @@ export class ExpressFacade {
     return this;
   }
 
-  use(middleware: Handler) {
+  use(middleware: express.Handler) {
     this.app.use(middleware);
     return this;
   }
@@ -60,22 +45,22 @@ export class ExpressFacade {
     return this.app.use(root, router);
   }
 
-  post(path: string, handler: RequestHandler) {
+  post(path: string, handler: express.RequestHandler) {
     this.app.post(path, handler);
     return this;
   }
 
-  put(path: string, handler: RequestHandler) {
+  put(path: string, handler: express.RequestHandler) {
     this.app.put(path, handler);
     return this;
   }
 
-  patch(path: string, handler: RequestHandler) {
+  patch(path: string, handler: express.RequestHandler) {
     this.app.patch(path, handler);
     return this;
   }
 
-  delete(path: string, handler: RequestHandler) {
+  delete(path: string, handler: express.RequestHandler) {
     this.app.delete(path, handler);
     return this;
   }
@@ -92,7 +77,7 @@ export class ExpressFacade {
     return this.app.listen(port, callback);
   }
 
-  useErrorHandler(handler: ErrorRequestHandler) {
+  useErrorHandler(handler: express.ErrorRequestHandler) {
     this.app.use(handler);
     return this;
   }
@@ -137,6 +122,10 @@ export class ExpressFacade {
   }
 
   close() {
-    this.server?.close();
+    if (!this.server) {
+      return;
+    }
+
+    this.server.close();
   }
 }

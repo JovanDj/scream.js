@@ -1,10 +1,8 @@
-import { Request, Response, Router } from "express";
-import { HTTPContext } from "../http-context.js";
+import express from "express";
+import { ExpressRouter } from "../../router/express-router.js";
+import { Router } from "../../router/router.interface.js";
 import type { Application } from "../server.interface.js";
 import type { ExpressFacade } from "./express-facade.js";
-import { ExpressRequest } from "./express-request.js";
-import { ExpressResponse } from "./express-response.js";
-import { Handler } from "./handler.js";
 
 export class ExpressApplication implements Application {
   constructor(private readonly _app: ExpressFacade) {}
@@ -21,38 +19,11 @@ export class ExpressApplication implements Application {
     this.app.close();
   }
 
-  get(path: string, handler: Handler) {
-    this.app.get(path, (req, res) => handler(this.createContext(req, res)));
-    return this;
-  }
+  createRouter(path: string, cb: (router: Router) => void) {
+    const router = new ExpressRouter(express.Router());
 
-  post(path: string, handler: (context: HTTPContext) => void) {
-    this.app.post(path, (req, res) => handler(this.createContext(req, res)));
-    return this;
-  }
+    cb(router);
 
-  patch(path: string, handler: (context: HTTPContext) => void) {
-    this.app.patch(path, (req, res) => handler(this.createContext(req, res)));
-  }
-
-  put(path: string, handler: (context: HTTPContext) => void) {
-    this.app.patch(path, (req, res) => handler(this.createContext(req, res)));
-  }
-
-  delete(path: string, handler: (context: HTTPContext) => void) {
-    this.app.delete(path, (req, res) => handler(this.createContext(req, res)));
-  }
-
-  route(path: string) {
-    this.app.route(path);
-    return this;
-  }
-
-  createRouter() {
-    return Router();
-  }
-
-  private createContext(req: Request, res: Response) {
-    return new HTTPContext(new ExpressRequest(req), new ExpressResponse(res));
+    this.app.useRouter(path, router.router);
   }
 }
