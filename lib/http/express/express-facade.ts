@@ -4,10 +4,10 @@ import express, { Router } from "express";
 import session from "express-session";
 import helmet from "helmet";
 import path from "node:path";
+import { ExpressServer } from "./express-server.js";
 
 export class ExpressFacade {
   private readonly _app = express();
-  private readonly _server?: ReturnType<typeof this._app.listen>;
   private _port = 3000;
 
   constructor() {
@@ -17,10 +17,6 @@ export class ExpressFacade {
 
   get app() {
     return this._app;
-  }
-
-  get server() {
-    return this._server;
   }
 
   get port() {
@@ -74,7 +70,7 @@ export class ExpressFacade {
     port: Parameters<typeof this.app.listen>[0] = this.port,
     callback?: () => void,
   ) {
-    return this.app.listen(port, callback);
+    return new ExpressServer(this.app.listen(port, callback));
   }
 
   useErrorHandler(handler: express.ErrorRequestHandler) {
@@ -119,13 +115,5 @@ export class ExpressFacade {
   useBodyParser() {
     this.app.use(express.json());
     return this;
-  }
-
-  close() {
-    if (!this.server) {
-      return;
-    }
-
-    this.server.close();
   }
 }

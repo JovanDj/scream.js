@@ -10,7 +10,6 @@ describe("Server", () => {
     const db = new SqliteDatabase("migration-test.sqlite");
     await db.connect();
     await db.run("DELETE FROM todos");
-    console.log("deleted");
     await db.close();
   });
 

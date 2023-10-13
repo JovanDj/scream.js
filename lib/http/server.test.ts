@@ -1,7 +1,7 @@
 import supertest from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { getRandomPort } from "../getRandomPort.js";
-import { createServer } from "./create-server.js";
+import { createServer } from "./create-application.js";
 
 const servers = [
   {
@@ -16,7 +16,6 @@ describe.each(servers)("$name", ({ server }) => {
 
   beforeEach(async () => {
     // Close the server after all tests for each implementation
-    server.close();
 
     // Start the server for each implementation before the tests
     app = server.listen(await getRandomPort()); // Start on a random port
@@ -27,9 +26,6 @@ describe.each(servers)("$name", ({ server }) => {
     const testResponse = "Hello, World!";
 
     // Register a route handler for the current implementation
-    server.get(testPath, (context) => {
-      context.response.end(testResponse);
-    });
 
     // Use supertest to make a GET request to the test path
     const response = await supertest(app).get(testPath);
@@ -43,9 +39,6 @@ describe.each(servers)("$name", ({ server }) => {
     const testResponse = "Hello, World!";
 
     // Register a route handler for the current implementation
-    server.post(testPath, (context) => {
-      context.response.end(testResponse);
-    });
 
     // Use supertest to make a GET request to the test path
     const response = await supertest(app).post(testPath);

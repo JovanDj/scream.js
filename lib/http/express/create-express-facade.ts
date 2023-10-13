@@ -1,13 +1,10 @@
+import { ApplicationOptions } from "../create-application.js";
 import { ExpressFacade } from "./express-facade.js";
 
 const DEFAULT_PORT = 3000;
 
-interface CreateExpressFacadeOptions {
-  port: number;
-}
-
 export function createExpressFacade(
-  options: CreateExpressFacadeOptions = {
+  options: ApplicationOptions = {
     port: 3000,
   },
 ) {
