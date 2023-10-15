@@ -1,6 +1,6 @@
-import { Database } from "../../lib/database/database.js";
-import { Entity } from "../../lib/database/entity.js";
-import type { Repository } from "../../lib/database/repository.js";
+import { Database } from "@scream.js/database/database.js";
+import { Entity } from "@scream.js/database/entity.js";
+import type { Repository } from "@scream.js/database/repository.js";
 import { Todo } from "./todo.js";
 
 export class TodoRepository implements Repository<Todo> {

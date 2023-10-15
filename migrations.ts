@@ -1,7 +1,7 @@
+import { Database } from "@scream.js/database/database.js";
+import { SqliteDatabase } from "@scream.js/database/sqlite.js";
+import { Migration } from "@scream.js/migration.js";
 import { readdir } from "node:fs/promises";
-import { Database } from "./lib/database/database.js";
-import { SqliteDatabase } from "./lib/database/sqlite.js";
-import { Migration } from "./lib/migration.js";
 const database = new SqliteDatabase("migration-test.sqlite");
 
 try {

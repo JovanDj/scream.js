@@ -1,5 +1,5 @@
-import { Repository } from "../../lib/database/repository.js";
-import { HTTPContext } from "../../lib/http/http-context.js";
+import { Repository } from "@scream.js/database/repository.js";
+import { HTTPContext } from "@scream.js/http/http-context.js";
 import { Todo } from "./todo.js";
 
 export class TodosController {

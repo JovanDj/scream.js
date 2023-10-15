@@ -1,5 +1,5 @@
-import { Database } from "../lib/database/database.js";
-import { Migration } from "../lib/migration.js";
+import { Database } from "@scream.js/database/database.js";
+import { Migration } from "@scream.js/migration.js";
 
 export class UsersMigration implements Migration {
   private readonly _table = "users";

@@ -6,12 +6,15 @@
   ],
 
   "compilerOptions": {
-    "outDir": "dist"
+    "outDir": "dist",
+    "paths": {
+      "@scream.js/*": ["./lib/*"]
+    }
   },
 
   "include": [
     "server.ts",
-    "./lib/**/*.ts",
+    "@scream.js/**/*.ts",
     "./src/**/*.ts",
     "main.ts",
     "vite.config.ts",

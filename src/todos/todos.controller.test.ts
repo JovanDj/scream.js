@@ -1,8 +1,8 @@
+import { Database } from "@scream.js/database/database.js";
+import { Repository } from "@scream.js/database/repository.js";
+import { HTTPContext } from "@scream.js/http/http-context.js";
 import { anything, deepEqual, instance, mock, verify, when } from "ts-mockito";
 import { beforeEach, describe, it } from "vitest";
-import { Database } from "../../lib/database/database.js";
-import { Repository } from "../../lib/database/repository.js";
-import { HTTPContext } from "../../lib/http/http-context.js";
 import { Todo } from "./todo.js";
 import { TodoRepository } from "./todo.repository.js";
 import { TodosController } from "./todos.controller.js";

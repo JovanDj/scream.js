@@ -1,4 +1,4 @@
-import { Repository } from "../../lib/database/repository.js";
+import { Repository } from "@scream.js/database/repository.js";
 import { Todo } from "./todo.js";
 
 export class TodoIdentityMap implements Repository<Todo> {
