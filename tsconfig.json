@@ -7,6 +7,7 @@
 
   "compilerOptions": {
     "outDir": "dist",
+    "baseUrl": ".",
     "paths": {
       "@scream.js/*": ["./lib/*"]
     }
