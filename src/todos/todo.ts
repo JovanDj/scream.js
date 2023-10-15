@@ -1,5 +1,5 @@
-import { Entity } from "../../lib/database/entity.js";
-import { Serializable } from "../../lib/http/serializable.js";
+import { Entity } from "@scream.js/database/entity.js";
+import { Serializable } from "@scream.js/http/serializable.js";
 
 export class Todo implements Entity, Serializable<Todo> {
   private _id = 0;

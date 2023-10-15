@@ -1,4 +1,4 @@
-import { createServer } from "./lib/http/create-application.js";
+import { createServer } from "@scream.js/http/create-application.js";
 import { todoController } from "./src/todos/index.js";
 
 export const app = createServer();

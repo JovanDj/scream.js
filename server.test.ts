@@ -1,6 +1,6 @@
+import { SqliteDatabase } from "@scream.js/database/sqlite.js";
 import supertest from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { SqliteDatabase } from "./lib/database/sqlite.js";
 import { server } from "./server.js";
 
 describe("Server", () => {

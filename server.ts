@@ -1,4 +1,4 @@
-import { Server } from "./lib/http/server.js";
+import { Server } from "@scream.js/http/server.js";
 import { app } from "./main.js";
 
 export const server: Server = app.listen(3000, () =>
