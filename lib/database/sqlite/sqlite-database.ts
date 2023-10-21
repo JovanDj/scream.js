@@ -1,0 +1,17 @@
+import { open } from "sqlite";
+import sqlite3 from "sqlite3";
+import { ConnectionOptions } from "../connection-options.js";
+import { Database } from "../database.js";
+import { SqliteConnection } from "./sqlite-connection.js";
+
+export class SqliteDatabase implements Database {
+  async connect(database: ConnectionOptions = { database: ":memory:" }) {
+    const db = await open({
+      driver: sqlite3.Database,
+      filename: database.database,
+    });
+
+    await db.run("PRAGMA foreign_keys = ON;");
+    return new SqliteConnection(db);
+  }
+}

@@ -1,6 +1,6 @@
-import { Database } from "@scream.js/database/database.js";
-import { SqliteDatabase } from "@scream.js/database/sqlite.js";
+import { Connection } from "@scream.js/database/connection.js";
+import { SqliteDatabase } from "@scream.js/database/sqlite/sqlite-database.js";
 
-export const db: Database = await new SqliteDatabase(
-  "migration-test.sqlite",
-).connect();
+export const db: Connection = await new SqliteDatabase().connect({
+  database: "migration-test.sqlite",
+});

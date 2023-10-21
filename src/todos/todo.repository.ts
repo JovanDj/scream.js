@@ -1,10 +1,10 @@
-import { Database } from "@scream.js/database/database.js";
+import { Connection } from "@scream.js/database/connection.js";
 import { Entity } from "@scream.js/database/entity.js";
 import type { Repository } from "@scream.js/database/repository.js";
 import { Todo } from "./todo.js";
 
 export class TodoRepository implements Repository<Todo> {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: Connection) {}
 
   async findById(id: Entity["id"]) {
     const row = await this.db.get<{

@@ -15,12 +15,11 @@
 
   "include": [
     "server.ts",
-    "@scream.js/**/*.ts",
-    "./src/**/*.ts",
+    "lib",
+    "src",
     "main.ts",
     "vite.config.ts",
-    "./*.ts",
-    "./migrations/**/*.ts",
+    "migrations",
     "config"
   ]
 }

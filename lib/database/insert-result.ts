@@ -1,7 +1,7 @@
 export class InsertResult {
   constructor(
-    private readonly _lastId: number,
-    private readonly _changes: number,
+    private readonly _lastId?: number,
+    private readonly _changes?: number,
   ) {}
 
   /**

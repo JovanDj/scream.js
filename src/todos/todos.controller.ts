@@ -13,7 +13,6 @@ export class TodosController {
 
   async findOne(ctx: HTTPContext) {
     const todo = await this.todoRepository.findById(ctx.id);
-
     if (!todo) {
       return ctx.notFound();
     }
