@@ -1,10 +1,6 @@
 import { InsertResult } from "./insert-result.js";
 
-export interface Connection extends AsyncDisposable {
-  /**
-   *  Executes multiple queries
-   */
-  execute(queryString: string, params: string[]): Promise<void>;
+export interface Connection {
   close(): Promise<void>;
 
   /**

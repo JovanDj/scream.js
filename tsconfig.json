@@ -19,7 +19,7 @@
     "src/",
     "main.ts",
     "vite.config.ts",
-    "migrations/",
+    "migrations.ts",
     "config/",
     "e2e/"
   ]

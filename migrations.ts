@@ -1,8 +1,12 @@
-import { Database } from "@scream.js/database/database.js";
-import { SqliteDatabase } from "@scream.js/database/sqlite.js";
+import { Connection } from "@scream.js/database/connection.js";
+import { SqliteDatabase } from "@scream.js/database/sqlite/sqlite-database.js";
 import { Migration } from "@scream.js/migration.js";
 import { readdir } from "node:fs/promises";
-const database = new SqliteDatabase("migration-test.sqlite");
+
+const database = new SqliteDatabase();
+const connection = await database.connect({
+  database: "migration-test.sqlite",
+});
 
 try {
   // Read the files in the migrations folder
@@ -10,9 +14,7 @@ try {
   // Import each file and run its methods
   console.log("Migrating:", files.length);
 
-  await database.connect();
-
-  await database.run(`
+  await connection.run(`
     CREATE TABLE IF NOT EXISTS migrations (
       migration_id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT NOT NULL,
@@ -30,9 +32,9 @@ try {
       const migration: Migration = new migrationClass();
 
       console.log({ migrationClass });
-      await migrate(migration, database);
+      await migrate(migration, connection);
 
-      await database.run(
+      await connection.run(
         `
         INSERT INTO migrations(date, name) VALUES(?, ?)
       `,
@@ -45,14 +47,14 @@ try {
 } catch (error) {
   console.error("Error while importing and running migrations:", error);
 } finally {
-  await database.close();
+  await connection.close();
 }
 
-async function migrate(migration: Migration, database: Database) {
+async function migrate(migration: Migration, connection: Connection) {
   try {
-    await migration.up(database);
+    await migration.up(connection);
   } catch (error) {
-    await migration.down(database);
+    await migration.down(connection);
     console.error(error);
   }
 }

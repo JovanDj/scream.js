@@ -6,7 +6,7 @@ export class ExpressServer implements Server, Disposable {
     private readonly _server: ReturnType<express.Application["listen"]>
   ) {}
 
-  get server() {
+  get nodeServer() {
     return this._server;
   }
 

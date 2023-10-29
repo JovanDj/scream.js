@@ -19,7 +19,6 @@ export class TodoRepository implements Repository<Todo> {
       return;
     }
 
-    console.log({ row });
     const todo = new Todo();
 
     todo.id = row.todo_id;

@@ -1,17 +1,12 @@
-import { ApplicationOptions } from "../create-application.js";
+import express from "express";
 import { ExpressFacade } from "./express-facade.js";
 
-export function createExpressFacade(
-  options: ApplicationOptions = {
-    port: 3000,
-  }
-) {
-  return new ExpressFacade()
+export function createExpressFacade() {
+  return new ExpressFacade(express())
     .useSession()
     .useBodyParser()
     .useCookieParser()
     .useCors()
     .useHelmet()
-    .useSession()
-    .setPort(options.port);
+    .useSession();
 }

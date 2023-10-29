@@ -8,16 +8,17 @@ export class TodosController {
   async findAll(ctx: HttpContext) {
     const todos = await this._todoRepository.findAll();
 
-    ctx.json({ todos });
+    ctx.json({ ...todos.map((todo) => todo.toJSON()) });
   }
 
   async findOne(ctx: HttpContext) {
     const todo = await this._todoRepository.findById(ctx.id);
     if (!todo) {
-      ctx.notFound(); return;
+      ctx.notFound();
+      return;
     }
 
-    ctx.json({ todo });
+    ctx.json(todo.toJSON());
   }
 
   async create(ctx: HttpContext) {
