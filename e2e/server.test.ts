@@ -1,22 +1,20 @@
-import { Connection } from "@scream.js/database/connection.js";
-import { Database } from "@scream.js/database/database.js";
-import { SqliteDatabase } from "@scream.js/database/sqlite/sqlite-database.js";
+import { db as connection } from "config/database.js";
+import { UsersMigration } from "migrations/20220127144114_users.js";
+import { TodosMigration } from "migrations/20220127144115_todos.js";
 import supertest from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { server } from "../server.js";
 
 describe("Server", () => {
   let res: Awaited<supertest.Test>;
-  let db: Database;
-  let connection: Connection;
 
   beforeAll(async () => {
-    db = new SqliteDatabase();
-    connection = await db.connect({ database: "migration-test.sqlite" });
+    await new UsersMigration().up(connection);
+    await new TodosMigration().up(connection);
   });
 
   beforeEach(async () => {
-    await connection.run("DELETE FROM todos");
+    await connection.run("DELETE FROM todos;");
   });
 
   afterAll(async () => {
@@ -64,7 +62,7 @@ describe("Server", () => {
     describe("when there are todos", () => {
       beforeEach(async () => {
         const insert = await connection.run(
-          "INSERT INTO todos(title, due_date, updated_at, created_at) VALUES(?, ?, ?, ?)",
+          "INSERT INTO todos(title, due_date, updated_at, created_at) VALUES(?, ?, ?, ?);",
           [
             "test",
             new Date().toISOString(),
@@ -81,12 +79,19 @@ describe("Server", () => {
       });
 
       it("returns nothing", () => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         expect(res.body.title).toStrictEqual("test");
       });
     });
 
     describe("when there are no todos", () => {
-      it("returns status 404", () => {
+      beforeEach(async () => {
+        await connection.run("DELETE FROM todos;");
+      });
+
+      it("returns status 404", async () => {
+        await connection.run("DELETE FROM todos;");
+        console.log(res.body);
         expect(res.status).toBe(404);
       });
       it("returns nothing", () => {
