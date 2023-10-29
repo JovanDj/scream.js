@@ -1,10 +1,10 @@
-import { Database } from "@scream.js/database/database.js";
+import { Connection } from "@scream.js/database/connection.js";
 import { Migration } from "@scream.js/migration.js";
 
 export class UsersMigration implements Migration {
   private readonly _table = "users";
 
-  async up(database: Database) {
+  async up(database: Connection) {
     await database.run(`
       CREATE TABLE ${this._table} (
         user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -12,7 +12,7 @@ export class UsersMigration implements Migration {
       )`);
   }
 
-  async down(database: Database) {
+  async down(database: Connection) {
     await database.run(`DROP TABLE ${this._table}`);
   }
 }

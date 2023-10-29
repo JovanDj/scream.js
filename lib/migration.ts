@@ -1,6 +1,6 @@
-import { Database } from "./database/database.js";
+import { Connection } from "./database/connection.js";
 
 export interface Migration {
-  up(database: Database): Promise<void>;
-  down(database: Database): Promise<void>;
+  up(database: Connection): Promise<void>;
+  down(database: Connection): Promise<void>;
 }

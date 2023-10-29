@@ -3,14 +3,18 @@ import { Server } from "../server.js";
 
 export class ExpressServer implements Server, Disposable {
   constructor(
-    private readonly server: ReturnType<express.Application["listen"]>,
+    private readonly _server: ReturnType<express.Application["listen"]>
   ) {}
 
+  get server() {
+    return this._server;
+  }
+
   close() {
-    this.server.close();
+    this._server.close();
   }
 
   [Symbol.dispose]() {
-    this.server.close();
+    this._server.close();
   }
 }

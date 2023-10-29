@@ -1,3 +1,3 @@
-import { HTTPContext } from "./http-context.js";
+import { HttpContext } from "./http-context.js";
 
-export type Handler = (context: HTTPContext) => unknown;
+export type Handler = (context: HttpContext) => unknown;

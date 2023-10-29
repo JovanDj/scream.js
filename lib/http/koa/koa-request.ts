@@ -2,19 +2,19 @@ import { Context } from "koa";
 import { Request } from "../request.js";
 
 export class KoaRequest implements Request {
-  constructor(private readonly req: Context["request"]) {}
+  constructor(private readonly _req: Context["request"]) {}
 
   get params() {
     return {};
   }
 
   method() {
-    return this.req.method;
+    return this._req.method;
   }
   headers() {
-    return this.req.headers;
+    return this._req.headers;
   }
   url() {
-    return this.req.url;
+    return this._req.url;
   }
 }

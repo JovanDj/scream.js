@@ -1,27 +1,27 @@
 import { Repository } from "@scream.js/database/repository.js";
-import { HTTPContext } from "@scream.js/http/http-context.js";
+import { HttpContext } from "@scream.js/http/http-context.js";
 import { Todo } from "./todo.js";
 
 export class TodosController {
-  constructor(private readonly todoRepository: Repository<Todo>) {}
+  constructor(private readonly _todoRepository: Repository<Todo>) {}
 
-  async findAll(ctx: HTTPContext) {
-    const todos = await this.todoRepository.findAll();
+  async findAll(ctx: HttpContext) {
+    const todos = await this._todoRepository.findAll();
 
     ctx.json({ todos });
   }
 
-  async findOne(ctx: HTTPContext) {
-    const todo = await this.todoRepository.findById(ctx.id);
+  async findOne(ctx: HttpContext) {
+    const todo = await this._todoRepository.findById(ctx.id);
     if (!todo) {
-      return ctx.notFound();
+      ctx.notFound(); return;
     }
 
-    return ctx.json({ todo });
+    ctx.json({ todo });
   }
 
-  async create(ctx: HTTPContext) {
-    const result = await this.todoRepository.insert(new Todo());
+  async create(ctx: HttpContext) {
+    const result = await this._todoRepository.insert(new Todo());
 
     ctx.redirect("http://localhost:3000/todos/" + result.lastId);
   }
