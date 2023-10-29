@@ -3,7 +3,7 @@ import { Server } from "../server.js";
 export class KoaServer implements Server, Disposable {
   constructor(private readonly _server: ReturnType<Koa["listen"]>) {}
 
-  get server() {
+  get nodeServer() {
     return this._server;
   }
 

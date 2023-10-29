@@ -29,7 +29,7 @@ describe("TodosController", () => {
     });
 
     it("should return a list of todos", () => {
-      verify(contextMock.json(deepEqual({ todos: [] }))).once();
+      verify(contextMock.json(deepEqual({}))).once();
     });
   });
 

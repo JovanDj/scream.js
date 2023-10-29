@@ -11,6 +11,9 @@ export default defineConfig({
       checker: "tsc",
       tsconfig: "./tsconfig.json",
     },
+    coverage: {
+      exclude: ["lib/http/koa"],
+    },
     reporters: ["verbose"],
   },
 });
