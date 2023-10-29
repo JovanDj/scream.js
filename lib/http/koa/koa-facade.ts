@@ -5,7 +5,7 @@ import { KoaServer } from "./koa-server.js";
 export class KoaFacade {
   constructor(
     private readonly _koa: Koa,
-    private readonly _options: { port: number } = { port: 3333 },
+    private readonly _options: { port: number } = { port: 3333 }
   ) {}
 
   get app() {
@@ -20,7 +20,7 @@ export class KoaFacade {
     return this.app.use(middleware);
   }
 
-  listen(port = 3000, cb: () => void) {
+  listen(port: number, cb: () => void) {
     return new KoaServer(this.app.listen(port, cb));
   }
 

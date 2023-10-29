@@ -3,7 +3,7 @@ import { Connection } from "../connection.js";
 import { InsertResult } from "../insert-result.js";
 
 export class SqliteConnection implements Connection {
-  constructor(private readonly db: sqlite.Database) {}
+  constructor(private readonly _db: sqlite.Database) {}
 
   /**
    *  Executes multiple queries
@@ -11,25 +11,25 @@ export class SqliteConnection implements Connection {
    * @param params
    */
   async execute(queryString: ISqlite.SqlType) {
-    return this.db.exec(queryString);
+    return this._db.exec(queryString);
   }
 
   async run(queryString: string, params: string[] = []) {
-    const result = await this.db.run(queryString, params);
+    const result = await this._db.run(queryString, params);
 
     return new InsertResult(result.lastID, result.changes);
   }
 
   async all<T>(sqlString: string, params?: string[]) {
-    return this.db.all<T>(sqlString, params);
+    return this._db.all<T>(sqlString, params);
   }
 
   async get<T>(sqlString: string, params?: string[]) {
-    return this.db.get<T>(sqlString, params);
+    return this._db.get<T>(sqlString, params);
   }
 
   async close() {
-    return this.db.close();
+    return this._db.close();
   }
 
   [Symbol.asyncDispose]() {

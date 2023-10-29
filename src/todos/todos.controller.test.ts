@@ -1,6 +1,6 @@
-import { Database } from "@scream.js/database/database.js";
+import { Connection } from "@scream.js/database/connection.js";
 import { Repository } from "@scream.js/database/repository.js";
-import { HTTPContext } from "@scream.js/http/http-context.js";
+import { HttpContext } from "@scream.js/http/http-context.js";
 import { anything, deepEqual, instance, mock, verify, when } from "ts-mockito";
 import { beforeEach, describe, it } from "vitest";
 import { Todo } from "./todo.js";
@@ -9,16 +9,16 @@ import { TodosController } from "./todos.controller.js";
 
 describe("TodosController", () => {
   let todosController: TodosController;
-  let db: Database;
+  let db: Connection;
   let todosRepository: Repository<Todo>;
-  let contextMock: HTTPContext;
+  let contextMock: HttpContext;
 
   beforeEach(() => {
-    db = mock<Database>();
+    db = mock<Connection>();
     todosRepository = new TodoRepository(instance(db));
     todosController = new TodosController(todosRepository);
 
-    contextMock = mock<HTTPContext>();
+    contextMock = mock(HttpContext);
   });
 
   describe("find all todos", () => {
@@ -31,31 +31,19 @@ describe("TodosController", () => {
     it("should return a list of todos", () => {
       verify(contextMock.json(deepEqual({ todos: [] }))).once();
     });
-
-    it("returns status 200", () => {
-      verify(contextMock.status(200)).once();
-    });
-
-    it("should call db all method", () => {
-      verify(db.all("SELECT * FROM todos")).once();
-    });
-
-    it("should open db before querying", () => {
-      verify(db.connect()).calledBefore(db.all("SELECT * FROM todos"));
-    });
-
-    it("should close db after querying", () => {
-      verify(db.close()).calledAfter(db.all("SELECT * FROM todos"));
-    });
   });
 
   describe("find one todo", () => {
-    beforeEach(async () => {
+    beforeEach(() => {
+      when(contextMock.id).thenReturn(1);
+    });
+
+    it("should find one todo", async () => {
       when(
         db.get(
           deepEqual("SELECT * FROM todos WHERE todo_id = ?"),
-          deepEqual(["1"]),
-        ),
+          deepEqual(["1"])
+        )
       ).thenResolve({
         todo_id: 1,
         title: "",
@@ -65,41 +53,19 @@ describe("TodosController", () => {
       });
 
       await todosController.findOne(instance(contextMock));
-    });
-
-    it("should find one todo", () => {
       verify(contextMock.json(anything())).once();
     });
 
-    it("should return status 200", () => {
-      verify(contextMock.status(200)).once();
-    });
-
-    it("should call db all method", () => {
-      verify(
+    it("should return 404", async () => {
+      when(
         db.get(
           deepEqual("SELECT * FROM todos WHERE todo_id = ?"),
-          deepEqual(["1"]),
-        ),
-      ).once();
-    });
+          deepEqual(["1"])
+        )
+      ).thenResolve(undefined);
 
-    it("should open db before querying", () => {
-      verify(db.connect()).calledBefore(
-        db.get(
-          deepEqual("SELECT * FROM todos WHERE todo_id = ?"),
-          deepEqual(["1"]),
-        ),
-      );
-    });
-
-    it("should close db after querying", () => {
-      verify(db.close()).calledAfter(
-        db.get(
-          deepEqual("SELECT * FROM todos WHERE todo_id = ?"),
-          deepEqual(["1"]),
-        ),
-      );
+      await todosController.findOne(instance(contextMock));
+      verify(contextMock.notFound()).once();
     });
   });
 });

@@ -15,11 +15,12 @@
 
   "include": [
     "server.ts",
-    "lib",
-    "src",
+    "lib/",
+    "src/",
     "main.ts",
     "vite.config.ts",
-    "migrations",
-    "config"
+    "migrations/",
+    "config/",
+    "e2e/"
   ]
 }

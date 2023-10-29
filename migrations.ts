@@ -36,7 +36,7 @@ try {
         `
         INSERT INTO migrations(date, name) VALUES(?, ?)
       `,
-        [new Date().toISOString(), key],
+        [new Date().toISOString(), key]
       );
 
       console.log("Migrated: ", migrationClass.name);

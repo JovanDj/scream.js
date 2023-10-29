@@ -8,18 +8,35 @@
   "plugins": ["@typescript-eslint", "promise", "prettier"],
   "parserOptions": {
     "sourceType": "module",
-    "project": "./tsconfig.json"
+    "project": "tsconfig.json"
   },
   "extends": [
-    "plugin:@typescript-eslint/recommended",
-    "plugin:@typescript-eslint/recommended-requiring-type-checking",
-    "plugin:@typescript-eslint/strict",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/strict-type-checked",
+    "plugin:@typescript-eslint/stylistic-type-checked",
     "plugin:promise/recommended",
     "prettier"
   ],
   "rules": {
-    "@typescript-eslint/member-ordering": "warn",
-    "@typescript-eslint/naming-convention": "error",
+    "@typescript-eslint/no-confusing-void-expression": "off",
+    "@typescript-eslint/member-ordering": "error",
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        "selector": "variableLike",
+        "format": ["strictCamelCase"]
+      },
+      {
+        "selector": "memberLike",
+        "modifiers": ["private"],
+        "format": ["camelCase"],
+        "leadingUnderscore": "require"
+      },
+      {
+        "selector": "typeLike",
+        "format": ["StrictPascalCase"]
+      }
+    ],
     "@typescript-eslint/explicit-member-accessibility": [
       "error",
       { "accessibility": "no-public" }
@@ -28,6 +45,18 @@
       "error",
       { "prefer": "parameter-property" }
     ],
-    "@typescript-eslint/prefer-readonly": "error"
+    "@typescript-eslint/prefer-readonly": "error",
+    "no-return-await": "off",
+    "@typescript-eslint/return-await": ["error", "never"],
+    "@typescript-eslint/consistent-generic-constructors": [
+      "error",
+      "constructor"
+    ],
+    "@typescript-eslint/await-thenable": "error",
+    "@typescript-eslint/ban-types": "error",
+    "@typescript-eslint/consistent-indexed-object-style": ["error", "record"],
+    "@typescript-eslint/class-literal-property-style": ["error", "fields"],
+    "default-param-last": "off",
+    "@typescript-eslint/default-param-last": "error"
   }
 }

@@ -3,49 +3,49 @@ import { Todo } from "./todo.js";
 
 export class TodoIdentityMap implements Repository<Todo> {
   constructor(
-    private readonly repository: Repository<Todo>,
-    private readonly identityMap: Map<Todo["id"], Todo>,
+    private readonly _repository: Repository<Todo>,
+    private readonly _identityMap: Map<Todo["id"], Todo>
   ) {}
 
   async findById(id: Todo["id"]) {
-    if (!this.identityMap.has(id)) {
-      const todo = await this.repository.findById(id);
+    if (!this._identityMap.has(id)) {
+      const todo = await this._repository.findById(id);
 
       if (!todo) {
         return;
       }
 
-      this.identityMap.set(todo.id, todo);
+      this._identityMap.set(todo.id, todo);
 
       return todo;
     }
 
-    return this.identityMap.get(id);
+    return this._identityMap.get(id);
   }
 
   async findAll() {
-    return this.repository.findAll();
+    return this._repository.findAll();
   }
 
   async insert(entity: Partial<Todo>) {
-    return this.repository.insert(entity);
+    return this._repository.insert(entity);
   }
 
   async update(id: Todo["id"], entity: Todo) {
-    const updatedCount = await this.repository.update(id, entity);
+    const updatedCount = await this._repository.update(id, entity);
 
     if (updatedCount > 0) {
-      this.identityMap.delete(id);
+      this._identityMap.delete(id);
     }
 
     return updatedCount;
   }
 
   async delete(id: Todo["id"]) {
-    const deletedCount = await this.repository.delete(id);
+    const deletedCount = await this._repository.delete(id);
 
     if (deletedCount > 0) {
-      this.identityMap.delete(id);
+      this._identityMap.delete(id);
     }
 
     return deletedCount;

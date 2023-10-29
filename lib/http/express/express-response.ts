@@ -2,29 +2,29 @@ import express from "express";
 import { Response } from "../response.js";
 
 export class ExpressResponse implements Response {
-  constructor(private readonly res: express.Response) {}
+  constructor(private readonly _res: express.Response) {}
 
   json(data: unknown) {
-    this.res.json(data);
+    this._res.json(data);
   }
 
-  end(chunk?: string) {
-    this.res.end(chunk);
+  end(chunk: Parameters<typeof this._res.end>[0]) {
+    this._res.end(chunk);
   }
 
   status(code: number) {
-    this.res.status(code);
+    this._res.status(code);
   }
 
   render(template: string, locals = {}) {
-    this.res.render(template, locals);
+    this._res.render(template, locals);
   }
 
   location(url: string): void {
-    this.res.location(url);
+    this._res.location(url);
   }
 
   redirect(url: string): void {
-    this.res.redirect(url);
+    this._res.redirect(url);
   }
 }

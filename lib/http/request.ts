@@ -1,7 +1,7 @@
 import { IncomingHttpHeaders } from "node:http";
 
 export interface Request {
-  params: { [name: string]: string };
+  params: Record<string, string>;
 
   method(): string;
   headers(): IncomingHttpHeaders;

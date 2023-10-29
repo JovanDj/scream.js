@@ -1,10 +1,10 @@
 import type { Request } from "./request.js";
 import type { Response } from "./response.js";
 
-export class HTTPContext {
+export class HttpContext {
   constructor(
     private readonly _request: Request,
-    private readonly _response: Response,
+    private readonly _response: Response
   ) {}
 
   get request() {
@@ -34,7 +34,7 @@ export class HTTPContext {
 
   render(
     template: Parameters<typeof this.response.render>[0],
-    locals: Parameters<typeof this.response.render>[1],
+    locals: Parameters<typeof this.response.render>[1]
   ) {
     this.response.render(template, locals);
   }
@@ -45,6 +45,6 @@ export class HTTPContext {
 
   notFound() {
     this.status(404);
-    return this.response.end();
+    this.response.end();
   }
 }
