@@ -8,7 +8,8 @@ export class TodosController {
   async findAll(ctx: HttpContext) {
     const todos = await this._todoRepository.findAll();
 
-    ctx.json({ ...todos.map((todo) => todo.toJSON()) });
+    // Todo: works, fix type
+    ctx.json(todos);
   }
 
   async findOne(ctx: HttpContext) {

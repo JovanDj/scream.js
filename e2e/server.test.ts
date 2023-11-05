@@ -50,7 +50,7 @@ describe("Server", () => {
     });
 
     it("should return array of todos", () => {
-      expect(res.body).toStrictEqual({});
+      expect(res.body).toStrictEqual([]);
     });
   });
 

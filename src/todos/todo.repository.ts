@@ -1,32 +1,26 @@
 import { Connection } from "@scream.js/database/connection.js";
+import { Mapper } from "@scream.js/database/mapper.js";
 import type { Repository } from "@scream.js/database/repository.js";
 import { Todo } from "./todo.js";
+import { TodoRow } from "./todo.row.js";
 
 export class TodoRepository implements Repository<Todo> {
-  constructor(private readonly _db: Connection) {}
+  constructor(
+    private readonly _db: Connection,
+    private readonly _mapper: Mapper<Todo, TodoRow>
+  ) {}
 
   async findById(id: Todo["id"]) {
-    const row = await this._db.get<{
-      todo_id: number;
-      title: string;
-      updated_at: string;
-      created_at: string;
-      due_date: string;
-    }>("SELECT * FROM todos WHERE todo_id = ?", [id.toString()]);
+    const row = await this._db.get<TodoRow>(
+      "SELECT * FROM todos WHERE todo_id = ?",
+      [id.toString()]
+    );
 
     if (!row) {
       return;
     }
 
-    const todo = new Todo();
-
-    todo.id = row.todo_id;
-    todo.title = row.title;
-    todo.updatedAt = new Date(row.updated_at);
-    todo.createdAt = new Date(row.created_at);
-    todo.dueDate = new Date(row.due_date);
-
-    return todo;
+    return this._mapper.toEntity(row);
   }
 
   async findAll() {
@@ -38,18 +32,7 @@ export class TodoRepository implements Repository<Todo> {
       due_date: string;
     }>("SELECT * FROM todos");
 
-    const todos = rows.map((row) => {
-      const todo = new Todo();
-      todo.id = row.todo_id;
-      todo.title = row.title;
-      todo.updatedAt = new Date(row.updated_at);
-      todo.createdAt = new Date(row.created_at);
-      todo.dueDate = new Date(row.due_date);
-
-      return todo;
-    });
-
-    return todos;
+    return this._mapper.toEntities(rows);
   }
 
   async insert(todo: Todo) {
