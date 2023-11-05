@@ -1,10 +1,13 @@
 import { Connection } from "@scream.js/database/connection.js";
+import { Mapper } from "@scream.js/database/mapper.js";
 import { Repository } from "@scream.js/database/repository.js";
 import { HttpContext } from "@scream.js/http/http-context.js";
 import { anything, deepEqual, instance, mock, verify, when } from "ts-mockito";
 import { beforeEach, describe, it } from "vitest";
 import { Todo } from "./todo.js";
+import { TodoMapper } from "./todo.mapper.js";
 import { TodoRepository } from "./todo.repository.js";
+import { TodoRow } from "./todo.row.js";
 import { TodosController } from "./todos.controller.js";
 
 describe("TodosController", () => {
@@ -12,10 +15,12 @@ describe("TodosController", () => {
   let db: Connection;
   let todosRepository: Repository<Todo>;
   let contextMock: HttpContext;
+  let todoMapper: Mapper<Todo, TodoRow>;
 
   beforeEach(() => {
     db = mock<Connection>();
-    todosRepository = new TodoRepository(instance(db));
+    todoMapper = new TodoMapper();
+    todosRepository = new TodoRepository(instance(db), todoMapper);
     todosController = new TodosController(todosRepository);
 
     contextMock = mock(HttpContext);
@@ -29,7 +34,8 @@ describe("TodosController", () => {
     });
 
     it("should return a list of todos", () => {
-      verify(contextMock.json(deepEqual({}))).once();
+      // Todo: works, fix type
+      verify(contextMock.json(deepEqual([]))).once();
     });
   });
 
