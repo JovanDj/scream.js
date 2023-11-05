@@ -22,4 +22,12 @@ export class SqliteConnection implements Connection {
   async close() {
     return this._db.close();
   }
+
+  async exec(sqlString: string) {
+    return this._db.exec(sqlString);
+  }
+
+  truncateTable(table: string) {
+    return this.exec(`DELETE FROM ${table};`);
+  }
 }
