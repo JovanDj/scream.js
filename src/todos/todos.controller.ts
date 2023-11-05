@@ -26,4 +26,12 @@ export class TodosController {
 
     ctx.redirect("http://localhost:3000/todos/" + result.lastId);
   }
+
+  async update(ctx: HttpContext) {
+    const todo = new Todo();
+    todo.title = ctx.request.body["title"] ?? "";
+
+    const res = await this._todoRepository.update(ctx.id, todo);
+    ctx.redirect("http://localhost:3000/todos/" + res);
+  }
 }

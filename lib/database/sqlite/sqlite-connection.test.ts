@@ -8,12 +8,12 @@ describe("SqliteDatabase", () => {
     const db = await open({ driver: sqlite3.Database, filename: ":memory:" });
     const connection = new SqliteConnection(db);
 
-    await db.run("CREATE TABLE users (id INTEGER);");
-    await db.run("INSERT INTO users VALUES (1)");
+    await db.exec("CREATE TABLE users (id INTEGER);");
+    await db.exec("INSERT INTO users VALUES (1)");
 
     const users = await connection.all("SELECT * FROM users;", []);
+    await connection.close();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(users).toStrictEqual([{ id: 1 }]);
   });
 
@@ -21,12 +21,12 @@ describe("SqliteDatabase", () => {
     const db = await open({ driver: sqlite3.Database, filename: ":memory:" });
     const connection = new SqliteConnection(db);
 
-    await db.run("CREATE TABLE users (id INTEGER);");
-    await db.run("INSERT INTO users VALUES (1)");
+    await db.exec("CREATE TABLE users (id INTEGER);");
+    await db.exec("INSERT INTO users VALUES (1)");
 
     const users = await connection.get("SELECT * FROM users;");
+    await connection.close();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(users).toStrictEqual({ id: 1 });
   });
 

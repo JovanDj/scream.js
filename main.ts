@@ -16,4 +16,5 @@ app.createRouter("/todos", (router) => {
   router.get("/", async (ctx) => todoController.findAll(ctx));
   router.get("/:id", async (ctx) => todoController.findOne(ctx));
   router.post("/", async (ctx) => todoController.create(ctx));
+  router.patch("/:id", async (ctx) => todoController.update(ctx));
 });

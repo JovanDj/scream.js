@@ -1,4 +1,4 @@
+import { createLogger } from "@scream.js/logger/logger-factory.js";
 import { Logger } from "@scream.js/logger/logger.interface.js";
-import { ScreamLogger } from "@scream.js/logger/scream-logger.js";
 
-export const logger: Logger = new ScreamLogger();
+export const logger: Logger = createLogger();

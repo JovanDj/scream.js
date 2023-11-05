@@ -5,7 +5,7 @@ export class UsersMigration implements Migration {
   private readonly _table = "users";
 
   async up(database: Connection) {
-    await database.run(`
+    await database.exec(`
       CREATE TABLE ${this._table} (
         user_id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT NOT NULL
@@ -13,6 +13,6 @@ export class UsersMigration implements Migration {
   }
 
   async down(database: Connection) {
-    await database.run(`DROP TABLE ${this._table}`);
+    await database.exec(`DROP TABLE ${this._table}`);
   }
 }

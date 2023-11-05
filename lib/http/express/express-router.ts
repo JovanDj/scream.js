@@ -13,7 +13,11 @@ export class ExpressRouter implements Router {
   }
 
   get(path: string, handler: Handler) {
-    this.router.get(path, (req, res) => {
+    this._router.get<
+      Record<string, never>,
+      Record<string, never>,
+      Record<string, never>
+    >(path, (req, res) => {
       const context = this._createContext(req, res);
 
       return handler(context);
@@ -21,14 +25,37 @@ export class ExpressRouter implements Router {
   }
 
   post(path: string, handler: Handler) {
-    this.router.post(path, (req, res) => {
+    this._router.post<
+      Record<string, never>,
+      Record<string, never>,
+      Record<string, never>
+    >(path, (req, res) => {
       const context = this._createContext(req, res);
 
       return handler(context);
     });
   }
 
-  private _createContext(req: express.Request, res: express.Response) {
+  patch(path: string, handler: Handler) {
+    this._router.patch<
+      Record<string, never>,
+      Record<string, never>,
+      Record<string, never>
+    >(path, (req, res) => {
+      const context = this._createContext(req, res);
+
+      return handler(context);
+    });
+  }
+
+  private _createContext(
+    req: express.Request<
+      Record<string, never>,
+      Record<string, never>,
+      Record<string, never>
+    >,
+    res: express.Response
+  ) {
     const request = new ExpressRequest(req);
     const response = new ExpressResponse(res);
 

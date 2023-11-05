@@ -1,12 +1,11 @@
 import { Connection } from "@scream.js/database/connection.js";
-import { Entity } from "@scream.js/database/entity.js";
 import type { Repository } from "@scream.js/database/repository.js";
 import { Todo } from "./todo.js";
 
 export class TodoRepository implements Repository<Todo> {
   constructor(private readonly _db: Connection) {}
 
-  async findById(id: Entity["id"]) {
+  async findById(id: Todo["id"]) {
     const row = await this._db.get<{
       todo_id: number;
       title: string;
@@ -67,8 +66,13 @@ export class TodoRepository implements Repository<Todo> {
     return result;
   }
 
-  update(): Promise<number> {
-    throw new Error("Method not implemented.");
+  async update(id: Todo["id"], todo: Partial<Todo>) {
+    await this._db.run("UPDATE todos SET title = ? WHERE todo_id = ?", [
+      todo.title ?? "",
+      id.toString(),
+    ]);
+
+    return id;
   }
   delete(): Promise<number> {
     throw new Error("Method not implemented.");

@@ -14,7 +14,7 @@ describe("Server", () => {
   });
 
   beforeEach(async () => {
-    await connection.run("DELETE FROM todos;");
+    await connection.truncateTable("todos");
   });
 
   afterAll(async () => {
@@ -86,14 +86,13 @@ describe("Server", () => {
 
     describe("when there are no todos", () => {
       beforeEach(async () => {
-        await connection.run("DELETE FROM todos;");
+        res = await supertest(server.nodeServer).get("/todos/1");
       });
 
-      it("returns status 404", async () => {
-        await connection.run("DELETE FROM todos;");
-        console.log(res.body);
+      it("returns status 404", () => {
         expect(res.status).toBe(404);
       });
+
       it("returns nothing", () => {
         expect(res.body).toStrictEqual({});
       });
@@ -101,7 +100,27 @@ describe("Server", () => {
   });
 
   it("creates a todo", async () => {
-    const res = await supertest(server.nodeServer).post("/todos");
+    res = await supertest(server.nodeServer).post("/todos");
     expect(res.redirect).toBeTruthy();
+  });
+
+  it("should update a todo item", async () => {
+    const { lastId } = await connection.run(
+      "INSERT INTO todos(title, due_date, updated_at, created_at) VALUES(?, ?, ?, ?);",
+      [
+        "test",
+        new Date().toISOString(),
+        new Date().toISOString(),
+        new Date().toISOString(),
+      ]
+    );
+    const updatedTitle = "Updated Title";
+
+    const response = await supertest(server.nodeServer)
+      .patch(`/todos/${lastId}`)
+      .send({ title: updatedTitle });
+
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    expect(response.status).toBe(302);
   });
 });
