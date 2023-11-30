@@ -4,12 +4,18 @@ import express, { Router } from "express";
 import session from "express-session";
 import helmet from "helmet";
 import path from "node:path";
+import nunjucks from "nunjucks";
 import { ExpressServer } from "./express-server.js";
 
 export class ExpressFacade {
   constructor(private readonly _app: ReturnType<typeof express>) {
     this._app.set("views", path.join(process.cwd(), "views"));
-    this._app.set("view engine", "ejs");
+    this._app.set("view engine", "njk");
+
+    nunjucks.configure("views", {
+      autoescape: true,
+      express: this._app,
+    });
   }
 
   use(middleware: express.Handler) {
