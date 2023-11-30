@@ -24,13 +24,7 @@ export class TodoRepository implements Repository<Todo> {
   }
 
   async findAll() {
-    const rows = await this._db.all<{
-      todo_id: number;
-      title: string;
-      updated_at: string;
-      created_at: string;
-      due_date: string;
-    }>("SELECT * FROM todos");
+    const rows = await this._db.all<TodoRow>("SELECT * FROM todos");
 
     return this._mapper.toEntities(rows);
   }
@@ -57,7 +51,11 @@ export class TodoRepository implements Repository<Todo> {
 
     return id;
   }
-  delete(): Promise<number> {
-    throw new Error("Method not implemented.");
+
+  async delete(id: Todo["id"]) {
+    const result = await this._db.run("DELETE FROM todos WHERE todo_id = ?", [
+      id.toString(),
+    ]);
+    return result.lastId ?? 0;
   }
 }

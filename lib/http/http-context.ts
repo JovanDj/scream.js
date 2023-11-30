@@ -7,44 +7,40 @@ export class HttpContext {
     private readonly _response: Response
   ) {}
 
-  get request() {
-    return this._request;
-  }
-
-  get response() {
-    return this._response;
+  get body() {
+    return this._request.body;
   }
 
   get id() {
-    if (!this.request.params["id"]) {
+    if (!this._request.params["id"]) {
       throw new Error("No id param present.");
     }
 
-    return +this.request.params["id"];
+    return +this._request.params["id"];
   }
 
-  json(data: Parameters<typeof this.response.json>[0]) {
-    this.response.json(data);
+  json(data: Parameters<typeof this._response.json>[0]) {
+    this._response.json(data);
   }
 
-  status(code: Parameters<typeof this.response.status>[0]) {
-    this.response.status(code);
+  status(code: Parameters<typeof this._response.status>[0]) {
+    this._response.status(code);
     return this;
   }
 
   render(
-    template: Parameters<typeof this.response.render>[0],
-    locals: Parameters<typeof this.response.render>[1]
+    template: Parameters<typeof this._response.render>[0],
+    locals: Parameters<typeof this._response.render>[1]
   ) {
-    this.response.render(template, locals);
+    this._response.render(template, locals);
   }
 
   redirect(url: string) {
-    this.response.redirect(url);
+    this._response.redirect(url);
   }
 
   notFound() {
     this.status(404);
-    this.response.end();
+    this._response.end();
   }
 }

@@ -1,8 +1,9 @@
 import { Repository } from "@scream.js/database/repository.js";
 import { HttpContext } from "@scream.js/http/http-context.js";
+import { Resource } from "@scream.js/resource.js";
 import { Todo } from "./todo.js";
 
-export class TodosController {
+export class TodosController implements Resource {
   constructor(private readonly _todoRepository: Repository<Todo>) {}
 
   async findAll(ctx: HttpContext) {
@@ -14,9 +15,9 @@ export class TodosController {
 
   async findOne(ctx: HttpContext) {
     const todo = await this._todoRepository.findById(ctx.id);
+
     if (!todo) {
-      ctx.notFound();
-      return;
+      return ctx.notFound();
     }
 
     ctx.json(todo.toJSON());
@@ -30,9 +31,15 @@ export class TodosController {
 
   async update(ctx: HttpContext) {
     const todo = new Todo();
-    todo.title = ctx.request.body["title"] ?? "";
+    todo.title = ctx.body["title"] ?? "";
 
     const res = await this._todoRepository.update(ctx.id, todo);
     ctx.redirect("http://localhost:3000/todos/" + res);
+  }
+
+  async delete(ctx: HttpContext) {
+    await this._todoRepository.delete(+ctx.id);
+
+    ctx.json({});
   }
 }

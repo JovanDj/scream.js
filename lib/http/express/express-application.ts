@@ -1,3 +1,4 @@
+import { Resource } from "@scream.js/resource.js";
 import express from "express";
 import type { Application } from "../application.interface.js";
 import { Middleware } from "../middleware.js";
@@ -23,10 +24,19 @@ export class ExpressApplication implements Application {
   }
 
   use(middleware: Middleware) {
-    this._app.use((req: express.Request, res: express.Response) => {
-      middleware(new ExpressRequest(req), new ExpressResponse(res));
-    });
+    this._app.use((req: express.Request, res: express.Response) =>
+      middleware(new ExpressRequest(req), new ExpressResponse(res))
+    );
 
     return this;
+  }
+
+  resource(path: string, resource: Resource) {
+    this.createRouter(path, (router) => {
+      router.get("/", async (ctx) => resource.findAll(ctx));
+      router.get("/:id", async (ctx) => resource.findOne(ctx));
+      router.post("/", async (ctx) => resource.create(ctx));
+      router.patch("/:id", async (ctx) => resource.update(ctx));
+    });
   }
 }
