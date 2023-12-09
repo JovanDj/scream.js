@@ -1,13 +1,13 @@
 import type { Request } from "./request.js";
 import type { Response } from "./response.js";
 
-export class HttpContext {
+export class HttpContext<Body = object> {
   constructor(
-    private readonly _request: Request,
+    private readonly _request: Request<Body>,
     private readonly _response: Response
   ) {}
 
-  get body() {
+  get body(): Body {
     return this._request.body;
   }
 

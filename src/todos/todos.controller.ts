@@ -20,18 +20,25 @@ export class TodosController implements Resource {
       return ctx.notFound();
     }
 
-    ctx.json(todo.toJSON());
+    ctx.json(todo);
   }
 
-  async create(ctx: HttpContext) {
-    const result = await this._todoRepository.insert(new Todo());
+  async create(ctx: HttpContext<{ title: string }>) {
+    if (!ctx.body.title) {
+      return ctx.status(400).json({ title: "Missing" });
+    }
 
-    ctx.redirect("http://localhost:3000/todos/" + result.lastId);
-  }
-
-  async update(ctx: HttpContext) {
     const todo = new Todo();
-    todo.title = ctx.body["title"] ?? "";
+    todo.title = ctx.body.title;
+
+    const result = await this._todoRepository.insert(todo);
+
+    ctx.status(201).redirect("http://localhost:3000/todos/" + result.lastId);
+  }
+
+  async update(ctx: HttpContext<{ title: string }>) {
+    const todo = new Todo();
+    todo.title = ctx.body.title;
 
     const res = await this._todoRepository.update(ctx.id, todo);
     ctx.redirect("http://localhost:3000/todos/" + res);

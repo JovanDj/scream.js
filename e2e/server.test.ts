@@ -100,7 +100,9 @@ describe("Server", () => {
   });
 
   it("creates a todo", async () => {
-    res = await supertest(server.nodeServer).post("/todos");
+    res = await supertest(server.nodeServer)
+      .post("/todos")
+      .send({ title: "test" });
     expect(res.redirect).toBeTruthy();
   });
 

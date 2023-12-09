@@ -15,6 +15,8 @@ export class ExpressFacade {
     nunjucks.configure("views", {
       autoescape: true,
       express: this._app,
+      watch: true,
+      noCache: true,
     });
   }
 
@@ -55,7 +57,22 @@ export class ExpressFacade {
   }
 
   useHelmet() {
-    this._app.use(helmet());
+    this._app.use(
+      helmet({
+        contentSecurityPolicy: {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'"],
+            connectSrc: ["'self'"],
+            fontSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+          },
+        },
+      })
+    );
     return this;
   }
 
