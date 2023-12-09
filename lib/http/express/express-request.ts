@@ -6,7 +6,7 @@ export class ExpressRequest implements Request {
     private readonly _req: express.Request<
       Record<string, never>,
       Record<string, never>,
-      Record<string, never>
+      object
     >
   ) {}
 

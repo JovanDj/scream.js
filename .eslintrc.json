@@ -57,6 +57,10 @@
     "@typescript-eslint/consistent-indexed-object-style": ["error", "record"],
     "@typescript-eslint/class-literal-property-style": ["error", "fields"],
     "default-param-last": "off",
-    "@typescript-eslint/default-param-last": "error"
+    "@typescript-eslint/default-param-last": "error",
+    "@typescript-eslint/unbound-method": "error",
+    "@typescript-eslint/unified-signatures": "error",
+    "@typescript-eslint/switch-exhaustiveness-check": "error",
+    "@typescript-eslint/sort-type-constituents": "error"
   }
 }

@@ -1,5 +1,9 @@
 import { Connection } from "@scream.js/database/connection.js";
 import { Mapper } from "@scream.js/database/mapper.js";
+import { SqlQueryVisitor } from "@scream.js/database/query-builder/query-builder-visitor.js";
+import { QueryBuilder } from "@scream.js/database/query-builder/query-builder.js";
+import { QueryVisitor } from "@scream.js/database/query-builder/query-visitor.js";
+import { SqlQueryBuilder } from "@scream.js/database/query-builder/scream-query-builder.js";
 import { Repository } from "@scream.js/database/repository.js";
 import { HttpContext } from "@scream.js/http/http-context.js";
 import { anything, deepEqual, instance, mock, verify, when } from "ts-mockito";
@@ -16,19 +20,28 @@ describe("TodosController", () => {
   let todosRepository: Repository<Todo>;
   let contextMock: HttpContext;
   let todoMapper: Mapper<Todo, TodoRow>;
+  let queryBuilder: QueryBuilder;
+  let queryVisitor: QueryVisitor;
 
   beforeEach(() => {
     db = mock<Connection>();
     todoMapper = new TodoMapper();
-    todosRepository = new TodoRepository(instance(db), todoMapper);
+    queryVisitor = new SqlQueryVisitor();
+    queryBuilder = new SqlQueryBuilder(queryVisitor);
+
+    todosRepository = new TodoRepository(
+      instance(db),
+      todoMapper,
+      queryBuilder
+    );
     todosController = new TodosController(todosRepository);
 
-    contextMock = mock(HttpContext);
+    contextMock = mock<HttpContext>();
   });
 
   describe("find all todos", () => {
     beforeEach(async () => {
-      when(db.all(deepEqual("SELECT * FROM todos"))).thenResolve([]);
+      when(db.all(deepEqual("SELECT * FROM todos;"))).thenResolve([]);
 
       await todosController.findAll(instance(contextMock));
     });
@@ -47,7 +60,7 @@ describe("TodosController", () => {
     it("should find one todo", async () => {
       when(
         db.get(
-          deepEqual("SELECT * FROM todos WHERE todo_id = ?"),
+          deepEqual("SELECT * FROM todos WHERE todo_id = ?;"),
           deepEqual(["1"])
         )
       ).thenResolve({
@@ -65,7 +78,7 @@ describe("TodosController", () => {
     it("should return 404", async () => {
       when(
         db.get(
-          deepEqual("SELECT * FROM todos WHERE todo_id = ?"),
+          deepEqual("SELECT * FROM todos WHERE todo_id = ?;"),
           deepEqual(["1"])
         )
       ).thenResolve(undefined);
