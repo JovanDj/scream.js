@@ -1,19 +1,17 @@
-import { Connection } from "@scream.js/database/connection.js";
+import { DatabaseAccess } from "@scream.js/database/database-facade.js";
 import { Mapper } from "@scream.js/database/mapper.js";
-import { QueryBuilder } from "@scream.js/database/query-builder/query-builder.js";
 import type { Repository } from "@scream.js/database/repository.js";
 import { Todo } from "./todo.js";
 import { TodoRow } from "./todo.row.js";
 
 export class TodoRepository implements Repository<Todo> {
   constructor(
-    private readonly _db: Connection,
-    private readonly _mapper: Mapper<Todo, TodoRow>,
-    private readonly _query: QueryBuilder
+    private readonly _db: DatabaseAccess,
+    private readonly _mapper: Mapper<Todo, TodoRow>
   ) {}
 
   async findById(id: Todo["id"]) {
-    const sql = this._query
+    const sql = this._db
       .select(["*"])
       .from("todos")
       .where("todo_id = ?")
@@ -25,7 +23,7 @@ export class TodoRepository implements Repository<Todo> {
   }
 
   async findAll() {
-    const sql = this._query.select(["*"]).from("todos").build();
+    const sql = this._db.select(["*"]).from("todos").build();
     const rows = await this._db.all<TodoRow>(sql);
 
     return this._mapper.toEntities(rows);

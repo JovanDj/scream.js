@@ -8,14 +8,14 @@ export class TodosController implements Resource {
 
   async findAll(ctx: HttpContext) {
     const todos = await this._todoRepository.findAll();
-
+    console.log({ todos });
     // Todo: works, fix type
     ctx.json(todos);
   }
 
   async findOne(ctx: HttpContext) {
     const todo = await this._todoRepository.findById(ctx.id);
-
+    console.log({ todo });
     if (!todo) {
       return ctx.notFound();
     }

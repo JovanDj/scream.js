@@ -1,7 +1,7 @@
 export interface QueryBuilder {
-  select(fields?: string[]): this;
-  from(table: string): this;
-  where(condition: string): this;
+  select(fields?: string[]): QueryBuilder;
+  from(table: string): QueryBuilder;
+  where(condition: string): QueryBuilder;
 
   build(): string;
 }

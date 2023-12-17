@@ -1,4 +1,4 @@
-import { db as connection } from "config/database.js";
+import { connection, databaseFacade } from "config/database.js";
 import { UsersMigration } from "migrations/20220127144114_users.js";
 import { TodosMigration } from "migrations/20220127144115_todos.js";
 import supertest from "supertest";
@@ -14,11 +14,11 @@ describe("Server", () => {
   });
 
   beforeEach(async () => {
-    await connection.truncateTable("todos");
+    await databaseFacade.truncateTable("todos");
   });
 
   afterAll(async () => {
-    await connection.close();
+    await databaseFacade.close();
   });
 
   it("renders html", async () => {
@@ -61,7 +61,7 @@ describe("Server", () => {
 
     describe("when there are todos", () => {
       beforeEach(async () => {
-        const insert = await connection.run(
+        const insert = await databaseFacade.run(
           "INSERT INTO todos(title, due_date, updated_at, created_at) VALUES(?, ?, ?, ?);",
           [
             "test",
@@ -107,7 +107,7 @@ describe("Server", () => {
   });
 
   it("should update a todo item", async () => {
-    const { lastId } = await connection.run(
+    const { lastId } = await databaseFacade.run(
       "INSERT INTO todos(title, due_date, updated_at, created_at) VALUES(?, ?, ?, ?);",
       [
         "test",

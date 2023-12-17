@@ -16,6 +16,7 @@ export class TodoMapper implements Mapper<Todo, TodoRow> {
   }
 
   toEntities(rows: TodoRow[]) {
+    console.log({ rows });
     return rows.map((row) => this.toEntity(row));
   }
 }

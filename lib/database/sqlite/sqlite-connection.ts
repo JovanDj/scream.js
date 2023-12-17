@@ -27,7 +27,7 @@ export class SqliteConnection implements Connection {
     return this._db.exec(sqlString);
   }
 
-  truncateTable(table: string) {
+  async truncateTable(table: string) {
     return this.exec(`DELETE FROM ${table};`);
   }
 }
