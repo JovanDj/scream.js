@@ -1,6 +1,6 @@
 export interface Response {
-  json(data: Record<string, unknown>): void;
-  end(chunk?: string): void;
+  json(data: object): void;
+  end(chunk?: unknown): void;
   status(code: number): void;
   render(template: unknown, locals: Record<string, unknown>): void;
   location(url: string): void;

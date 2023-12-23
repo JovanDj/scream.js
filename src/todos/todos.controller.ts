@@ -6,26 +6,42 @@ import { Todo } from "./todo.js";
 export class TodosController implements Resource {
   constructor(private readonly _todoRepository: Repository<Todo>) {}
 
-  async findAll(ctx: HttpContext) {
+  async index(ctx: HttpContext) {
     const todos = await this._todoRepository.findAll();
-
-    // Todo: works, fix type
-    ctx.json(todos);
+    ctx.render("index", { todos });
   }
 
-  async findOne(ctx: HttpContext) {
+  async show(ctx: HttpContext) {
     const todo = await this._todoRepository.findById(ctx.id);
 
     if (!todo) {
       return ctx.notFound();
     }
 
-    ctx.json(todo);
+    ctx.render("show", { todo });
   }
 
-  async create(ctx: HttpContext<{ title: string }>) {
+  async create(ctx: HttpContext) {
+    ctx.render("create", {});
+  }
+
+  async store(ctx: HttpContext<{ title: string; "due-date": string }>) {
+    const errors = [];
+
     if (!ctx.body.title) {
-      return ctx.status(400).json({ title: "Missing" });
+      errors.push({ title: "Missing" });
+    }
+
+    if (!ctx.body["due-date"]) {
+      errors.push({ dueDate: "Missing" });
+    }
+
+    if (isNaN(new Date(ctx.body["due-date"]).getTime())) {
+      errors.push({ dueDate: "Invalid date" });
+    }
+
+    if (errors.length) {
+      return ctx.status(400).json({ errors });
     }
 
     const todo = new Todo();
@@ -34,6 +50,10 @@ export class TodosController implements Resource {
     const result = await this._todoRepository.insert(todo);
 
     ctx.status(201).redirect("http://localhost:3000/todos/" + result.lastId);
+  }
+
+  async edit(ctx: HttpContext<object>): Promise<void> {
+    ctx.render("", {});
   }
 
   async update(ctx: HttpContext<{ title: string }>) {

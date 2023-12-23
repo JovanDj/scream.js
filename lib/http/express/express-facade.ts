@@ -5,10 +5,11 @@ import session from "express-session";
 import helmet from "helmet";
 import path from "node:path";
 import nunjucks from "nunjucks";
+import { ExpressApp } from "./express-app.js";
 import { ExpressServer } from "./express-server.js";
 
 export class ExpressFacade {
-  constructor(private readonly _app: ReturnType<typeof express>) {
+  constructor(private readonly _app: ExpressApp) {
     this._app.set("views", path.join(process.cwd(), "views"));
     this._app.set("view engine", "njk");
 
@@ -43,11 +44,13 @@ export class ExpressFacade {
     return this;
   }
 
-  useStatic(
-    path: Parameters<typeof this._app.use>[0],
-    root: Parameters<typeof express.static>[0]
-  ) {
-    this._app.use(path, express.static(root));
+  useUrlEncoded() {
+    this._app.use(express.urlencoded({ extended: true }));
+    return this;
+  }
+
+  useStatic() {
+    this._app.use(express.static("public"));
     return this;
   }
 
@@ -59,18 +62,7 @@ export class ExpressFacade {
   useHelmet() {
     this._app.use(
       helmet({
-        contentSecurityPolicy: {
-          directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'"],
-            connectSrc: ["'self'"],
-            fontSrc: ["'self'"],
-            objectSrc: ["'none'"],
-            mediaSrc: ["'self'"],
-          },
-        },
+        contentSecurityPolicy: false,
       })
     );
     return this;

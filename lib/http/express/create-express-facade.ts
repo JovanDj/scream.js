@@ -8,5 +8,6 @@ export function createExpressFacade() {
     .useCookieParser()
     .useCors()
     .useHelmet()
-    .useSession();
+    .useStatic()
+    .useUrlEncoded();
 }

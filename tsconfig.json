@@ -22,6 +22,7 @@
     "migrations.ts",
     "migrations/",
     "config/",
-    "e2e/"
-  ]
+    "public/js"
+  ],
+  "exclude": ["lib/http/koa"]
 }

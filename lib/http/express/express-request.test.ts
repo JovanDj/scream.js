@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { Request as Req } from "express";
+import express from "express";
 import { instance, mock, when } from "ts-mockito";
 import { ExpressRequest } from "./express-request.js";
 
 describe("ExpressRequest", () => {
   let request: ExpressRequest;
-  let incomingMessage: ReturnType<typeof mock<Req>>;
+  let incomingMessage: ReturnType<typeof mock<express.Request<{}, {}, object>>>;
 
   beforeEach(() => {
-    incomingMessage = mock<Req>();
+    incomingMessage = mock<express.Request<{}, {}, object>>();
     when(incomingMessage.url).thenReturn("/");
 
     request = new ExpressRequest(instance(incomingMessage));
@@ -24,14 +24,14 @@ describe("ExpressRequest", () => {
       "should return %s",
       (method) => {
         when(incomingMessage.method).thenReturn(method);
-        expect(request.method()).toStrictEqual(method);
-      },
+        expect(request.method).toStrictEqual(method);
+      }
     );
   });
 
   describe("url", () => {
     it("should return url", () => {
-      expect(request.url()).toStrictEqual("/");
+      expect(request.url).toStrictEqual("/");
     });
   });
 });

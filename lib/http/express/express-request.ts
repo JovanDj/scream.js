@@ -18,15 +18,19 @@ export class ExpressRequest implements Request {
     return { ...this._req.params };
   }
 
-  method() {
+  get method() {
     return this._req.method;
   }
 
-  headers() {
+  get headers() {
     return this._req.headers;
   }
 
-  url() {
+  get url() {
     return this._req.url;
+  }
+
+  onClose(cb: () => void): void {
+    this._req.on("close", cb);
   }
 }

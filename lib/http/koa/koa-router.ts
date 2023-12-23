@@ -1,4 +1,5 @@
 import Koa from "@koa/router";
+import { Resource } from "@scream.js/resource.js";
 import koa from "koa";
 import { Handler } from "../handler.js";
 import { HttpContext } from "../http-context.js";
@@ -14,7 +15,7 @@ export class KoaRouter implements Router {
   }
 
   get(path: string, handler: Handler) {
-    this.router.get(path, (ctx) => {
+    this._router.get(path, (ctx) => {
       const context = this._createContext(ctx);
 
       return handler(context);
@@ -22,11 +23,35 @@ export class KoaRouter implements Router {
   }
 
   post(path: string, handler: Handler) {
-    this.router.post(path, (ctx) => {
+    this._router.post(path, (ctx) => {
       const context = this._createContext(ctx);
 
       return handler(context);
     });
+  }
+
+  patch(path: string, handler: Handler): void {
+    this._router.patch(path, (ctx) => {
+      const context = this._createContext(ctx);
+
+      return handler(context);
+    });
+  }
+
+  delete(path: string, handler: Handler): void {
+    this._router.delete(path, (ctx) => {
+      const context = this._createContext(ctx);
+
+      return handler(context);
+    });
+  }
+
+  resource(path: string, resource: Resource) {
+    this.get(path, (ctx) => resource.findAll(ctx));
+    this.get(path, (ctx) => resource.findOne(ctx));
+    this.post(path, (ctx) => resource.create(ctx));
+    this.patch(path, (ctx) => resource.update(ctx));
+    this.delete(path, (ctx) => resource.delete(ctx));
   }
 
   private _createContext(ctx: koa.Context) {

@@ -1,0 +1,25 @@
+{% extends "layout.njk" %}
+
+{% block content %}
+    <div class="container py-4 px-3 mx-auto">
+
+        <table class="table table-bordered table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Title</th>
+                    <th>Due Date</th>
+                    <th>Created At</th>
+                    <th>Updated At</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{todo.title}}</td>
+                    <td>{{todo.dueDate.toLocaleDateString('sr-Latn-rs')}}</td>
+                    <td>{{todo.createdAt.toLocaleDateString('sr-Latn-rs')}}</td>
+                    <td>{{todo.updatedAt.toLocaleDateString('sr-Latn-rs')}}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
