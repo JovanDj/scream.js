@@ -24,7 +24,7 @@ export class ExpressApplication implements Application {
   }
 
   use(middleware: Middleware) {
-    this._app.use((req: express.Request, res: express.Response) =>
+    this._app.use((req: express.Request<{}>, res: express.Response) =>
       middleware(new ExpressRequest(req), new ExpressResponse(res))
     );
 
@@ -33,10 +33,13 @@ export class ExpressApplication implements Application {
 
   resource(path: string, resource: Resource) {
     this.createRouter(path, (router) => {
-      router.get("/", async (ctx) => resource.findAll(ctx));
-      router.get("/:id", async (ctx) => resource.findOne(ctx));
-      router.post("/", async (ctx) => resource.create(ctx));
+      router.get("/", async (ctx) => resource.index(ctx));
+      router.get("/create", async (ctx) => resource.create(ctx));
+      router.get("/edit", async (ctx) => resource.create(ctx));
+      router.get("/:id", async (ctx) => resource.show(ctx));
+      router.post("/", async (ctx) => resource.store(ctx));
       router.patch("/:id", async (ctx) => resource.update(ctx));
+      router.delete("/:id", async (ctx) => resource.delete(ctx));
     });
   }
 }

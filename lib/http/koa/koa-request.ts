@@ -1,20 +1,28 @@
-import { Context } from "koa";
+import koa from "koa";
 import { Request } from "../request.js";
 
 export class KoaRequest implements Request {
-  constructor(private readonly _req: Context["request"]) {}
+  constructor(private readonly _req: koa.Request) {}
+
+  get body() {
+    return this._req;
+  }
 
   get params() {
     return {};
   }
 
-  method() {
+  get method() {
     return this._req.method;
   }
-  headers() {
+  get headers() {
     return this._req.headers;
   }
-  url() {
+  get url() {
     return this._req.url;
+  }
+
+  onClose(cb: () => void): void {
+    this._req.app.on("error", cb);
   }
 }

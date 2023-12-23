@@ -2,9 +2,8 @@
 
 import type { Application } from "./application.interface.js";
 import { createExpressServer } from "./express/create-express-server.js";
-import { createKoaServer } from "./koa/create-koa-server.js";
 
-type ApplicationImplementation = "express" | "koa";
+type ApplicationImplementation = "express";
 
 export interface ApplicationOptions {
   port: number;
@@ -16,11 +15,10 @@ const servers = new Map<
 >();
 
 servers.set("express", createExpressServer);
-servers.set("koa", createKoaServer);
 
-export const createServer = (
+export const createApplication = (
   server: ApplicationImplementation = "express",
-  options = { port: 3000 },
+  options = { port: 3000 }
 ) => {
   return servers.get(server)!(options);
 };

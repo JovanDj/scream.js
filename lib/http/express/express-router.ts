@@ -62,11 +62,11 @@ export class ExpressRouter implements Router {
   }
 
   resource(path: string, resource: Resource) {
-    this.get(path, (ctx) => resource.findAll(ctx));
-    this.get(path, (ctx) => resource.findOne(ctx));
-    this.post(path, (ctx) => resource.create(ctx));
-    this.patch(path, (ctx) => resource.update(ctx));
-    this.delete(path, (ctx) => resource.delete(ctx));
+    this.get(path, resource.index);
+    this.get(path, resource.show);
+    this.post(path, resource.store);
+    this.patch(path, resource.update);
+    this.delete(path, resource.delete);
   }
 
   private _createContext(

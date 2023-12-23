@@ -4,7 +4,7 @@ import { Response } from "../response.js";
 export class ExpressResponse implements Response {
   constructor(private readonly _res: express.Response) {}
 
-  json(data: unknown) {
+  json(data: object) {
     this._res.json(data);
   }
 

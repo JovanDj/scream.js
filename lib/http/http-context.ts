@@ -1,13 +1,29 @@
 import type { Request } from "./request.js";
 import type { Response } from "./response.js";
 
-export class HttpContext<Body = object> {
+export class HttpContext<Body = object> implements Request<Body>, Response {
   constructor(
     private readonly _request: Request<Body>,
     private readonly _response: Response
   ) {}
 
-  get body(): Body {
+  get params() {
+    return this._request.params;
+  }
+
+  get method() {
+    return this._request.method;
+  }
+
+  get headers() {
+    return this._request.headers;
+  }
+
+  get url() {
+    return this._request.url;
+  }
+
+  get body() {
     return this._request.body;
   }
 
@@ -17,6 +33,14 @@ export class HttpContext<Body = object> {
     }
 
     return +this._request.params["id"];
+  }
+
+  end(chunk?: string) {
+    return this._response.end(chunk);
+  }
+
+  location(url: string) {
+    return this._response.location(url);
   }
 
   json(data: Parameters<typeof this._response.json>[0]) {
@@ -41,6 +65,10 @@ export class HttpContext<Body = object> {
 
   notFound() {
     this.status(404);
-    this._response.end();
+    this.end();
+  }
+
+  onClose(cb: () => void) {
+    this._request.onClose(cb);
   }
 }

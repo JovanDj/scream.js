@@ -1,0 +1,22 @@
+{% extends "layout.njk" %}
+
+{% block content %}
+
+    <div class="container py-4 px-3 mx-auto">
+        <h1>New Todo</h1>
+
+        <form method="POST" action="/todos">
+            <div class="mb-3">
+                <label for="title" class="form-label">Title</label>
+                <input type="text" name="title" class="form-control" id="title" aria-describedby="title">
+            </div>
+            <div class="mb-3">
+                <label for="due-date" class="form-label">Due Date</label>
+                <input type="datetime-local" name="due-date" class="form-control" id="due-date">
+            </div>
+
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+
+{% endblock %}
