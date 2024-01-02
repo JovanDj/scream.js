@@ -5,4 +5,5 @@ export interface Response {
   render(template: unknown, locals: Record<string, unknown>): void;
   location(url: string): void;
   redirect(url: string): void;
+  back(): void;
 }

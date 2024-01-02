@@ -8,7 +8,7 @@ export class ExpressResponse implements Response {
     this._res.json(data);
   }
 
-  end(chunk: Parameters<typeof this._res.end>[0]) {
+  end(chunk?: unknown) {
     this._res.end(chunk);
   }
 
@@ -20,11 +20,15 @@ export class ExpressResponse implements Response {
     this._res.render(template, locals);
   }
 
-  location(url: string): void {
+  location(url: string) {
     this._res.location(url);
   }
 
-  redirect(url: string): void {
+  redirect(url: string) {
     this._res.redirect(url);
+  }
+
+  back() {
+    this._res.redirect("back");
   }
 }

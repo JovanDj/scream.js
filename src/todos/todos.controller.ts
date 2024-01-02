@@ -8,6 +8,7 @@ export class TodosController implements Resource {
 
   async index(ctx: HttpContext) {
     const todos = await this._todoRepository.findAll();
+
     ctx.render("index", { todos });
   }
 
@@ -22,7 +23,13 @@ export class TodosController implements Resource {
   }
 
   async create(ctx: HttpContext) {
-    ctx.render("create", {});
+    return new Promise<void>((resolve, reject) => {
+      try {
+        return resolve(ctx.render("create", {}));
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   async store(ctx: HttpContext<{ title: string; "due-date": string }>) {
@@ -46,14 +53,21 @@ export class TodosController implements Resource {
 
     const todo = new Todo();
     todo.title = ctx.body.title;
+    todo.dueDate = new Date(ctx.body["due-date"]);
 
     const result = await this._todoRepository.insert(todo);
 
     ctx.status(201).redirect("http://localhost:3000/todos/" + result.lastId);
   }
 
-  async edit(ctx: HttpContext<object>): Promise<void> {
-    ctx.render("", {});
+  async edit(ctx: HttpContext) {
+    return new Promise<void>((resolve, reject) => {
+      try {
+        return resolve(ctx.render("", {}));
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   async update(ctx: HttpContext<{ title: string }>) {

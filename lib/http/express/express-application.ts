@@ -1,6 +1,7 @@
 import { Resource } from "@scream.js/resource.js";
 import express from "express";
 import type { Application } from "../application.interface.js";
+import { HttpContext } from "../http-context.js";
 import { Middleware } from "../middleware.js";
 import { Router } from "../router.interface.js";
 import type { ExpressFacade } from "./express-facade.js";
@@ -24,8 +25,10 @@ export class ExpressApplication implements Application {
   }
 
   use(middleware: Middleware) {
-    this._app.use((req: express.Request<{}>, res: express.Response) =>
-      middleware(new ExpressRequest(req), new ExpressResponse(res))
+    this._app.use((req, res) =>
+      middleware(
+        new HttpContext(new ExpressRequest(req), new ExpressResponse(res))
+      )
     );
 
     return this;
@@ -33,13 +36,13 @@ export class ExpressApplication implements Application {
 
   resource(path: string, resource: Resource) {
     this.createRouter(path, (router) => {
-      router.get("/", async (ctx) => resource.index(ctx));
-      router.get("/create", async (ctx) => resource.create(ctx));
-      router.get("/edit", async (ctx) => resource.create(ctx));
-      router.get("/:id", async (ctx) => resource.show(ctx));
-      router.post("/", async (ctx) => resource.store(ctx));
-      router.patch("/:id", async (ctx) => resource.update(ctx));
-      router.delete("/:id", async (ctx) => resource.delete(ctx));
+      router.get("/", resource.index.bind(resource));
+      router.get("/create", resource.create.bind(resource));
+      router.get("/edit", resource.edit.bind(resource)); // Assuming you meant `edit` here
+      router.get("/:id", resource.show.bind(resource));
+      router.post("/", resource.store.bind(resource));
+      router.patch("/:id", resource.update.bind(resource));
+      router.delete("/:id", resource.delete.bind(resource));
     });
   }
 }
