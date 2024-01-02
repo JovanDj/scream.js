@@ -5,6 +5,10 @@ export interface Request<Body = object> {
   body: Body;
   method: string;
   headers: IncomingHttpHeaders;
+
+  /**
+   * The url of the current route
+   */
   url: string;
   onClose(cb: () => void): void;
 }

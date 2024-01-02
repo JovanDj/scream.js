@@ -2,13 +2,7 @@ import express from "express";
 import { Request } from "../request.js";
 
 export class ExpressRequest implements Request {
-  constructor(
-    private readonly _req: express.Request<
-      Record<string, never>,
-      Record<string, never>,
-      object
-    >
-  ) {}
+  constructor(private readonly _req: express.Request<object, object, object>) {}
 
   get body() {
     return { ...this._req.body };
@@ -30,7 +24,11 @@ export class ExpressRequest implements Request {
     return this._req.url;
   }
 
-  onClose(cb: () => void): void {
+  onClose(cb: () => void) {
     this._req.on("close", cb);
+  }
+
+  onError(cb: () => void) {
+    this._req.on("error", cb);
   }
 }

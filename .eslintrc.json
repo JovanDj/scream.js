@@ -4,7 +4,7 @@
     "es6": true,
     "node": true
   },
-  "exclude": ["lib/http/koa"],
+  "ignorePatterns": ["lib/http/koa", "migrations.ts", "nightwatch/"],
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint", "promise", "prettier"],
   "parserOptions": {

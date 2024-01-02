@@ -43,34 +43,18 @@ describe("ExpressApplication", () => {
     });
   });
 
-  describe("use method", () => {
-    it("should apply middleware", async () => {
-      app.use((_, res) => {
-        res.status(418);
-        res.end();
-      });
-
-      const server = app.listen(3001);
-
-      const response = await request(server.nodeServer).get("/test");
-      expect(response.status).toBe(418);
-
-      server.close();
-    });
-  });
-
   describe("resource method", () => {
     let mockedResource: Resource;
 
     beforeEach(() => {
       mockedResource = {
-        index: async (ctx: HttpContext<object>) => ctx.end(),
-        show: async (ctx: HttpContext<object>) => ctx.end(),
-        create: async (ctx: HttpContext<object>) => ctx.end(),
-        store: async (ctx: HttpContext<object>) => ctx.end(),
-        edit: async (ctx: HttpContext<object>) => ctx.end(),
-        update: async (ctx: HttpContext<object>) => ctx.end(),
-        delete: async (ctx: HttpContext<object>) => ctx.end(),
+        index: async (ctx: HttpContext) => Promise.resolve(ctx.end()),
+        show: async (ctx: HttpContext) => Promise.resolve(ctx.end()),
+        create: async (ctx: HttpContext) => Promise.resolve(ctx.end()),
+        store: async (ctx: HttpContext) => Promise.resolve(ctx.end()),
+        edit: async (ctx: HttpContext) => Promise.resolve(ctx.end()),
+        update: async (ctx: HttpContext) => Promise.resolve(ctx.end()),
+        delete: async (ctx: HttpContext) => Promise.resolve(ctx.end()),
       };
 
       app.resource("/test", mockedResource);

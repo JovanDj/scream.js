@@ -36,7 +36,7 @@ export class HttpContext<Body = object> implements Request<Body>, Response {
   }
 
   end(chunk?: string) {
-    return this._response.end(chunk);
+    this._response.end(chunk);
   }
 
   location(url: string) {
@@ -70,5 +70,9 @@ export class HttpContext<Body = object> implements Request<Body>, Response {
 
   onClose(cb: () => void) {
     this._request.onClose(cb);
+  }
+
+  back() {
+    this._response.back();
   }
 }

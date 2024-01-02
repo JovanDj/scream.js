@@ -14,11 +14,7 @@ export class ExpressRouter implements Router {
   }
 
   get(path: string, handler: Handler) {
-    this._router.get<
-      Record<string, never>,
-      Record<string, never>,
-      Record<string, never>
-    >(path, (req, res) => {
+    this._router.get<object, object, object>(path, (req, res) => {
       const context = this._createContext(req, res);
 
       return handler(context);
@@ -26,11 +22,7 @@ export class ExpressRouter implements Router {
   }
 
   post(path: string, handler: Handler) {
-    this._router.post<
-      Record<string, never>,
-      Record<string, never>,
-      Record<string, never>
-    >(path, (req, res) => {
+    this._router.post<object, object, object>(path, (req, res) => {
       const context = this._createContext(req, res);
 
       return handler(context);
@@ -38,11 +30,7 @@ export class ExpressRouter implements Router {
   }
 
   patch(path: string, handler: Handler) {
-    this._router.patch<
-      Record<string, never>,
-      Record<string, never>,
-      Record<string, never>
-    >(path, (req, res) => {
+    this._router.patch<object, object, object>(path, (req, res) => {
       const context = this._createContext(req, res);
 
       return handler(context);
@@ -50,11 +38,7 @@ export class ExpressRouter implements Router {
   }
 
   delete(path: string, handler: Handler) {
-    this._router.delete<
-      Record<string, never>,
-      Record<string, never>,
-      Record<string, never>
-    >(path, (req, res) => {
+    this._router.delete<object, object, object>(path, (req, res) => {
       const context = this._createContext(req, res);
 
       return handler(context);
@@ -62,19 +46,15 @@ export class ExpressRouter implements Router {
   }
 
   resource(path: string, resource: Resource) {
-    this.get(path, resource.index);
-    this.get(path, resource.show);
-    this.post(path, resource.store);
-    this.patch(path, resource.update);
-    this.delete(path, resource.delete);
+    this.get(path, resource.index.bind(resource));
+    this.get(path, resource.show.bind(resource));
+    this.post(path, resource.store.bind(resource));
+    this.patch(path, resource.update.bind(resource));
+    this.delete(path, resource.delete.bind(resource));
   }
 
   private _createContext(
-    req: express.Request<
-      Record<string, never>,
-      Record<string, never>,
-      Record<string, never>
-    >,
+    req: express.Request<object, object, object>,
     res: express.Response
   ) {
     const request = new ExpressRequest(req);

@@ -1,4 +1,3 @@
-import { Request } from "./request.js";
-import { Response } from "./response.js";
+import { HttpContext } from "./http-context.js";
 
-export type Middleware = (req: Request, res: Response) => void;
+export type Middleware = (ctx: HttpContext) => void;
