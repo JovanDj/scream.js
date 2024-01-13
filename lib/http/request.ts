@@ -11,4 +11,5 @@ export interface Request<Body = object> {
    */
   url: string;
   onClose(cb: () => void): void;
+  hasHeader(header: string): boolean;
 }

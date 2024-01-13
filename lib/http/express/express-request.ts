@@ -31,4 +31,8 @@ export class ExpressRequest implements Request {
   onError(cb: () => void) {
     this._req.on("error", cb);
   }
+
+  hasHeader(header: string) {
+    return !!this._req.header(header);
+  }
 }

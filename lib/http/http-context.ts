@@ -1,10 +1,12 @@
+import { NextFunction } from "express";
 import type { Request } from "./request.js";
 import type { Response } from "./response.js";
 
 export class HttpContext<Body = object> implements Request<Body>, Response {
   constructor(
     private readonly _request: Request<Body>,
-    private readonly _response: Response
+    private readonly _response: Response,
+    private readonly _next: NextFunction,
   ) {}
 
   get params() {
@@ -54,7 +56,7 @@ export class HttpContext<Body = object> implements Request<Body>, Response {
 
   render(
     template: Parameters<typeof this._response.render>[0],
-    locals: Parameters<typeof this._response.render>[1]
+    locals: Parameters<typeof this._response.render>[1],
   ) {
     this._response.render(template, locals);
   }
@@ -74,5 +76,13 @@ export class HttpContext<Body = object> implements Request<Body>, Response {
 
   back() {
     this._response.back();
+  }
+
+  handleError(error: unknown) {
+    this._next(error);
+  }
+
+  hasHeader(header: string) {
+    return this._request.hasHeader(header);
   }
 }
