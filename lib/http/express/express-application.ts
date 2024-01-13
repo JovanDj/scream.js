@@ -25,10 +25,14 @@ export class ExpressApplication implements Application {
   }
 
   use(middleware: Middleware) {
-    this._app.use((req, res) =>
+    this._app.use((req, res, next) =>
       middleware(
-        new HttpContext(new ExpressRequest(req), new ExpressResponse(res))
-      )
+        new HttpContext(
+          new ExpressRequest(req),
+          new ExpressResponse(res),
+          next,
+        ),
+      ),
     );
 
     return this;
@@ -38,7 +42,7 @@ export class ExpressApplication implements Application {
     this.createRouter(path, (router) => {
       router.get("/", resource.index.bind(resource));
       router.get("/create", resource.create.bind(resource));
-      router.get("/edit", resource.edit.bind(resource)); // Assuming you meant `edit` here
+      router.get("/edit", resource.edit.bind(resource));
       router.get("/:id", resource.show.bind(resource));
       router.post("/", resource.store.bind(resource));
       router.patch("/:id", resource.update.bind(resource));

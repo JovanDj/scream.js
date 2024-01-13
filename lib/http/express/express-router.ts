@@ -14,32 +14,32 @@ export class ExpressRouter implements Router {
   }
 
   get(path: string, handler: Handler) {
-    this._router.get<object, object, object>(path, (req, res) => {
-      const context = this._createContext(req, res);
+    this._router.get<object, object, object>(path, (req, res, next) => {
+      const context = this._createContext(req, res, next);
 
       return handler(context);
     });
   }
 
   post(path: string, handler: Handler) {
-    this._router.post<object, object, object>(path, (req, res) => {
-      const context = this._createContext(req, res);
+    this._router.post<object, object, object>(path, (req, res, next) => {
+      const context = this._createContext(req, res, next);
 
       return handler(context);
     });
   }
 
   patch(path: string, handler: Handler) {
-    this._router.patch<object, object, object>(path, (req, res) => {
-      const context = this._createContext(req, res);
+    this._router.patch<object, object, object>(path, (req, res, next) => {
+      const context = this._createContext(req, res, next);
 
       return handler(context);
     });
   }
 
   delete(path: string, handler: Handler) {
-    this._router.delete<object, object, object>(path, (req, res) => {
-      const context = this._createContext(req, res);
+    this._router.delete<object, object, object>(path, (req, res, next) => {
+      const context = this._createContext(req, res, next);
 
       return handler(context);
     });
@@ -55,12 +55,13 @@ export class ExpressRouter implements Router {
 
   private _createContext(
     req: express.Request<object, object, object>,
-    res: express.Response
+    res: express.Response,
+    next: express.NextFunction,
   ) {
     const request = new ExpressRequest(req);
     const response = new ExpressResponse(res);
 
-    const context = new HttpContext(request, response);
+    const context = new HttpContext(request, response, next);
     return context;
   }
 }
