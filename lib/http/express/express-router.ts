@@ -1,8 +1,8 @@
 import { Resource } from "@scream.js/resource.js";
 import express from "express";
 import { Handler } from "../handler.js";
-import { HttpContext } from "../http-context.js";
 import { type Router } from "../router.interface.js";
+import { ExpressHttpContext } from "./express-http-context.js";
 import { ExpressRequest } from "./express-request.js";
 import { ExpressResponse } from "./express-response.js";
 
@@ -14,7 +14,7 @@ export class ExpressRouter implements Router {
   }
 
   get(path: string, handler: Handler) {
-    this._router.get<object, object, object>(path, (req, res, next) => {
+    this._router.get(path, (req, res, next) => {
       const context = this._createContext(req, res, next);
 
       return handler(context);
@@ -22,7 +22,7 @@ export class ExpressRouter implements Router {
   }
 
   post(path: string, handler: Handler) {
-    this._router.post<object, object, object>(path, (req, res, next) => {
+    this._router.post(path, (req, res, next) => {
       const context = this._createContext(req, res, next);
 
       return handler(context);
@@ -30,7 +30,7 @@ export class ExpressRouter implements Router {
   }
 
   patch(path: string, handler: Handler) {
-    this._router.patch<object, object, object>(path, (req, res, next) => {
+    this._router.patch(path, (req, res, next) => {
       const context = this._createContext(req, res, next);
 
       return handler(context);
@@ -38,7 +38,7 @@ export class ExpressRouter implements Router {
   }
 
   delete(path: string, handler: Handler) {
-    this._router.delete<object, object, object>(path, (req, res, next) => {
+    this._router.delete(path, (req, res, next) => {
       const context = this._createContext(req, res, next);
 
       return handler(context);
@@ -54,14 +54,14 @@ export class ExpressRouter implements Router {
   }
 
   private _createContext(
-    req: express.Request<object, object, object>,
+    req: express.Request,
     res: express.Response,
     next: express.NextFunction,
   ) {
     const request = new ExpressRequest(req);
     const response = new ExpressResponse(res);
 
-    const context = new HttpContext(request, response, next);
+    const context = new ExpressHttpContext(request, response, next);
     return context;
   }
 }

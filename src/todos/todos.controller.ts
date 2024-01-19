@@ -17,6 +17,10 @@ export class TodosController implements Resource {
 
   async show(ctx: HttpContext) {
     try {
+      if (!ctx.id) {
+        return ctx.notFound();
+      }
+
       const todo = await this._todoRepository.findById(ctx.id);
 
       if (!todo) {
@@ -30,32 +34,22 @@ export class TodosController implements Resource {
   }
 
   async create(ctx: HttpContext) {
-    try {
-      return new Promise<void>((resolve, reject) => {
-        try {
-          return resolve(ctx.render("create", {}));
-        } catch (error) {
+    return new Promise<void>((resolve, reject) => {
+      try {
+        return resolve(ctx.render("create", {}));
+      } catch (error) {
+        if (error instanceof Error) {
           reject(error);
         }
-      });
-    } catch (error) {
-      ctx.handleError(error);
-    }
+      }
+    });
   }
 
   async store(ctx: HttpContext<{ title: string; "due-date": string }>) {
     try {
-      const errors: {
-        title: { required: string };
-        dueDate: { required: string; date: string };
-      } = {
-        title: {
-          required: "",
-        },
-        dueDate: {
-          required: "",
-          date: "",
-        },
+      const errors = {
+        dueDate: { required: "", date: "" },
+        title: { required: "" },
       };
 
       if (!ctx.body.title) {
@@ -80,7 +74,7 @@ export class TodosController implements Resource {
 
       if (
         Object.values(errors).some((field) =>
-          Object.values(field).some((errorMessage) => errorMessage),
+          Object.values(field).some((errorMessage) => errorMessage)
         )
       ) {
         return ctx
@@ -101,21 +95,23 @@ export class TodosController implements Resource {
   }
 
   async edit(ctx: HttpContext) {
-    try {
-      return new Promise<void>((resolve, reject) => {
-        try {
-          return resolve(ctx.render("", {}));
-        } catch (error) {
+    return new Promise<void>((resolve, reject) => {
+      try {
+        return resolve(ctx.render("", {}));
+      } catch (error) {
+        if (error instanceof Error) {
           reject(error);
         }
-      });
-    } catch (error) {
-      ctx.handleError(error);
-    }
+      }
+    });
   }
 
   async update(ctx: HttpContext<{ title: string }>) {
     try {
+      if (!ctx.id) {
+        return ctx.notFound();
+      }
+
       const todo = new Todo();
       todo.title = ctx.body.title;
 
@@ -128,7 +124,10 @@ export class TodosController implements Resource {
 
   async delete(ctx: HttpContext) {
     try {
-      await this._todoRepository.delete(+ctx.id);
+      if (!ctx.id) {
+        return ctx.notFound();
+      }
+      await this._todoRepository.delete(ctx.id);
 
       ctx.json({});
     } catch (error) {

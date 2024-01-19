@@ -14,7 +14,7 @@ describe("scream.js demo", () => {
       .assert.visible("h1")
       .assert.textContains("h1", "New Todo")
       .sendKeys("input#title", "my todo")
-      .sendKeys("input#due-date", "2024-01-29T21:00")
+      .setValue("input#due-date", "2024-01-29")
 
       .click("button")
       .assert.urlContains("/todos/");
