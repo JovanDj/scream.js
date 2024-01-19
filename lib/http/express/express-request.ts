@@ -1,7 +1,7 @@
 import express from "express";
 import { Request } from "../request.js";
 
-export class ExpressRequest implements Request {
+export class ExpressRequest implements Request{
   constructor(private readonly _req: express.Request<object, object, object>) {}
 
   get body() {

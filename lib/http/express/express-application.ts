@@ -1,10 +1,10 @@
 import { Resource } from "@scream.js/resource.js";
 import express from "express";
 import type { Application } from "../application.interface.js";
-import { HttpContext } from "../http-context.js";
 import { Middleware } from "../middleware.js";
 import { Router } from "../router.interface.js";
 import type { ExpressFacade } from "./express-facade.js";
+import { ExpressHttpContext } from "./express-http-context.js";
 import { ExpressRequest } from "./express-request.js";
 import { ExpressResponse } from "./express-response.js";
 import { ExpressRouter } from "./express-router.js";
@@ -27,12 +27,12 @@ export class ExpressApplication implements Application {
   use(middleware: Middleware) {
     this._app.use((req, res, next) =>
       middleware(
-        new HttpContext(
+        new ExpressHttpContext(
           new ExpressRequest(req),
           new ExpressResponse(res),
-          next,
-        ),
-      ),
+          next
+        )
+      )
     );
 
     return this;
