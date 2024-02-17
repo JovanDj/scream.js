@@ -5,10 +5,10 @@ import { TodoMapper } from "./todo.mapper.js";
 import { TodoRepository } from "./todo.repository.js";
 import { TodosController } from "./todos.controller.js";
 
-const todoMapper = new TodoMapper();
-const todoRepository = new TodoRepository(db, todoMapper);
+const todoMapper = new TodoMapper(db);
+const todoRepository = new TodoRepository(todoMapper);
 const identityMap = new TodoIdentityMap(
   todoRepository,
-  new Map<Todo["id"], Todo>(),
+  new Map<Todo["id"], Todo>()
 );
 export const todoController = new TodosController(identityMap);
