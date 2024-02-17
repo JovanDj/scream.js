@@ -1,8 +1,16 @@
-import { Mapper } from "@scream.js/database/mapper.js";
+import { KnexDataMapper } from "@scream.js/database/knex-data-mapper.js";
+import { Knex } from "knex";
 import { Todo } from "./todo.js";
 import { TodoRow } from "./todo.row.js";
 
-export class TodoMapper implements Mapper<Todo, TodoRow> {
+export class TodoMapper extends KnexDataMapper<Todo, TodoRow> {
+  protected override primaryKey = "todo_id";
+  protected override tableName = "todos";
+
+  constructor(protected override readonly _db: Knex) {
+    super(_db);
+  }
+
   toEntity(row: TodoRow) {
     const todo = new Todo();
 
@@ -15,7 +23,12 @@ export class TodoMapper implements Mapper<Todo, TodoRow> {
     return todo;
   }
 
-  toEntities(rows: TodoRow[]) {
-    return rows.map((row) => this.toEntity(row));
+  toRow(entity: Partial<Todo>): Partial<TodoRow> {
+    return {
+      created_at: entity.createdAt?.toISOString() ?? new Date().toISOString(),
+      due_date: entity.dueDate?.toISOString() ?? new Date().toISOString(),
+      title: entity.title ?? "",
+      updated_at: entity.updatedAt?.toISOString() ?? new Date().toISOString(),
+    };
   }
 }

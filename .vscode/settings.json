@@ -3,5 +3,6 @@
   "typescript.validate.enable": true,
   "[nunjucks]": {
     "editor.defaultFormatter": "okitavera.vscode-nunjucks-formatter"
-  }
+  },
+  "typescript.tsdk": "node_modules\\typescript\\lib"
 }
