@@ -9,6 +9,6 @@ const todoMapper = new TodoMapper(db);
 const todoRepository = new TodoRepository(todoMapper);
 const identityMap = new TodoIdentityMap(
   todoRepository,
-  new Map<Todo["id"], Todo>()
+  new Map<Todo["id"], Todo>(),
 );
 export const todoController = new TodosController(identityMap);
