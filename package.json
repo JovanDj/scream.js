@@ -71,7 +71,7 @@
     ".ts": [
       "tsc --noEmit",
       "npm run lint -- --fix",
-      "npm run test"
+      "vitest run"
     ],
     "*.{js,ts,css,md,json}": "prettier --write"
   },
