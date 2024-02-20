@@ -9,6 +9,7 @@ export class TodoIdentityMap implements Repository<Todo> {
 
   async findById(id: Todo["id"]) {
     if (!this._identityMap.has(id)) {
+      console.log("cache miss");
       const todo = await this._repository.findById(id);
 
       if (!todo) {
@@ -19,6 +20,7 @@ export class TodoIdentityMap implements Repository<Todo> {
 
       return todo;
     }
+    console.log("cache hit");
 
     return this._identityMap.get(id);
   }
