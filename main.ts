@@ -12,7 +12,7 @@ app.createRouter("/", (router) => {
   router.get("/", (ctx) => {
     ctx.render("./index", {
       name: "Jovan",
-      message: "Rendered with ejs",
+      message: "Rendered with nunjucks",
     });
   });
 });

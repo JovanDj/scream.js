@@ -9,16 +9,30 @@ import { ExpressApp } from "./express-app.js";
 import { ExpressServer } from "./express-server.js";
 
 export class ExpressFacade {
-  constructor(private readonly _app: ExpressApp) {
+  constructor(
+    private readonly _app: ExpressApp,
+    private readonly _nunjucksConfig: nunjucks.ConfigureOptions
+  ) {
     this._app.set("views", path.join(process.cwd(), "views"));
     this._app.set("view engine", "njk");
 
-    nunjucks.configure("views", {
-      autoescape: true,
-      express: this._app,
-      watch: true,
-      noCache: true,
-    });
+    nunjucks
+      .configure("views", {
+        ...this._nunjucksConfig,
+        autoescape: true,
+        express: this._app,
+        watch: true,
+        noCache: true,
+      })
+      .addGlobal("viteScripts", () => {
+        const isDevelopment = true;
+        if (isDevelopment) {
+          return `
+      <script defer async type="module" src="http://localhost:5173/@vite/client"></script>
+      <script defer async type="module" src="http://localhost:5173/resources/main.js"></script>
+    `;
+        }
+      });
   }
 
   use(middleware: express.Handler) {
