@@ -1,7 +1,7 @@
 import express from "express";
-import { Request } from "../request.js";
+import type { Request } from "../request.js";
 
-export class ExpressRequest implements Request{
+export class ExpressRequest implements Request {
   constructor(private readonly _req: express.Request<object, object, object>) {}
 
   get body() {
@@ -22,6 +22,10 @@ export class ExpressRequest implements Request{
 
   get url() {
     return this._req.url;
+  }
+
+  acceptsLanguages(languages: string[]) {
+    return this._req.acceptsLanguages(languages) || "en-US";
   }
 
   onClose(cb: () => void) {

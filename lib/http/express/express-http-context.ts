@@ -39,6 +39,10 @@ export class ExpressHttpContext<Body extends object>
     return +this._request.params["id"];
   }
 
+  acceptsLanguages(languages: string[]) {
+    return this._request.acceptsLanguages(languages);
+  }
+
   end(chunk?: string) {
     this._response.end(chunk);
   }
@@ -80,10 +84,10 @@ export class ExpressHttpContext<Body extends object>
   }
 
   handleError(error: unknown) {
-    this._next(error)
+    this._next(error);
   }
 
   hasHeader(header: string) {
-    return this._request.hasHeader(header)
+    return this._request.hasHeader(header);
   }
 }

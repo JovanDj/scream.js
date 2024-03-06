@@ -13,7 +13,6 @@ export class TodoMapper extends KnexDataMapper<Todo, TodoRow> {
 
   toEntity(row: TodoRow) {
     const todo = new Todo();
-
     todo.id = row.todo_id;
     todo.title = row.title;
     todo.dueDate = new Date(row.due_date);

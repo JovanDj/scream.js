@@ -1,4 +1,5 @@
 import { Repository } from "@scream.js/database/repository.js";
+import { FlatObject } from "@scream.js/flat-object.js";
 import { HttpContext } from "@scream.js/http/http-context.js";
 import { Resource } from "@scream.js/resource.js";
 import { Todo } from "./todo.js";
@@ -27,7 +28,18 @@ export class TodosController implements Resource {
         return ctx.notFound();
       }
 
-      ctx.render("show", { todo });
+      const language = ctx.acceptsLanguages(["en-US", "sr-Latn-RS"]);
+
+      const dto: FlatObject = {
+        todoTitle: todo.title,
+        createdAt: todo.createdAt.toLocaleDateString(language),
+        updatedAt: todo.updatedAt.toLocaleDateString(language),
+        dueDate: todo.dueDate.toLocaleDateString(language),
+        lang: language,
+        pageTitle: `Todo | ${todo.id}`,
+      };
+
+      ctx.render("show", dto);
     } catch (error) {
       ctx.handleError(error);
     }
