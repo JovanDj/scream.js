@@ -1,7 +1,8 @@
 import { Repository } from "@scream.js/database/repository.js";
 import { FlatObject } from "@scream.js/flat-object.js";
 import { HttpContext } from "@scream.js/http/http-context.js";
-import { Resource } from "@scream.js/resource.js";
+import { Resource } from "@scream.js/index.js";
+
 import { Todo } from "./todo.js";
 
 export class TodosController implements Resource {

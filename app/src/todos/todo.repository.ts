@@ -1,5 +1,5 @@
 import { DataMapper } from "@scream.js/database/mapper.js";
-import type { Repository } from "@scream.js/database/repository.js";
+import { Repository } from "@scream.js/database/repository.js";
 import { Todo } from "./todo.js";
 import { TodoRow } from "./todo.row.js";
 

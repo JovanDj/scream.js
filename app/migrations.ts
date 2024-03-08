@@ -1,4 +1,5 @@
 import { Connection } from "@scream.js/database/connection.js";
+
 import { SqliteDatabase } from "@scream.js/database/sqlite/sqlite-database.js";
 import { Migration } from "@scream.js/migration.js";
 import { readdir } from "node:fs/promises";

@@ -1,4 +1,4 @@
-import { Resource } from "@scream.js/resource.js";
+import { Resource } from "resource.js";
 import { Handler } from "./handler.js";
 
 export interface Router {

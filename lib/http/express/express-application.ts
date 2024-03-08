@@ -1,5 +1,5 @@
-import { Resource } from "@scream.js/resource.js";
 import express from "express";
+import { Resource } from "resource.js";
 import type { Application } from "../application.interface.js";
 import { Middleware } from "../middleware.js";
 import { Router } from "../router.interface.js";

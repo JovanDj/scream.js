@@ -32,6 +32,7 @@ export class ExpressFacade {
       <script defer async type="module" src="http://localhost:5173/resources/main.js"></script>
     `;
         }
+        return "";
       });
   }
 

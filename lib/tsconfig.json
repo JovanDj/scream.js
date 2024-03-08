@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".", // This should be the base directory for relative path calculations
+    "outDir": "../dist/lib",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true, // Optional, but useful for debugging,
+    "sourceMap": true,
+    "paths": {
+      "@scream.js/*": ["./*"] // Adjust the alias to match your project structure
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["http/koa"]
+}

@@ -1,8 +1,8 @@
+import { ExpressHttpContext } from "@scream.js/http/express/express-http-context.js";
+import { Handler } from "@scream.js/http/handler.js";
+import { Router } from "@scream.js/http/router.interface.js";
 import { Resource } from "@scream.js/resource.js";
 import express from "express";
-import { Handler } from "../handler.js";
-import { type Router } from "../router.interface.js";
-import { ExpressHttpContext } from "./express-http-context.js";
 import { ExpressRequest } from "./express-request.js";
 import { ExpressResponse } from "./express-response.js";
 
@@ -56,7 +56,7 @@ export class ExpressRouter implements Router {
   private _createContext(
     req: express.Request,
     res: express.Response,
-    next: express.NextFunction,
+    next: express.NextFunction
   ) {
     const request = new ExpressRequest(req);
     const response = new ExpressResponse(res);

@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".", // This should be the base directory for relative path calculations
+    "outDir": "../dist/app",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "paths": {
+      "@scream.js/*": ["../lib/*"]
+    }
+  },
+  "include": ["**/*"],
+  "references": [{ "path": "../lib" }]
+}

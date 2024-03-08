@@ -1,6 +1,4 @@
 describe("scream.js demo", () => {
-  this.tags = ["todo"];
-
   before((browser) => browser.navigateTo("http://localhost:3000/todos"));
 
   it("Todo crud operations", (browser) => {

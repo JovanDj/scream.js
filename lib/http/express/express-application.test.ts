@@ -1,8 +1,8 @@
-import { Resource } from "@scream.js/resource.js";
 import express from "express";
+import { HttpContext } from "http/http-context.js";
+import { Resource } from "resource.js";
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
-import { HttpContext } from "../http-context.js";
 import { ExpressApp } from "./express-app.js";
 import { ExpressApplication } from "./express-application.js";
 import { ExpressFacade } from "./express-facade.js";
@@ -15,7 +15,7 @@ describe("ExpressApplication", () => {
 
   beforeEach(() => {
     expressApp = express();
-    const facade = new ExpressFacade(expressApp);
+    const facade = new ExpressFacade(expressApp, {});
     app = new ExpressApplication(facade);
   });
 

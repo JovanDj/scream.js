@@ -9,7 +9,7 @@
   "plugins": ["@typescript-eslint", "promise", "prettier"],
   "parserOptions": {
     "sourceType": "module",
-    "project": "tsconfig.json"
+    "project": ["tsconfig.json", "./app/tsconfig.json"]
   },
   "extends": [
     "eslint:recommended",

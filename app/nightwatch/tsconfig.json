@@ -9,10 +9,13 @@
     "skipLibCheck": true,
     "allowJs": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true
+    "noEmit": true,
+    "typeRoots": ["../../node_modules"],
+    "types": ["nightwatch"]
   },
   "ts-node": {
     "transpileOnly": true
   },
+
   "include": ["."]
 }
