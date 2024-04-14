@@ -90,4 +90,8 @@ export class ExpressHttpContext<Body extends object>
   hasHeader(header: string) {
     return this._request.hasHeader(header);
   }
+
+  text(message: string) {
+    return this._response.text(message);
+  }
 }

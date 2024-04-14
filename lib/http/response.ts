@@ -6,4 +6,5 @@ export interface Response {
   location(url: string): void;
   redirect(url: string): void;
   back(): void;
+  text(message: string): void;
 }

@@ -15,7 +15,7 @@ describe("ExpressApplication", () => {
 
   beforeEach(() => {
     expressApp = express();
-    const facade = new ExpressFacade(expressApp);
+    const facade = new ExpressFacade(expressApp, {});
     app = new ExpressApplication(facade);
   });
 

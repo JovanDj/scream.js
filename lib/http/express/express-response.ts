@@ -31,4 +31,9 @@ export class ExpressResponse implements Response {
   back() {
     this._res.redirect("back");
   }
+
+  text(message: string) {
+    this._res.setHeader("Content-Type", "text/plain");
+    this.end(message);
+  }
 }

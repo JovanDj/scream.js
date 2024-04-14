@@ -23,7 +23,8 @@
     "migrations/",
     "config/",
     "public/js",
-    "knex.schema.ts"
+    "knex.schema.ts",
+    "routes.ts"
   ],
-  "exclude": ["lib/http/koa"]
+  "exclude": ["lib/http/koa", "lib/http/scream"]
 }
