@@ -5,5 +5,6 @@ export interface HttpContext<Body = object> extends Request<Body>, Response {
   id: number | undefined;
   notFound(): void;
   status(code: number): HttpContext;
-  handleError(error: unknown): void
+  handleError(error: unknown): void;
+  text(message: string): void;
 }

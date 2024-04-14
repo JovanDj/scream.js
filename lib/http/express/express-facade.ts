@@ -25,13 +25,10 @@ export class ExpressFacade {
         noCache: true,
       })
       .addGlobal("viteScripts", () => {
-        const isDevelopment = true;
-        if (isDevelopment) {
-          return `
+        return `
       <script defer async type="module" src="http://localhost:5173/@vite/client"></script>
       <script defer async type="module" src="http://localhost:5173/resources/main.js"></script>
     `;
-        }
       });
   }
 

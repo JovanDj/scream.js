@@ -9,6 +9,11 @@ import { ExpressRequest } from "./express-request.js";
 import { ExpressResponse } from "./express-response.js";
 import { ExpressRouter } from "./express-router.js";
 
+export interface Route {
+  path: string;
+  route: (router: Router) => void;
+}
+
 export class ExpressApplication implements Application {
   constructor(private readonly _app: ExpressFacade) {}
 
@@ -22,6 +27,16 @@ export class ExpressApplication implements Application {
     cb(router);
 
     this._app.useRouter(path, router.router);
+  }
+
+  addRoutes(routes: Route[]) {
+    for (const route of routes) {
+      this.addRoute(route);
+    }
+  }
+
+  addRoute(route: Route) {
+    this.createRouter(route.path, route.route);
   }
 
   use(middleware: Middleware) {

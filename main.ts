@@ -1,20 +1,17 @@
 import { createApplication } from "@scream.js/http/create-application.js";
-import process from "node:process";
+import { rootRoute } from "routes.js";
 import { todoController } from "./src/todos/index.js";
-
-process.on("unhandledrejection", (reason) => {
-  console.error("Unhandled promise rejection:", reason);
-});
 
 export const app = createApplication();
 
-app.createRouter("/", (router) => {
-  router.get("/", (ctx) => {
-    ctx.render("./index", {
-      name: "Jovan",
-      message: "Rendered with nunjucks",
-    });
-  });
-});
-
-app.resource("/todos", todoController);
+app.addRoutes([
+  {
+    path: "/",
+    route: rootRoute,
+  },
+  {
+    path: "/users",
+    route: (router) => router.get("/", (ctx) => ctx.text("USERS")),
+  },
+  { path: "/todos", route: (router) => router.resource("/", todoController) },
+]);

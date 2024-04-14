@@ -4,6 +4,7 @@ import { Router } from "./router.interface.js";
 import { Server } from "./server.js";
 
 export interface Application {
+  addRoutes(routes: { path: string; route: (router: Router) => void }[]): void;
   createRouter(path: string, cb: (router: Router) => void): unknown;
   listen(port?: number, cb?: () => void): Server;
   use(middleware: Middleware): Application;

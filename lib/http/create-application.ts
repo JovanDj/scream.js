@@ -3,6 +3,12 @@
 import type { Application } from "./application.interface.js";
 import { createExpressServer } from "./express/create-express-server.js";
 
+import process from "node:process";
+
+process.on("unhandledrejection", (reason) => {
+  console.error("Unhandled promise rejection:", reason);
+});
+
 type ApplicationImplementation = "express";
 
 export interface ApplicationOptions {
