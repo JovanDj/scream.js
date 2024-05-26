@@ -107,7 +107,7 @@ export const handler = (options: RequestOptions): RequestListener => {
         .writeHead(
           options.notAllowedStatusCode,
           options.notAllowedStatusMessage,
-          { allow: "GET" }
+          { allow: "GET" },
         )
         .end();
     }
@@ -145,7 +145,7 @@ export const handler = (options: RequestOptions): RequestListener => {
         <body>
           <h1 onClick="document.querySelector('h1').remove()">NEMA ZAJEBO SI SE</h1>
         </body>
-        `
+        `,
       );
   };
 };
@@ -168,7 +168,7 @@ const httpStatus = {
 
 const contentLength = (
   body: string,
-  encoding: Parameters<typeof Buffer.byteLength>[1] = "utf-8"
+  encoding: Parameters<typeof Buffer.byteLength>[1] = "utf-8",
 ) => {
   return Buffer.byteLength(body, encoding);
 };
@@ -192,7 +192,7 @@ export const createApplication = () => {
       todoRoute: routes.TODOS,
       jsonMimeType: mimeTypes.json,
       htmlMimeType: mimeTypes.html,
-    })
+    }),
   );
 };
 
@@ -201,5 +201,5 @@ start(
     port: 3000,
     callback: () => console.log(`Listening on port: 3000`),
   },
-  createApplication()
+  createApplication(),
 );

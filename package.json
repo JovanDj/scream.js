@@ -21,7 +21,7 @@
   "license": "ISC",
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
-    "@swc/core": "^1.4.17",
+    "@swc/core": "^1.5.7",
     "@tsconfig/node20": "^20.1.4",
     "@tsconfig/recommended": "^1.0.6",
     "@tsconfig/strictest": "^2.0.5",
@@ -33,12 +33,12 @@
     "@types/express-session": "^1.18.0",
     "@types/koa": "^2.15.0",
     "@types/koa__router": "^12.0.4",
-    "@types/node": "^20.12.7",
+    "@types/node": "^20.12.12",
     "@types/nunjucks": "^3.2.6",
     "@types/sqlite3": "^3.1.11",
     "@types/supertest": "^6.0.2",
-    "@typescript-eslint/eslint-plugin": "^7.8.0",
-    "@typescript-eslint/parser": "^7.8.0",
+    "@typescript-eslint/eslint-plugin": "^7.10.0",
+    "@typescript-eslint/parser": "^7.10.0",
     "commitizen": "^4.3.0",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
@@ -50,19 +50,19 @@
     "eslint-plugin-promise": "^6.1.1",
     "husky": "^9.0.11",
     "knex": "^3.1.0",
-    "lint-staged": "^15.2.2",
-    "nightwatch": "^3.6.1",
+    "lint-staged": "^15.2.5",
+    "nightwatch": "^3.6.3",
     "prettier": "^3.2.5",
-    "sass": "^1.76.0",
+    "sass": "^1.77.2",
     "supertest": "^6.3.4",
     "ts-mockito": "^2.6.1",
     "ts-node": "^10.9.2",
-    "tsc-alias": "^1.8.8",
-    "tsx": "^4.8.2",
+    "tsc-alias": "^1.8.10",
+    "tsx": "^4.11.0",
     "typescript": "^5.4.5",
-    "vite": "^5.2.10",
+    "vite": "^5.2.11",
     "vite-tsconfig-paths": "^4.3.2",
-    "vitest": "^1.5.3"
+    "vitest": "^1.6.0"
   },
   "engines": {
     "node": "^20"
@@ -96,7 +96,7 @@
     "vite-plugin-nunjucks": "^0.2.0"
   },
   "volta": {
-    "node": "20.12.2"
+    "node": "20.13.1"
   },
   "config": {
     "commitizen": {
