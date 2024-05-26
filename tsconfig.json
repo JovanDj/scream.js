@@ -24,7 +24,8 @@
     "config/",
     "public/js",
     "knex.schema.ts",
-    "routes.ts"
+    "routes.ts",
+    "*.test.ts"
   ],
   "exclude": ["lib/http/koa", "lib/http/scream"]
 }
