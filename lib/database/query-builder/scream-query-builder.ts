@@ -1,44 +1,108 @@
-import { FromQuery } from "./from-query.js";
-import { OrderByQuery } from "./order-by-query.js";
-import { QueryBuilder } from "./query-builder.js";
-import { QueryElement } from "./query-element.js";
-import { QueryVisitor } from "./query-visitor.js";
-import { SelectQuery } from "./select-query.js";
-import { WhereQuery } from "./where-query.js";
+import { DeleteExpression } from "./expressions/delete-expression.js";
+import { FromExpression } from "./expressions/from-expression.js";
+import { GroupByExpression } from "./expressions/group-by-expression.js";
+import { HavingExpression } from "./expressions/having-expression.js";
+import { InsertExpression } from "./expressions/insert-expression.js";
+import { JoinExpression } from "./expressions/join-expression.js";
+import { LimitExpression } from "./expressions/limit-expression.js";
+import { OffsetExpression } from "./expressions/offset-expression.js";
+import { OrderByExpression } from "./expressions/order-by-expression.js";
+import { SelectExpression } from "./expressions/select-expression.js";
+import { UpdateExpression } from "./expressions/update-expression.js";
+import { WhereExpression } from "./expressions/where-expression.js";
+import { Join } from "./join.js";
+import { SqlExpression } from "./sql-expression.js";
 
-export class SqlQueryBuilder implements QueryBuilder {
-  constructor(
-    private readonly _visitor: QueryVisitor,
-    private readonly _elements: QueryElement[] = []
-  ) {}
+export class ScreamQueryBuilder {
+  constructor(private readonly _expressions: SqlExpression[] = []) {}
 
-  select(fields: string[]) {
-    let select = new SelectQuery();
-
-    fields.forEach((field) => {
-      select = select.addField(field);
-    });
-
-    return new SqlQueryBuilder(this._visitor, [...this._elements, select]);
+  select(fields = "*") {
+    return new ScreamQueryBuilder([
+      ...this._expressions,
+      new SelectExpression(fields),
+    ]);
   }
 
   from(table: string) {
-    const from = new FromQuery(table);
-    return new SqlQueryBuilder(this._visitor, [...this._elements, from]);
+    return new ScreamQueryBuilder([
+      ...this._expressions,
+      new FromExpression(table),
+    ]);
   }
 
   where(condition: string) {
-    const where = new WhereQuery(condition);
-    return new SqlQueryBuilder(this._visitor, [...this._elements, where]);
+    return new ScreamQueryBuilder([
+      ...this._expressions,
+      new WhereExpression(condition),
+    ]);
   }
 
-  orderBy(fields: string[], order: "ASC" | "DESC" = "ASC") {
-    const orderBy = new OrderByQuery(fields, order);
-    return new SqlQueryBuilder(this._visitor, [...this._elements, orderBy]);
+  orderBy(field: string, direction: "ASC" | "DESC" = "ASC") {
+    return new ScreamQueryBuilder([
+      ...this._expressions,
+      new OrderByExpression(field, direction),
+    ]);
+  }
+
+  groupBy(fields: string) {
+    return new ScreamQueryBuilder([
+      ...this._expressions,
+      new GroupByExpression(fields),
+    ]);
+  }
+
+  having(condition: string) {
+    return new ScreamQueryBuilder([
+      ...this._expressions,
+      new HavingExpression(condition),
+    ]);
+  }
+
+  limit(limit: number) {
+    return new ScreamQueryBuilder([
+      ...this._expressions,
+      new LimitExpression(limit),
+    ]);
+  }
+
+  offset(offset: number) {
+    return new ScreamQueryBuilder([
+      ...this._expressions,
+      new OffsetExpression(offset),
+    ]);
+  }
+
+  join(table: string, condition: string, type: Join = "INNER") {
+    return new ScreamQueryBuilder([
+      ...this._expressions,
+      new JoinExpression(table, condition, type),
+    ]);
+  }
+
+  insert(table: string, values: Record<string, number | string>) {
+    return new ScreamQueryBuilder([
+      ...this._expressions,
+      new InsertExpression(table, values),
+    ]);
+  }
+
+  update(table: string, values: Record<string, number | string>) {
+    return new ScreamQueryBuilder([
+      ...this._expressions,
+      new UpdateExpression(table, values),
+    ]);
+  }
+
+  delete(table: string) {
+    return new ScreamQueryBuilder([
+      ...this._expressions,
+      new DeleteExpression(table),
+    ]);
   }
 
   build() {
-    this._elements.forEach((element) => element.accept(this._visitor));
-    return this._visitor.getSql();
+    return this._expressions
+      .map((expression) => expression.interpret())
+      .join(" ");
   }
 }

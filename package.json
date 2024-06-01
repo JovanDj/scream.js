@@ -96,7 +96,7 @@
     "vite-plugin-nunjucks": "^0.2.0"
   },
   "volta": {
-    "node": "20.12.2"
+    "node": "20.14.0"
   },
   "config": {
     "commitizen": {
