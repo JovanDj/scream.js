@@ -49,9 +49,9 @@ export class ExpressApplication implements Application<Express> {
         new ExpressHttpContext(
           new ExpressRequest(req),
           new ExpressResponse(res),
-          next
-        )
-      )
+          next,
+        ),
+      ),
     );
 
     return this;

@@ -7,7 +7,7 @@ export interface Application<T> {
   app: T;
 
   addRoutes(
-    routes: { path: string; route: (router: Router) => void }[]
+    routes: { path: string; route: (router: Router) => void }[],
   ): unknown;
   createRouter(path: string, cb: (router: Router) => void): unknown;
   listen(port?: number, cb?: () => void): Server;

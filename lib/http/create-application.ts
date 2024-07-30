@@ -25,7 +25,7 @@ servers.set("express", createExpressServer);
 
 export const createApplication = (
   server: ApplicationImplementation = "express",
-  options = { port: 3000 }
+  options = { port: 3000 },
 ) => {
   return servers.get(server)!(options);
 };
