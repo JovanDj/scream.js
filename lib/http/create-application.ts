@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-import type { Application } from "./application.interface.js";
 import { createExpressServer } from "./express/create-express-server.js";
 
 import process from "node:process";
+import { Application } from "./application.interface.js";
+import { ExpressApp } from "./express/express-app.js";
 
 process.on("unhandledrejection", (reason) => {
   console.error("Unhandled promise rejection:", reason);
@@ -17,7 +18,7 @@ export interface ApplicationOptions {
 
 const servers = new Map<
   ApplicationImplementation,
-  (options: ApplicationOptions) => Application
+  (options: ApplicationOptions) => Application<ExpressApp>
 >();
 
 servers.set("express", createExpressServer);

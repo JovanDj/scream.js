@@ -10,7 +10,8 @@
     "baseUrl": ".",
     "paths": {
       "@scream.js/*": ["./lib/*"]
-    }
+    },
+    "types": ["./knex.schema.d.ts"]
   },
 
   "include": [
@@ -23,8 +24,12 @@
     "migrations/",
     "config/",
     "public/js",
-    "knex.schema.ts",
-    "routes.ts"
+    "knex.schema.d.ts",
+    "routes.ts",
+    "e2e/",
+    "tests",
+    "knex.schema.d.ts",
+    "routes"
   ],
   "exclude": ["lib/http/koa", "lib/http/scream"]
 }

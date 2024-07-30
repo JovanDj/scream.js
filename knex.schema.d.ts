@@ -1,7 +1,7 @@
 import { Knex } from "knex";
 
 declare module "knex/types/tables.js" {
-  interface Todo {
+  interface TodoRow {
     todo_id: number;
     title: string;
     due_date: string;
@@ -11,9 +11,9 @@ declare module "knex/types/tables.js" {
 
   interface Tables {
     todos: Knex.CompositeTableType<
-      Todo, // Use for SELECT and WHERE
-      Partial<Pick<Todo, "due_date" | "title">>, // Use for INSERT
-      Partial<Omit<Todo, "id">> // Use for UPDATE
+      TodoRow, // Use for SELECT and WHERE
+      Partial<Pick<TodoRow, "due_date" | "title">>, // Use for INSERT
+      Partial<Omit<TodoRow, "id">> // Use for UPDATE
     >;
   }
 }

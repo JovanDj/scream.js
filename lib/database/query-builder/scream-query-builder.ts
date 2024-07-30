@@ -14,7 +14,7 @@ import { Join } from "./join.js";
 import { SqlExpression } from "./sql-expression.js";
 
 export class ScreamQueryBuilder {
-  constructor(private readonly _expressions: SqlExpression[] = []) {}
+  constructor(private readonly _expressions: readonly SqlExpression[] = []) {}
 
   select(fields = "*") {
     return new ScreamQueryBuilder([
