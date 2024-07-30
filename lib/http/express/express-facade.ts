@@ -10,7 +10,7 @@ import { ExpressServer } from "./express-server.js";
 export class ExpressFacade {
   constructor(
     private readonly _app: Express,
-    private readonly _nunjucksConfig: nunjucks.ConfigureOptions
+    private readonly _nunjucksConfig: nunjucks.ConfigureOptions,
   ) {
     this._app.set("views", path.join(process.cwd(), "views"));
     this._app.set("view engine", "njk");
@@ -77,7 +77,7 @@ export class ExpressFacade {
     this._app.use(
       helmet({
         contentSecurityPolicy: false,
-      })
+      }),
     );
     return this;
   }
@@ -87,7 +87,7 @@ export class ExpressFacade {
       secret: "secret",
       resave: false,
       saveUninitialized: false,
-    }
+    },
   ) {
     this._app.use(session(options));
     return this;

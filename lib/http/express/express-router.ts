@@ -57,7 +57,7 @@ export class ExpressRouter implements Router {
   private _createContext(
     req: express.Request,
     res: express.Response,
-    next: express.NextFunction
+    next: express.NextFunction,
   ) {
     const request = new ExpressRequest(req);
     const response = new ExpressResponse(res);
