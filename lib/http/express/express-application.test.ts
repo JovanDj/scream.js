@@ -1,27 +1,21 @@
 import { Resource } from "@scream.js/resource.js";
-import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { HttpContext } from "../http-context.js";
-import { ExpressApp } from "./express-app.js";
+import { createExpressServer } from "./create-express-server.js";
 import { ExpressApplication } from "./express-application.js";
-import { ExpressFacade } from "./express-facade.js";
 import { ExpressServer } from "./express-server.js";
 
 describe("ExpressApplication", () => {
   let app: ExpressApplication;
 
-  let expressApp: ExpressApp;
-
   beforeEach(() => {
-    expressApp = express();
-    const facade = new ExpressFacade(expressApp, {});
-    app = new ExpressApplication(facade);
+    app = createExpressServer();
   });
 
   describe("it should listen on a port", () => {
     it("should start on a specified port", () => {
-      const port = 3000;
+      const port = 3001;
       const server = app.listen(port);
       expect(server).toBeInstanceOf(ExpressServer);
       server.close();
@@ -34,7 +28,7 @@ describe("ExpressApplication", () => {
         router.get("/", (ctx) => ctx.end());
       });
 
-      const server = app.listen(3000);
+      const server = app.listen(3001);
       const response = await request(server.nodeServer).get("/test");
 
       expect(response.status).toBe(200);

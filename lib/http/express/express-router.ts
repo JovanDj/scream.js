@@ -48,6 +48,7 @@ export class ExpressRouter implements Router {
   resource(path: string, resource: Resource) {
     this.get(path, resource.index.bind(resource));
     this.get(path, resource.show.bind(resource));
+    this.get(`${path}/create`, resource.create.bind(resource));
     this.post(path, resource.store.bind(resource));
     this.patch(path, resource.update.bind(resource));
     this.delete(path, resource.delete.bind(resource));
@@ -56,7 +57,7 @@ export class ExpressRouter implements Router {
   private _createContext(
     req: express.Request,
     res: express.Response,
-    next: express.NextFunction,
+    next: express.NextFunction
   ) {
     const request = new ExpressRequest(req);
     const response = new ExpressResponse(res);

@@ -4,10 +4,15 @@ export const config: Record<string, Knex.Config> = {
   development: {
     client: "sqlite3",
     connection: {
-      filename: "db.sqlite",
+      filename: "migration-test.sqlite",
     },
     useNullAsDefault: true,
     debug: true,
+    migrations: {
+      tableName: "knex_migrations",
+      directory: "./migrations",
+      extension: ".ts",
+    },
   },
 
   // staging: {

@@ -1,16 +1,15 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import express, { Router } from "express";
+import express, { Express, Router } from "express";
 import session from "express-session";
 import helmet from "helmet";
 import path from "node:path";
 import nunjucks from "nunjucks";
-import { ExpressApp } from "./express-app.js";
 import { ExpressServer } from "./express-server.js";
 
 export class ExpressFacade {
   constructor(
-    private readonly _app: ExpressApp,
+    private readonly _app: Express,
     private readonly _nunjucksConfig: nunjucks.ConfigureOptions
   ) {
     this._app.set("views", path.join(process.cwd(), "views"));
@@ -30,6 +29,10 @@ export class ExpressFacade {
       <script defer async type="module" src="http://localhost:5173/resources/main.js"></script>
     `;
       });
+  }
+
+  get app() {
+    return this._app;
   }
 
   use(middleware: express.Handler) {
@@ -100,3 +103,5 @@ export class ExpressFacade {
     return this;
   }
 }
+
+export default new ExpressFacade(express(), {});

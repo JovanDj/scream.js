@@ -1,3 +1,3 @@
-import express from "express";
+import { Express } from "express";
 
-export type ExpressApp = ReturnType<typeof express>;
+export type ExpressApp = Express;

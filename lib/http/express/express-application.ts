@@ -1,5 +1,5 @@
 import { Resource } from "@scream.js/resource.js";
-import express from "express";
+import express, { Express } from "express";
 import type { Application } from "../application.interface.js";
 import { Middleware } from "../middleware.js";
 import { Router } from "../router.interface.js";
@@ -14,11 +14,15 @@ export interface Route {
   route: (router: Router) => void;
 }
 
-export class ExpressApplication implements Application {
-  constructor(private readonly _app: ExpressFacade) {}
+export class ExpressApplication implements Application<Express> {
+  constructor(private readonly _facade: ExpressFacade) {}
+
+  get app() {
+    return this._facade.app;
+  }
 
   listen(port?: number, cb?: () => void) {
-    return this._app.listen(port, cb);
+    return this._facade.listen(port, cb);
   }
 
   createRouter(path: string, cb: (router: Router) => void) {
@@ -26,7 +30,7 @@ export class ExpressApplication implements Application {
 
     cb(router);
 
-    this._app.useRouter(path, router.router);
+    this._facade.useRouter(path, router.router);
   }
 
   addRoutes(routes: Route[]) {
@@ -40,7 +44,7 @@ export class ExpressApplication implements Application {
   }
 
   use(middleware: Middleware) {
-    this._app.use((req, res, next) =>
+    this._facade.use((req, res, next) =>
       middleware(
         new ExpressHttpContext(
           new ExpressRequest(req),
