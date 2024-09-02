@@ -59,7 +59,7 @@
     "prettier": "^3.3.3",
     "sass": "^1.77.8",
     "sucrase": "^3.35.0",
-    "supertest": "^6.3.4",
+    "supertest": "^7.0.0",
     "ts-mockito": "^2.6.1",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.10",
@@ -82,7 +82,7 @@
     "*.{js,ts,css,md,json}": "prettier --write"
   },
   "dependencies": {
-    "@koa/router": "^12.0.1",
+    "@koa/router": "^13.0.0",
     "@ladjs/consolidate": "^1.0.4",
     "@ladjs/koa-views": "^9.0.0",
     "@popperjs/core": "^2.11.8",
@@ -103,7 +103,7 @@
     "pg": "^8.12.0",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
-    "superagent": "^9.0.2",
+    "superagent": "^10.1.0",
     "superagent-cheerio": "^1.0.1",
     "tslib": "^2.7.0",
     "vite-plugin-nunjucks": "^0.2.0"
