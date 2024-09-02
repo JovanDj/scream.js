@@ -2,9 +2,9 @@ import { Resource } from "@scream.js/resource.js";
 import { Handler } from "./handler.js";
 
 export interface Router {
-  get(path: string, handler: Handler): void;
-  post(path: string, handler: Handler): void;
-  patch(path: string, handler: Handler): void;
-  delete(path: string, handler: Handler): void;
-  resource(path: string, resource: Resource): void;
+  get(path: string, handler: Handler): this;
+  post(path: string, handler: Handler): this;
+  patch(path: string, handler: Handler): this;
+  delete(path: string, handler: Handler): this;
+  resource(path: string, resource: Resource): this;
 }

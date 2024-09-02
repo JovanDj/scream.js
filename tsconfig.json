@@ -10,26 +10,8 @@
     "baseUrl": ".",
     "paths": {
       "@scream.js/*": ["./lib/*"]
-    },
-    "types": ["./knex.schema.d.ts"]
+    }
   },
-
-  "include": [
-    "server.ts",
-    "lib/",
-    "src/",
-    "main.ts",
-    "vite.config.ts",
-    "migrations.ts",
-    "migrations/",
-    "config/",
-    "public/js",
-    "knex.schema.d.ts",
-    "routes.ts",
-    "e2e/",
-    "tests",
-    "knex.schema.d.ts",
-    "routes"
-  ],
-  "exclude": ["lib/http/koa", "lib/http/scream"]
+  "include": ["**/*.ts", "knexfile.cjs", "vite.config.mts", "e2e"],
+  "exclude": ["lib/http/scream"]
 }

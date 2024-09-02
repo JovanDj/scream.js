@@ -1,71 +1,109 @@
 import { Resource } from "@scream.js/resource.js";
-import express, { Express } from "express";
+import Express, { Router } from "express";
+import { callbackify } from "node:util";
 import type { Application } from "../application.interface.js";
+import { Handler } from "../handler.js";
 import { Middleware } from "../middleware.js";
-import { Router } from "../router.interface.js";
-import type { ExpressFacade } from "./express-facade.js";
+import { ResourceProxy } from "../resource-proxy.js";
 import { ExpressHttpContext } from "./express-http-context.js";
-import { ExpressRequest } from "./express-request.js";
-import { ExpressResponse } from "./express-response.js";
-import { ExpressRouter } from "./express-router.js";
 
-export interface Route {
-  path: string;
-  route: (router: Router) => void;
-}
+export class ExpressApp implements Application {
+  readonly #express: Express.Application;
 
-export class ExpressApplication implements Application<Express> {
-  constructor(private readonly _facade: ExpressFacade) {}
-
-  get app() {
-    return this._facade.app;
+  constructor(express: Express.Application) {
+    this.#express = express;
   }
 
-  listen(port?: number, cb?: () => void) {
-    return this._facade.listen(port, cb);
-  }
-
-  createRouter(path: string, cb: (router: Router) => void) {
-    const router = new ExpressRouter(express.Router());
-
-    cb(router);
-
-    this._facade.useRouter(path, router.router);
-  }
-
-  addRoutes(routes: Route[]) {
-    for (const route of routes) {
-      this.addRoute(route);
-    }
-  }
-
-  addRoute(route: Route) {
-    this.createRouter(route.path, route.route);
-  }
-
-  use(middleware: Middleware) {
-    this._facade.use((req, res, next) =>
-      middleware(
-        new ExpressHttpContext(
-          new ExpressRequest(req),
-          new ExpressResponse(res),
-          next,
-        ),
-      ),
+  get(path: string, handler: Handler) {
+    this.#express.get(path, (req, res, next) =>
+      handler(new ExpressHttpContext(req, res, next))
     );
 
     return this;
   }
 
-  resource(path: string, resource: Resource) {
-    this.createRouter(path, (router) => {
-      router.get("/", resource.index.bind(resource));
-      router.get("/create", resource.create.bind(resource));
-      router.get("/edit", resource.edit.bind(resource));
-      router.get("/:id", resource.show.bind(resource));
-      router.post("/", resource.store.bind(resource));
-      router.patch("/:id", resource.update.bind(resource));
-      router.delete("/:id", resource.delete.bind(resource));
+  post(path: string, handler: Handler) {
+    this.#express.post(path, (req, res, next) =>
+      handler(new ExpressHttpContext(req, res, next))
+    );
+
+    return this;
+  }
+
+  patch(path: string, handler: Handler) {
+    this.#express.patch(path, (req, res, next) =>
+      handler(new ExpressHttpContext(req, res, next))
+    );
+
+    return this;
+  }
+
+  delete(path: string, handler: Handler) {
+    this.#express.delete(path, (req, res, next) =>
+      handler(new ExpressHttpContext(req, res, next))
+    );
+
+    return this;
+  }
+
+  listen(port: number, cb?: () => void) {
+    this.#express.listen(port, cb);
+
+    return this;
+  }
+
+  use(middleware: Middleware) {
+    this.#express.use((req, res, next) => {
+      const context = new ExpressHttpContext(req, res, next);
+
+      callbackify(middleware)(context, next);
     });
+
+    return this;
+  }
+
+  resource(path: string, resource: Readonly<Resource>) {
+    const proxy = new ResourceProxy(resource);
+
+    const router = Router();
+
+    router.get("/", (req, res, next) => {
+      const context = new ExpressHttpContext(req, res, next);
+      callbackify(proxy.index.bind(proxy))(context, next);
+    });
+
+    router.get("/create", (req, res, next) => {
+      const context = new ExpressHttpContext(req, res, next);
+      callbackify(proxy.create.bind(proxy))(context, next);
+    });
+
+    router.get("/:id/edit", (req, res, next) => {
+      const context = new ExpressHttpContext(req, res, next);
+      callbackify(proxy.edit.bind(proxy))(context, next);
+    });
+
+    router.get("/:id", (req, res, next) => {
+      const context = new ExpressHttpContext(req, res, next);
+      callbackify(proxy.show.bind(proxy))(context, next);
+    });
+
+    router.post("/", (req, res, next) => {
+      const context = new ExpressHttpContext(req, res, next);
+      callbackify(proxy.store.bind(proxy))(context, next);
+    });
+
+    router.patch("/:id", (req, res, next) => {
+      const context = new ExpressHttpContext(req, res, next);
+      callbackify(proxy.update.bind(proxy))(context, next);
+    });
+
+    router.delete("/:id", (req, res, next) => {
+      const context = new ExpressHttpContext(req, res, next);
+      callbackify(proxy.delete.bind(proxy))(context, next);
+    });
+
+    this.#express.use(path, router);
+
+    return this;
   }
 }
