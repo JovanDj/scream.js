@@ -12,22 +12,14 @@ export class TodoMapper extends KnexDataMapper<Todo, TodoRow> {
   }
 
   toEntity(row: TodoRow) {
-    const todo = new Todo();
-    todo.id = row.todo_id;
-    todo.title = row.title;
-    todo.dueDate = new Date(row.due_date);
-    todo.createdAt = new Date(row.created_at);
-    todo.updatedAt = new Date(row.updated_at);
+    const todo = new Todo(row.todo_id, row.title);
 
     return todo;
   }
 
   toRow(entity: Partial<Todo>): Partial<TodoRow> {
     return {
-      created_at: entity.createdAt?.toISOString() ?? new Date().toISOString(),
-      due_date: entity.dueDate?.toISOString() ?? new Date().toISOString(),
       title: entity.title ?? "",
-      updated_at: entity.updatedAt?.toISOString() ?? new Date().toISOString(),
     };
   }
 }

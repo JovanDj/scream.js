@@ -1,17 +1,16 @@
-import { createApplication } from "@scream.js/http/create-application.js";
-import { rootRoute } from "routes.js";
-import { todoController } from "./src/todos/index.js";
+import { Application } from "@scream.js/http/application.interface";
+import { createExpressApp } from "@scream.js/http/express/create-express-application";
+import { todoController } from "./src/todos";
 
-export const app = createApplication();
+export const app: Application = createExpressApp();
 
-app.addRoutes([
-  {
-    path: "/",
-    route: rootRoute,
-  },
-  {
-    path: "/users",
-    route: (router) => router.get("/", (ctx) => ctx.text("USERS")),
-  },
-  { path: "/todos", route: (router) => router.resource("/", todoController) },
-]);
+app
+  .get("/", (ctx) =>
+    ctx.json({
+      name: "Jovan",
+      message: "Rendered with nunjucks",
+    })
+  )
+  .get("/about", (ctx) => ctx.render("about"));
+
+app.resource("/todos", todoController);

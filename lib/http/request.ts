@@ -1,6 +1,6 @@
 import { IncomingHttpHeaders } from "node:http";
 
-export interface Request<Body = object> {
+export interface Request<Body> {
   params: Record<string, string>;
   body: Body;
   method: string;

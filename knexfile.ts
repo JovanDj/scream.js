@@ -1,17 +1,17 @@
 import type { Knex } from "knex";
 
-export const config: Record<string, Knex.Config> = {
+const config: Record<string, Knex.Config> = {
   development: {
-    client: "sqlite3",
+    client: "sqlite",
     connection: {
-      filename: "migration-test.sqlite",
+      filename: "db.sqlite",
     },
     useNullAsDefault: true,
     debug: true,
     migrations: {
       tableName: "knex_migrations",
       directory: "./migrations",
-      extension: ".ts",
+      extension: "ts",
     },
   },
 
@@ -47,3 +47,5 @@ export const config: Record<string, Knex.Config> = {
   //   },
   // },
 };
+
+export default config;

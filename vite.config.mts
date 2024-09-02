@@ -1,5 +1,5 @@
 import tsconfigPaths from "vite-tsconfig-paths";
-import { defineConfig } from "vitest/config";
+import { defaultExclude, defineConfig } from "vitest/config";
 
 export default defineConfig({
   build: {
@@ -16,14 +16,7 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   appType: "mpa",
   test: {
-    exclude: [
-      "tests",
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/cypress/**",
-      "**/.{idea,git,cache,output,temp}/**",
-      "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*",
-    ],
+    exclude: [...defaultExclude, "e2e"],
     environment: "node",
     bail: 1,
     sequence: { shuffle: true, concurrent: true },

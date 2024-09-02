@@ -8,8 +8,7 @@
     "build": "tsc && tsc-alias",
     "prepare": "husky",
     "lint": "eslint --ext .ts --ignore-path .gitignore .",
-    "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx --ignore-path .gitignore . --fix",
-    "e2e": "nightwatch nightwatch/todo-crud.ts --env chrome"
+    "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx --ignore-path .gitignore . --fix"
   },
   "keywords": [],
   "author": "",
@@ -20,9 +19,11 @@
   ],
   "license": "ISC",
   "devDependencies": {
+    "@babel/register": "^7.24.6",
     "@faker-js/faker": "^8.4.1",
-    "@playwright/test": "^1.45.3",
+    "@playwright/test": "^1.46.1",
     "@swc/core": "^1.7.3",
+    "@swc/register": "^0.1.10",
     "@tsconfig/node20": "^20.1.4",
     "@tsconfig/recommended": "^1.0.7",
     "@tsconfig/strictest": "^2.0.5",
@@ -35,7 +36,7 @@
     "@types/express-session": "^1.18.0",
     "@types/koa": "^2.15.0",
     "@types/koa__router": "^12.0.4",
-    "@types/node": "^20.14.13",
+    "@types/node": "^20.14.15",
     "@types/nunjucks": "^3.2.6",
     "@types/sqlite3": "^3.1.11",
     "@types/supertest": "^6.0.2",
@@ -45,6 +46,7 @@
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "cz-conventional-changelog": "^3.3.0",
+    "esbuild-register": "^3.6.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-node": "^11.1.0",
@@ -53,19 +55,20 @@
     "husky": "^9.1.4",
     "knex": "^3.1.0",
     "lint-staged": "^15.2.7",
-    "nightwatch": "^3.7.0",
     "playwright": "^1.44.1",
     "prettier": "^3.3.3",
     "sass": "^1.77.8",
+    "sucrase": "^3.35.0",
     "supertest": "^6.3.4",
     "ts-mockito": "^2.6.1",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.10",
+    "tsconfig-paths": "^4.2.0",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4",
     "vite": "^5.3.5",
     "vite-tsconfig-paths": "^4.3.2",
-    "vitest": "^1.6.0"
+    "vitest": "^2.0.4"
   },
   "engines": {
     "node": "^20"
@@ -78,9 +81,10 @@
     ],
     "*.{js,ts,css,md,json}": "prettier --write"
   },
-  "type": "module",
   "dependencies": {
     "@koa/router": "^12.0.1",
+    "@ladjs/consolidate": "^1.0.4",
+    "@ladjs/koa-views": "^9.0.0",
     "@popperjs/core": "^2.11.8",
     "@types/knex": "^0.16.1",
     "@types/pg": "^8.11.6",

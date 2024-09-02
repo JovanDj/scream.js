@@ -1,1 +1,4 @@
-export type FlatObject = Record<string, boolean | number | string | undefined>;
+export type FlatObject = Record<
+  string,
+  (boolean | number | string)[] | boolean | number | string
+>;
