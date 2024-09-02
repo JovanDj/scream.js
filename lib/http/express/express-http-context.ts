@@ -5,7 +5,7 @@ export class ExpressHttpContext<Body = object> implements HttpContext<Body> {
   constructor(
     private readonly _request: express.Request<object, object, Body>,
     private readonly _response: express.Response,
-    private readonly _next: NextFunction
+    private readonly _next: NextFunction,
   ) {}
 
   get body() {

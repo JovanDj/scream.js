@@ -4,7 +4,7 @@ import { Todo } from "./todo.js";
 export class TodoIdentityMap implements Repository<Todo> {
   constructor(
     private readonly _repository: Repository<Todo>,
-    private readonly _identityMap: Map<Todo["id"], Todo>
+    private readonly _identityMap: Map<Todo["id"], Todo>,
   ) {}
 
   async findById(id: Todo["id"]) {

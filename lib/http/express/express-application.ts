@@ -16,7 +16,7 @@ export class ExpressApp implements Application {
 
   get(path: string, handler: Handler) {
     this.#express.get(path, (req, res, next) =>
-      handler(new ExpressHttpContext(req, res, next))
+      handler(new ExpressHttpContext(req, res, next)),
     );
 
     return this;
@@ -24,7 +24,7 @@ export class ExpressApp implements Application {
 
   post(path: string, handler: Handler) {
     this.#express.post(path, (req, res, next) =>
-      handler(new ExpressHttpContext(req, res, next))
+      handler(new ExpressHttpContext(req, res, next)),
     );
 
     return this;
@@ -32,7 +32,7 @@ export class ExpressApp implements Application {
 
   patch(path: string, handler: Handler) {
     this.#express.patch(path, (req, res, next) =>
-      handler(new ExpressHttpContext(req, res, next))
+      handler(new ExpressHttpContext(req, res, next)),
     );
 
     return this;
@@ -40,7 +40,7 @@ export class ExpressApp implements Application {
 
   delete(path: string, handler: Handler) {
     this.#express.delete(path, (req, res, next) =>
-      handler(new ExpressHttpContext(req, res, next))
+      handler(new ExpressHttpContext(req, res, next)),
     );
 
     return this;
