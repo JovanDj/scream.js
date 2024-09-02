@@ -9,7 +9,7 @@ app
     ctx.json({
       name: "Jovan",
       message: "Rendered with nunjucks",
-    })
+    }),
   )
   .get("/about", (ctx) => ctx.render("about"));
 

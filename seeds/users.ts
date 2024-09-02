@@ -15,6 +15,6 @@ export function seed(knex: Knex): Promise<void> {
 
       await trx.commit();
     },
-    { isolationLevel: "serializable", readOnly: false }
+    { isolationLevel: "serializable", readOnly: false },
   );
 }

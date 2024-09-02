@@ -13,7 +13,7 @@ const nunjucksEnv = new nunjucks.Environment(
   new nunjucks.FileSystemLoader(viewsPath, {
     noCache: true,
     watch: true,
-  })
+  }),
 );
 
 export class KoaApp {
@@ -31,7 +31,7 @@ export class KoaApp {
         options: {
           nunjucksEnv,
         },
-      })
+      }),
     );
   }
 

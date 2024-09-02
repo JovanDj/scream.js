@@ -60,7 +60,7 @@ export class TodosController implements Resource {
 
     if (
       Object.values(errors).some((field) =>
-        Object.values(field).some((errorMessage) => errorMessage)
+        Object.values(field).some((errorMessage) => errorMessage),
       )
     ) {
       return ctx
