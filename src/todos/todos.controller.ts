@@ -1,101 +1,76 @@
-import { Repository } from "@scream.js/database/repository.js";
-import { FlatObject } from "@scream.js/flat-object.js";
-import { HttpContext } from "@scream.js/http/http-context.js";
-import { Resource } from "@scream.js/resource.js";
-import { CreateTodoDto } from "./create-todo.dto.js";
-import { Todo } from "./todo.js";
+import type { Repository } from "@scream.js/database/repository.js";
+import type { FlatObject } from "@scream.js/flat-object.js";
+import type { HttpContext } from "@scream.js/http/http-context.js";
+import type { Resource } from "@scream.js/resource.js";
+import type { CreateTodoDto } from "./create-todo.dto.js";
+import type { Todo } from "./todo.js";
 
 export class TodosController implements Resource {
-  readonly #todoRepository: Readonly<Repository<Todo>>;
+	readonly #todoRepository: Readonly<Repository<Todo>>;
 
-  constructor(readonly todoRepository: Readonly<Repository<Todo>>) {
-    this.#todoRepository = todoRepository;
-  }
+	constructor(todoRepository: Readonly<Repository<Todo>>) {
+		this.#todoRepository = todoRepository;
+	}
 
-  async index(ctx: Readonly<HttpContext>) {
-    const todos = await this.#todoRepository.findAll();
+	async index(ctx: Readonly<HttpContext>) {
+		const todos = await this.#todoRepository.findAll();
 
-    return ctx.render("index", { todos });
-  }
+		return ctx.render("index", { todos });
+	}
 
-  async show(ctx: HttpContext) {
-    if (!ctx.params["id"]) {
-      return ctx.notFound();
-    }
+	async show(ctx: HttpContext) {
+		if (!ctx.params["id"]) {
+			return ctx.notFound();
+		}
 
-    const todo = await this.#todoRepository.findById(+ctx.params["id"]);
+		const todo = await this.#todoRepository.findById(+ctx.params["id"]);
 
-    if (!todo) {
-      return ctx.notFound();
-    }
+		if (!todo) {
+			return ctx.notFound();
+		}
 
-    const dto: FlatObject = {
-      todoTitle: todo.title,
-      lang: ctx.acceptsLanguages(["en-US", "sr-Latn-RS"]),
-      pageTitle: `Todo | ${todo.id.toString()}`,
-    };
+		const dto: FlatObject = {
+			todoTitle: todo.title,
+			lang: ctx.acceptsLanguages(["en-US", "sr-Latn-RS"]),
+			pageTitle: `Todo | ${todo.id.toString()}`,
+		};
 
-    return ctx.render("show", dto);
-  }
+		return ctx.render("show", dto);
+	}
 
-  create(ctx: HttpContext) {
-    return ctx.render("create");
-  }
+	create(ctx: HttpContext) {
+		return ctx.render("create");
+	}
 
-  async store(ctx: HttpContext<CreateTodoDto>) {
-    const errors = {
-      title: { required: "" },
-    };
+	async store(ctx: HttpContext<CreateTodoDto>) {
+		const result = await this.#todoRepository.insert({ title: ctx.body.title });
 
-    if (!ctx.body.title) {
-      errors.title.required = "Missing";
-    }
+		return ctx
+			.status(201)
+			.redirect(`http://localhost:3000/todos/${result.toString()}`);
+	}
 
-    if (ctx.hasHeader("X-UP-VALIDATE")) {
-      return ctx.render("create", {
-        title: ctx.body.title,
-        errors,
-      });
-    }
+	edit(ctx: HttpContext) {
+		return ctx.render("");
+	}
 
-    if (
-      Object.values(errors).some((field) =>
-        Object.values(field).some((errorMessage) => errorMessage),
-      )
-    ) {
-      return ctx
-        .status(422)
-        .render("create", { title: ctx.body.title, errors });
-    }
+	async update(ctx: HttpContext<{ title: string }>) {
+		if (!ctx.params["id"]) {
+			return ctx.notFound();
+		}
 
-    const result = await this.#todoRepository.insert({ title: ctx.body.title });
+		const res = await this.#todoRepository.update(+ctx.params["id"], {});
 
-    return ctx
-      .status(201)
-      .redirect("http://localhost:3000/todos/" + result.toString());
-  }
+		return ctx.redirect(`http://localhost:3000/todos/${res.toString()}`);
+	}
 
-  edit(ctx: HttpContext) {
-    return ctx.render("");
-  }
+	async delete(ctx: HttpContext) {
+		if (!ctx.params["id"]) {
+			return ctx.notFound();
+		}
 
-  async update(ctx: HttpContext<{ title: string }>) {
-    if (!ctx.params["id"]) {
-      return ctx.notFound();
-    }
+		await this.#todoRepository.delete(+ctx.params["id"]);
 
-    const res = await this.#todoRepository.update(+ctx.params["id"], {});
-
-    return ctx.redirect("http://localhost:3000/todos/" + res.toString());
-  }
-
-  async delete(ctx: HttpContext) {
-    if (!ctx.params["id"]) {
-      return ctx.notFound();
-    }
-
-    await this.#todoRepository.delete(+ctx.params["id"]);
-
-    return ctx.status(200).end();
-  }
+		return ctx.status(200).end();
+	}
 }

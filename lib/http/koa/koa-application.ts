@@ -1,162 +1,125 @@
+import path from "node:path";
 import Router from "@koa/router";
 import views from "@ladjs/koa-views";
-import { Resource } from "@scream.js/resource.js";
-import Koa from "koa";
-import path from "node:path";
+import type { Resource } from "@scream.js/resource.js";
+import type Koa from "koa";
 import nunjucks from "nunjucks";
-import { Handler } from "../handler.js";
-import { Middleware } from "../middleware.js";
+import type { Handler } from "../handler.js";
+import type { Middleware } from "../middleware.js";
 import { KoaHttpContext } from "./koa-http-context.js";
 
 const viewsPath = path.join(process.cwd(), "views");
 const nunjucksEnv = new nunjucks.Environment(
-  new nunjucks.FileSystemLoader(viewsPath, {
-    noCache: true,
-    watch: true,
-  }),
+	new nunjucks.FileSystemLoader(viewsPath, {
+		noCache: true,
+		watch: true,
+	}),
 );
 
 export class KoaApp {
-  readonly #koa: Koa;
-  readonly #router: Router;
+	readonly #koa: Koa;
+	readonly #router: Router;
 
-  constructor(koa: Koa, router: Router) {
-    this.#koa = koa;
-    this.#router = router;
+	constructor(koa: Koa, router: Router) {
+		this.#koa = koa;
+		this.#router = router;
 
-    this.#koa.use(
-      views(path.join(process.cwd(), "views"), {
-        map: { njk: "nunjucks" },
-        extension: "njk",
-        options: {
-          nunjucksEnv,
-        },
-      }),
-    );
-  }
+		this.#koa.use(
+			views(path.join(process.cwd(), "views"), {
+				map: { njk: "nunjucks" },
+				extension: "njk",
+				options: {
+					nunjucksEnv,
+				},
+			}),
+		);
+	}
 
-  get(path: string, handler: Handler) {
-    this.#router.get(path, async (ctx) => handler(new KoaHttpContext(ctx)));
-    return this;
-  }
+	get(path: string, handler: Handler) {
+		this.#router.get(path, async (ctx) => handler(this.createContext(ctx)));
+		return this;
+	}
 
-  post(path: string, handler: Handler) {
-    this.#router.post(path, async (ctx) => handler(new KoaHttpContext(ctx)));
-    return this;
-  }
+	post(path: string, handler: Handler) {
+		this.#router.post(path, async (ctx) => handler(this.createContext(ctx)));
+		return this;
+	}
 
-  patch(path: string, handler: Handler) {
-    this.#router.patch(path, async (ctx) => handler(new KoaHttpContext(ctx)));
-    return this;
-  }
+	patch(path: string, handler: Handler) {
+		this.#router.patch(path, async (ctx) => handler(this.createContext(ctx)));
+		return this;
+	}
 
-  delete(path: string, handler: Handler) {
-    this.#router.delete(path, async (ctx) => handler(new KoaHttpContext(ctx)));
-    return this;
-  }
+	delete(path: string, handler: Handler) {
+		this.#router.delete(path, async (ctx) => handler(this.createContext(ctx)));
+		return this;
+	}
 
-  resource(path: string, resource: Resource) {
-    const proxy = new ResourceProxy(resource);
-    const router = new Router({ prefix: path });
+	resource(path: string, resource: Resource) {
+		const router = new Router({ prefix: path });
 
-    router.get("/", async (ctx) => {
-      const context = new KoaHttpContext(ctx);
-      await proxy.index(context);
-    });
+		router.get("/", async (ctx) => {
+			const context = this.createContext(ctx);
+			await resource.index(context);
+		});
 
-    router.get("/create", async (ctx) => {
-      const context = new KoaHttpContext(ctx);
-      await proxy.create(context);
-    });
+		router.get("/create", async (ctx) => {
+			const context = this.createContext(ctx);
+			await resource.create(context);
+		});
 
-    router.get("/:id/edit", async (ctx) => {
-      const context = new KoaHttpContext(ctx);
-      await proxy.edit(context);
-    });
+		router.get("/:id/edit", async (ctx) => {
+			const context = this.createContext(ctx);
+			await resource.edit(context);
+		});
 
-    router.get("/:id", async (ctx) => {
-      const context = new KoaHttpContext(ctx);
-      await proxy.show(context);
-    });
+		router.get("/:id", async (ctx) => {
+			const context = this.createContext(ctx);
+			await resource.show(context);
+		});
 
-    router.post("/", async (ctx) => {
-      const context = new KoaHttpContext(ctx);
-      await proxy.store(context);
-    });
+		router.post("/", async (ctx) => {
+			const context = this.createContext(ctx);
+			await resource.store(context);
+		});
 
-    router.patch(`/:id`, async (ctx) => {
-      const context = new KoaHttpContext(ctx);
-      await proxy.update(context);
-    });
+		router.patch("/:id", async (ctx) => {
+			const context = this.createContext(ctx);
+			await resource.update(context);
+		});
 
-    router.delete(`/:id`, async (ctx) => {
-      const context = new KoaHttpContext(ctx);
-      await proxy.delete(context);
-    });
+		router.delete("/:id", async (ctx) => {
+			const context = this.createContext(ctx);
+			await resource.delete(context);
+		});
 
-    this.#koa.use(router.routes());
-    this.#koa.use(router.allowedMethods());
+		this.#router.use(router.routes());
+		this.#router.use(router.allowedMethods());
 
-    return this;
-  }
+		return this;
+	}
 
-  listen(port: number, cb?: () => void) {
-    this.#koa.use(this.#router.routes());
-    this.#koa.use(this.#router.allowedMethods());
+	private createContext(
+		ctx: Koa.ParameterizedContext<Koa.DefaultState, Koa.DefaultContext>,
+	) {
+		return new KoaHttpContext(ctx);
+	}
 
-    this.#koa.listen(port, cb);
-    return this;
-  }
+	listen(port: number, cb?: () => void) {
+		this.#koa.use(this.#router.routes());
+		this.#koa.use(this.#router.allowedMethods());
 
-  use(middleware: Middleware) {
-    this.#koa.use(async (ctx, next) => {
-      const context = new KoaHttpContext(ctx);
-      await middleware(context);
-      await next();
-    });
-    return this;
-  }
-}
+		this.#koa.listen(port, cb);
+		return this;
+	}
 
-class ResourceProxy<Body extends object = object> implements Resource {
-  readonly #resource: Resource;
+	use(middleware: Middleware) {
+		this.#koa.use(async (ctx, next) => {
+			const context = this.createContext(ctx);
+			await middleware(context);
+			await next();
+		});
 
-  constructor(resource: Resource) {
-    this.#resource = resource;
-  }
-
-  async index(ctx: KoaHttpContext<Body>) {
-    console.log("PROXY RESOURCE", "INDEX");
-    await this.#resource.index(ctx);
-  }
-
-  async show(ctx: KoaHttpContext<Body>): Promise<void> {
-    console.log("PROXY RESOURCE", "SHOW");
-    await this.#resource.show(ctx);
-  }
-
-  async create(ctx: KoaHttpContext<Body>) {
-    console.log("PROXY RESOURCE", "CREATE");
-    await this.#resource.create(ctx);
-  }
-
-  async store(ctx: KoaHttpContext<Body>) {
-    console.log("PROXY RESOURCE", "STORE");
-    await this.#resource.store(ctx);
-  }
-
-  async edit(ctx: KoaHttpContext<Body>) {
-    console.log("PROXY RESOURCE", "EDIT");
-    await this.#resource.edit(ctx);
-  }
-
-  async update(ctx: KoaHttpContext<Body>) {
-    console.log("PROXY RESOURCE", "UPDATE");
-    await this.#resource.update(ctx);
-  }
-
-  async delete(ctx: KoaHttpContext<Body>) {
-    console.log("PROXY RESOURCE", "DELETE");
-    await this.#resource.delete(ctx);
-  }
+		return this;
+	}
 }

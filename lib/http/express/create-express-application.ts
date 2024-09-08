@@ -1,29 +1,32 @@
-import express from "express";
 import path from "node:path";
+
+import express from "express";
 import nunjucks from "nunjucks";
-import { Application } from "../application.interface.js";
+
+import type { Application } from "../application.interface.js";
 import { ExpressApp } from "./express-application.js";
 
 export const createExpressApp: () => Application = () => {
-  console.info("Creating express app");
-  const expressApp = express();
+	const app = express();
 
-  expressApp.set("views", path.join(process.cwd(), "views"));
-  expressApp.set("view engine", "njk");
+	const viewsPath = path.join(process.cwd(), "views");
 
-  nunjucks
-    .configure("views", {
-      autoescape: true,
-      express: expressApp,
-      watch: true,
-      noCache: true,
-    })
-    .addGlobal("viteScripts", () => {
-      return `
-      <script defer async type="module" src="http://localhost:5173/@vite/client"></script>
-      <script defer async type="module" src="http://localhost:5173/resources/main.js"></script>
-    `;
-    });
+	app.set("views", viewsPath);
+	app.set("view engine", "njk");
 
-  return new ExpressApp(expressApp);
+	nunjucks
+		.configure(viewsPath, {
+			autoescape: true,
+			express: app,
+			watch: true,
+			noCache: true,
+		})
+		.addGlobal("viteScripts", () => {
+			return `
+			<script defer async type="module" src="http://localhost:5173/@vite/client"></script>
+			<script defer async type="module" src="http://localhost:5173/resources/main.js"></script>
+		`;
+		});
+
+	return new ExpressApp(app);
 };

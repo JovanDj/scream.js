@@ -1,3 +1,3 @@
 export interface ConnectionOptions {
-  database: string;
+	database: string;
 }

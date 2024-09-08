@@ -1,9 +1,9 @@
-import { SqlExpression } from "../sql-expression.js";
+import type { SqlExpression } from "../sql-expression.js";
 
 export class SelectExpression implements SqlExpression {
-  constructor(private readonly _fields = "*") {}
+	constructor(private readonly _fields = "*") {}
 
-  interpret() {
-    return `SELECT ${this._fields}`;
-  }
+	interpret() {
+		return `SELECT ${this._fields}`;
+	}
 }

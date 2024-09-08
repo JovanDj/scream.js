@@ -1,11 +1,11 @@
-import { Entity } from "./entity.js";
+import type { Entity } from "./entity.js";
 
 export interface DataMapper<T extends Entity, K> {
-  toEntity(row: K): T;
+	toEntity(row: K): T;
 
-  findById(id: T["id"]): Promise<T | undefined>;
-  findAll(): Promise<T[]>;
-  insert(entity: Partial<T>): Promise<number>;
-  update(id: T["id"], entity: Partial<T>): Promise<number>;
-  delete(id: T["id"]): Promise<number>;
+	findById(id: T["id"]): Promise<T | undefined>;
+	findAll(): Promise<T[]>;
+	insert(entity: Partial<T>): Promise<number>;
+	update(id: T["id"], entity: Partial<T>): Promise<number>;
+	delete(id: T["id"]): Promise<number>;
 }

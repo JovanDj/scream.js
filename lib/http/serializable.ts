@@ -1,3 +1,3 @@
 export interface Serializable<T> {
-  toJSON(): Partial<T>;
+	toJSON(): Partial<T>;
 }

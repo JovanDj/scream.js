@@ -1,56 +1,66 @@
-import { Repository } from "@scream.js/database/repository.js";
-import { Todo } from "./todo.js";
+import type { Repository } from "@scream.js/database/repository.js";
+import type { Logger } from "@scream.js/logger/logger.interface.js";
+import type { Todo } from "./todo.js";
 
 export class TodoIdentityMap implements Repository<Todo> {
-  constructor(
-    private readonly _repository: Repository<Todo>,
-    private readonly _identityMap: Map<Todo["id"], Todo>,
-  ) {}
+	readonly #repository: Repository<Todo>;
+	readonly #identityMap: Map<Todo["id"], Todo>;
+	readonly #logger: Logger;
 
-  async findById(id: Todo["id"]) {
-    if (!this._identityMap.has(id)) {
-      console.info("cache miss");
+	constructor(
+		repository: Repository<Todo>,
+		identityMap: Map<Todo["id"], Todo>,
+		logger: Logger,
+	) {
+		this.#repository = repository;
+		this.#identityMap = identityMap;
+		this.#logger = logger;
+	}
 
-      const todo = await this._repository.findById(id);
+	async findById(id: Todo["id"]) {
+		if (!this.#identityMap.has(id)) {
+			this.#logger.log("cache miss");
 
-      if (!todo) {
-        return;
-      }
+			const todo = await this.#repository.findById(id);
 
-      this._identityMap.set(todo.id, todo);
+			if (!todo) {
+				return;
+			}
 
-      return todo;
-    }
-    console.info("cache hit");
+			this.#identityMap.set(todo.id, todo);
 
-    return this._identityMap.get(id);
-  }
+			return todo;
+		}
+		this.#logger.log("cache hit");
 
-  async findAll() {
-    return this._repository.findAll();
-  }
+		return this.#identityMap.get(id);
+	}
 
-  async insert(entity: Todo) {
-    return this._repository.insert(entity);
-  }
+	async findAll() {
+		return this.#repository.findAll();
+	}
 
-  async update(id: Todo["id"], entity: Todo) {
-    const updatedCount = await this._repository.update(id, entity);
+	async insert(entity: Todo) {
+		return this.#repository.insert(entity);
+	}
 
-    if (updatedCount > 0) {
-      this._identityMap.delete(id);
-    }
+	async update(id: Todo["id"], entity: Todo) {
+		const updatedCount = await this.#repository.update(id, entity);
 
-    return updatedCount;
-  }
+		if (updatedCount > 0) {
+			this.#identityMap.delete(id);
+		}
 
-  async delete(id: Todo["id"]) {
-    const deletedCount = await this._repository.delete(id);
+		return updatedCount;
+	}
 
-    if (deletedCount > 0) {
-      this._identityMap.delete(id);
-    }
+	async delete(id: Todo["id"]) {
+		const deletedCount = await this.#repository.delete(id);
 
-    return deletedCount;
-  }
+		if (deletedCount > 0) {
+			this.#identityMap.delete(id);
+		}
+
+		return deletedCount;
+	}
 }

@@ -1,5 +1,5 @@
-import { ConnectionOptions } from "./connection-options.js";
-import { Connection } from "./connection.js";
+import type { ConnectionOptions } from "./connection-options.js";
+import type { Connection } from "./connection.js";
 export interface Database {
-  connect(options: ConnectionOptions): Promise<Connection>;
+	connect(options: ConnectionOptions): Promise<Connection>;
 }
