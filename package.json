@@ -1,124 +1,123 @@
 {
-  "name": "scream.js",
-  "version": "1.0.0",
-  "description": "",
-  "scripts": {
-    "dev": "tsx watch server.ts",
-    "test": "vitest",
-    "build": "tsc && tsc-alias",
-    "prepare": "husky",
-    "lint": "eslint --ext .ts --ignore-path .gitignore .",
-    "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx --ignore-path .gitignore . --fix"
-  },
-  "keywords": [],
-  "author": "",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "/dist"
-  ],
-  "license": "ISC",
-  "devDependencies": {
-    "@babel/register": "^7.24.6",
-    "@faker-js/faker": "^8.4.1",
-    "@playwright/test": "^1.46.1",
-    "@swc/core": "^1.7.22",
-    "@swc/register": "^0.1.10",
-    "@tsconfig/node20": "^20.1.4",
-    "@tsconfig/recommended": "^1.0.7",
-    "@tsconfig/strictest": "^2.0.5",
-    "@types/cheerio": "^0.22.35",
-    "@types/cookie-parser": "^1.4.7",
-    "@types/cors": "^2.8.17",
-    "@types/csurf": "^1.11.5",
-    "@types/ejs": "^3.1.5",
-    "@types/express": "^4.17.21",
-    "@types/express-session": "^1.18.0",
-    "@types/koa": "^2.15.0",
-    "@types/koa__router": "^12.0.4",
-    "@types/node": "^20.16.3",
-    "@types/nunjucks": "^3.2.6",
-    "@types/sqlite3": "^3.1.11",
-    "@types/supertest": "^6.0.2",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
-    "commitizen": "^4.3.0",
-    "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3",
-    "cz-conventional-changelog": "^3.3.0",
-    "esbuild-register": "^3.6.0",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^5.2.1",
-    "eslint-plugin-promise": "^6.6.0",
-    "husky": "^9.1.5",
-    "knex": "^3.1.0",
-    "lint-staged": "^15.2.10",
-    "playwright": "^1.44.1",
-    "prettier": "^3.3.3",
-    "sass": "^1.77.8",
-    "sucrase": "^3.35.0",
-    "supertest": "^7.0.0",
-    "ts-mockito": "^2.6.1",
-    "ts-node": "^10.9.2",
-    "tsc-alias": "^1.8.10",
-    "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.19.0",
-    "typescript": "^5.5.4",
-    "vite": "^5.4.2",
-    "vite-tsconfig-paths": "^4.3.2",
-    "vitest": "^2.0.5"
-  },
-  "engines": {
-    "node": "^20"
-  },
-  "lint-staged": {
-    ".ts": [
-      "tsc --noEmit",
-      "npm run lint -- --fix",
-      "vitest run"
-    ],
-    "*.{js,ts,css,md,json}": "prettier --write"
-  },
-  "dependencies": {
-    "@koa/router": "^13.0.0",
-    "@ladjs/consolidate": "^1.0.4",
-    "@ladjs/koa-views": "^9.0.0",
-    "@popperjs/core": "^2.11.8",
-    "@types/knex": "^0.16.1",
-    "@types/pg": "^8.11.8",
-    "bootstrap": "^5.3.3",
-    "cheerio": "^1.0.0",
-    "cookie-parser": "^1.4.6",
-    "cors": "^2.8.5",
-    "ejs": "^3.1.10",
-    "express": "^4.19.2",
-    "express-async-errors": "^3.1.1",
-    "express-session": "^1.18.0",
-    "helmet": "^7.1.0",
-    "koa": "^2.15.3",
-    "koa-body": "^6.0.1",
-    "nunjucks": "^3.2.4",
-    "pg": "^8.12.0",
-    "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7",
-    "superagent": "^10.1.0",
-    "superagent-cheerio": "^1.0.1",
-    "tslib": "^2.7.0",
-    "vite-plugin-nunjucks": "^0.2.0"
-  },
-  "volta": {
-    "node": "20.17.0"
-  },
-  "config": {
-    "commitizen": {
-      "path": "./node_modules/cz-conventional-changelog"
-    }
-  },
-  "husky": {
-    "hooks": {
-      "prepare-commit-msg": "exec < /dev/tty && npx cz --hook || true"
-    }
-  }
+	"name": "scream.js",
+	"version": "1.0.0",
+	"description": "",
+	"scripts": {
+		"dev": "tsx watch server.ts",
+		"test": "vitest",
+		"build": "tsc && tsc-alias",
+		"prepare": "husky",
+		"lint": "eslint --ext .ts --ignore-path .gitignore .",
+		"lint:fix": "eslint --ext .js,.jsx,.ts,.tsx --ignore-path .gitignore . --fix"
+	},
+	"keywords": [],
+	"author": "",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"files": ["/dist"],
+	"license": "MIT",
+	"devDependencies": {
+		"@babel/register": "^7.24.6",
+		"@biomejs/biome": "1.8.3",
+		"@faker-js/faker": "^8.4.1",
+		"@playwright/test": "^1.46.1",
+		"@swc/core": "^1.7.22",
+		"@swc/register": "^0.1.10",
+		"@tsconfig/node20": "^20.1.4",
+		"@tsconfig/recommended": "^1.0.7",
+		"@tsconfig/strictest": "^2.0.5",
+		"@types/cheerio": "^0.22.35",
+		"@types/cookie-parser": "^1.4.7",
+		"@types/cors": "^2.8.17",
+		"@types/csurf": "^1.11.5",
+		"@types/ejs": "^3.1.5",
+		"@types/express": "^4.17.21",
+		"@types/express-session": "^1.18.0",
+		"@types/koa": "^2.15.0",
+		"@types/koa__router": "^12.0.4",
+		"@types/node": "^20.16.3",
+		"@types/nunjucks": "^3.2.6",
+		"@types/sqlite3": "^3.1.11",
+		"@types/supertest": "^6.0.2",
+		"@typescript-eslint/eslint-plugin": "^7.18.0",
+		"@typescript-eslint/parser": "^7.18.0",
+		"commitizen": "^4.3.0",
+		"concurrently": "^8.2.2",
+		"cross-env": "^7.0.3",
+		"cz-conventional-changelog": "^3.3.0",
+		"esbuild-register": "^3.6.0",
+		"eslint": "^8.57.0",
+		"eslint-config-prettier": "^9.1.0",
+		"eslint-plugin-node": "^11.1.0",
+		"eslint-plugin-prettier": "^5.2.1",
+		"eslint-plugin-promise": "^6.6.0",
+		"husky": "^9.1.5",
+		"knex": "^3.1.0",
+		"lint-staged": "^15.2.10",
+		"playwright": "^1.44.1",
+		"prettier": "^3.3.3",
+		"sass": "^1.77.8",
+		"sucrase": "^3.35.0",
+		"supertest": "^7.0.0",
+		"ts-mockito": "^2.6.1",
+		"ts-node": "^10.9.2",
+		"tsc-alias": "^1.8.10",
+		"tsconfig-paths": "^4.2.0",
+		"tsx": "^4.19.0",
+		"typescript": "^5.5.4",
+		"vite": "^5.4.2",
+		"vite-tsconfig-paths": "^4.3.2",
+		"vitest": "^2.0.5"
+	},
+	"engines": {
+		"node": "^20"
+	},
+	"lint-staged": {
+		".ts": [
+			"tsc --noEmit",
+			"biome check --write --no-errors-on-unmatched",
+			"vitest run"
+		],
+		"*": "biome check --no-errors-on-unmatched --files-ignore-unknown=true"
+	},
+	"dependencies": {
+		"@koa/router": "^13.0.0",
+		"@ladjs/consolidate": "^1.0.4",
+		"@ladjs/koa-views": "^9.0.0",
+		"@popperjs/core": "^2.11.8",
+		"@types/knex": "^0.16.1",
+		"@types/pg": "^8.11.8",
+		"bootstrap": "^5.3.3",
+		"cheerio": "^1.0.0",
+		"cookie-parser": "^1.4.6",
+		"cors": "^2.8.5",
+		"ejs": "^3.1.10",
+		"express": "^4.19.2",
+		"express-async-errors": "^3.1.1",
+		"express-session": "^1.18.0",
+		"helmet": "^7.1.0",
+		"koa": "^2.15.3",
+		"koa-body": "^6.0.1",
+		"nunjucks": "^3.2.4",
+		"pg": "^8.12.0",
+		"sqlite": "^5.1.1",
+		"sqlite3": "^5.1.7",
+		"superagent": "^10.1.0",
+		"superagent-cheerio": "^1.0.1",
+		"tslib": "^2.7.0",
+		"vite-plugin-nunjucks": "^0.2.0"
+	},
+	"volta": {
+		"node": "20.17.0"
+	},
+	"config": {
+		"commitizen": {
+			"path": "./node_modules/cz-conventional-changelog"
+		}
+	},
+	"husky": {
+		"hooks": {
+			"prepare-commit-msg": "exec < /dev/tty && npx cz --hook || true"
+		}
+	}
 }

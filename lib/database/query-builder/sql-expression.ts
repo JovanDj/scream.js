@@ -1,3 +1,3 @@
 export interface SqlExpression {
-  interpret(): string;
+	interpret(): string;
 }

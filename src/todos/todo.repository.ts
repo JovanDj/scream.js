@@ -1,28 +1,32 @@
-import { DataMapper } from "@scream.js/database/mapper.js";
+import type { DataMapper } from "@scream.js/database/mapper.js";
 import type { Repository } from "@scream.js/database/repository.js";
-import { Todo } from "./todo.js";
-import { TodoRow } from "./todo.row.js";
+import type { Todo } from "./todo.js";
+import type { TodoRow } from "./todo.row.js";
 
 export class TodoRepository implements Repository<Todo, Pick<Todo, "title">> {
-  constructor(private readonly _mapper: DataMapper<Todo, TodoRow>) {}
+	readonly #mapper: DataMapper<Todo, TodoRow>;
 
-  async findById(id: Todo["id"]) {
-    return this._mapper.findById(id);
-  }
+	constructor(mapper: DataMapper<Todo, TodoRow>) {
+		this.#mapper = mapper;
+	}
 
-  async findAll() {
-    return this._mapper.findAll();
-  }
+	async findById(id: Todo["id"]) {
+		return this.#mapper.findById(id);
+	}
 
-  async insert(entity: Pick<Todo, "title">) {
-    return this._mapper.insert(entity);
-  }
+	async findAll() {
+		return this.#mapper.findAll();
+	}
 
-  async update(id: Todo["id"], entity: Partial<Todo>) {
-    return this._mapper.update(id, entity);
-  }
+	async insert(entity: Pick<Todo, "title">) {
+		return this.#mapper.insert(entity);
+	}
 
-  async delete(id: Todo["id"]) {
-    return this._mapper.delete(id);
-  }
+	async update(id: Todo["id"], entity: Partial<Todo>) {
+		return this.#mapper.update(id, entity);
+	}
+
+	async delete(id: Todo["id"]) {
+		return this.#mapper.delete(id);
+	}
 }

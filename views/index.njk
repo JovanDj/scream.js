@@ -12,9 +12,7 @@
                 <thead class="thead-dark">
                     <tr>
                         <th>Title</th>
-                        <th>Due Date</th>
-                        <th>Created At</th>
-                        <th>Updated At</th>
+
                     </tr>
                 </thead>
                 <tbody>
@@ -24,9 +22,6 @@
                                 <a up-follow up-preload up-layer="new popup" up-size="full" href="/todos/{{ todo.id }}">{{todo.title}}</a>
                             </td>
 
-                            <td>{{todo.dueDate.toLocaleString('sr-Latn-rs')}}</td>
-                            <td>{{todo.createdAt.toLocaleString('sr-Latn-rs')}}</td>
-                            <td>{{todo.updatedAt.toLocaleString('sr-Latn-rs')}}</td>
                         </tr>
                     {% endfor %}
                 </tbody>

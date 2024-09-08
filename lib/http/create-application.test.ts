@@ -5,13 +5,13 @@ import { createKoaApp } from "./koa/create-koa-application.js";
 import { KoaApp } from "./koa/koa-application.js";
 
 describe("create application", () => {
-  it("should create an Express app by default", () => {
-    const application = createExpressApp();
-    expect(application).toBeInstanceOf(ExpressApp);
-  });
+	it("should create an Express app by default", () => {
+		const application = createExpressApp();
+		expect(application).toBeInstanceOf(ExpressApp);
+	});
 
-  it("should create an Express app by selecting it in options", () => {
-    const application = createKoaApp();
-    expect(application).toBeInstanceOf(KoaApp);
-  });
+	it("should create an Express app by selecting it in options", () => {
+		const application = createKoaApp();
+		expect(application).toBeInstanceOf(KoaApp);
+	});
 });
