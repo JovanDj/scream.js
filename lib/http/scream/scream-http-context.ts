@@ -1,0 +1,186 @@
+import type { HttpContext } from "../http-context.js";
+
+import {
+	type IncomingMessage,
+	STATUS_CODES,
+	type ServerResponse,
+} from "node:http";
+import path from "node:path";
+import { StringDecoder } from "node:string_decoder";
+import { parse } from "node:url";
+
+import nunjucks from "nunjucks";
+
+export class ScreamHttpContext<Body = object> implements HttpContext<Body> {
+	readonly #req: Readonly<IncomingMessage>;
+	readonly #res: ServerResponse;
+	readonly #parsedUrl: ReturnType<typeof parse>;
+	#bodyData: Body | undefined = undefined;
+
+	readonly #nunjucks = new nunjucks.Environment(
+		new nunjucks.FileSystemLoader(path.join(process.cwd(), "views"), {
+			noCache: true,
+			watch: true,
+		}),
+	);
+
+	constructor(req: Readonly<IncomingMessage>, res: ServerResponse) {
+		this.#req = req;
+		this.#res = res;
+		this.#parsedUrl = parse(req.url || "", true);
+	}
+
+	notFound() {
+		this.#res
+			.writeHead(404, STATUS_CODES[404], { "Content-Type": "text/plain" })
+			.end(STATUS_CODES[404]);
+	}
+
+	// Parse URL parameters
+	get params() {
+		const path = this.#parsedUrl.pathname || "";
+		const paramRegex = /\/(?<id>\d+)/;
+		const match = paramRegex.exec(path);
+		return match?.groups || {};
+	}
+
+	// Get parsed request body (this could be parsed JSON, form data, etc.)
+	get body() {
+		return this.#bodyData as Body;
+	}
+
+	// Get HTTP method
+	get method() {
+		return this.#req.method || "";
+	}
+
+	// Get request headers
+	get headers() {
+		return this.#req.headers;
+	}
+
+	// Get the request URL
+	get url() {
+		return this.#req.url || "";
+	}
+
+	// Handle the "close" event on the response
+	onClose(cb: () => void) {
+		this.#res.on("close", cb);
+	}
+
+	// Check if a specific header exists
+	hasHeader(header: string) {
+		return !!this.#req.headers[header.toLowerCase()];
+	}
+
+	// Handle language preferences (simplified for this example)
+	acceptsLanguages(languages: readonly string[]) {
+		const acceptLang = this.#req.headers["accept-language"];
+
+		if (!acceptLang) return "en"; // Default to "en" or another fallback language
+
+		for (const lang of languages) {
+			if (acceptLang.includes(lang)) return lang;
+		}
+
+		return "en"; // Return a default language if no match is found
+	}
+
+	// Send JSON response
+	json(data: object) {
+		const body = JSON.stringify(data);
+
+		this.#res
+			.writeHead(200, {
+				"Content-Type": "application/json",
+				"Content-Length": Buffer.byteLength(body),
+			})
+			.end(body);
+	}
+
+	// Send plain text response
+	text(message: string) {
+		this.#res
+			.writeHead(200, STATUS_CODES[200], {
+				"Content-Type": "text/plain",
+				"Content-Length": Buffer.byteLength(STATUS_CODES[200] ?? ""),
+			})
+			.end(message);
+	}
+
+	// Handle redirects
+	redirect(url: string): void {
+		this.#res.writeHead(302, { Location: url });
+		this.#res.end();
+	}
+
+	// Set HTTP status code
+	status(code: number): this {
+		this.#res.statusCode = code;
+		return this;
+	}
+
+	// Render a template using Nunjucks
+	async render(template: string, locals?: Record<string, unknown>) {
+		return new Promise<void>((resolve, reject) => {
+			this.#nunjucks.render(`${template}.njk`, locals || {}, (err, result) => {
+				if (err) {
+					return reject(err);
+				}
+
+				// Set HTML content type and send the rendered HTML
+				this.#res.setHeader("Content-Type", "text/html").end(result);
+				resolve();
+			});
+		});
+	}
+
+	// Set the "Location" header for redirect or resource location
+	location(url: string): void {
+		this.#res.setHeader("Location", url);
+	}
+
+	// Redirect back to the referrer or default to "/"
+	back(): void {
+		const referrer = this.#req.headers.referer || "/";
+		this.redirect(referrer);
+	}
+
+	// Error handling
+	handleError(error: unknown): void {
+		console.error("Error:", error);
+		this.status(500).text("Internal Server Error");
+	}
+
+	// End the response manually (optional chunk data)
+	end(chunk?: unknown): void {
+		this.#res.end(chunk);
+	}
+
+	// Utility method to read request body (for POST/PUT requests)
+	async readBody() {
+		if (
+			this.method !== "POST" &&
+			this.method !== "PUT" &&
+			this.method !== "PATCH"
+		) {
+			return "";
+		}
+
+		const decoder = new StringDecoder("utf-8");
+		let body = "";
+
+		for await (const chunk of this.#req) {
+			body += decoder.write(chunk);
+		}
+
+		body += decoder.end();
+
+		try {
+			this.#bodyData = JSON.parse(body);
+		} catch (e) {
+			this.#bodyData = body as Body;
+		}
+	}
+}
