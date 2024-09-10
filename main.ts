@@ -1,8 +1,8 @@
 import type { Application } from "@scream.js/http/application.interface";
-import { createKoaApp } from "@scream.js/http/koa/create-koa-application";
+import { createExpressApp } from "@scream.js/http/express/create-express-application";
 import { todoController } from "src/todos";
 
-export const app: Application = createKoaApp();
+export const app: Application = createExpressApp();
 
 app.get("/", (ctx) =>
 	ctx.render("index", {
