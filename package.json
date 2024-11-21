@@ -8,7 +8,8 @@
 		"build": "tsc && tsc-alias",
 		"prepare": "husky",
 		"lint": "biome check",
-		"lint:fix": "biome check --write"
+		"lint:fix": "biome check --write",
+		"db:migrate": "tsx -r tsconfig-paths/register ./node_modules/knex/bin/cli.js migrate:up"
 	},
 	"keywords": [],
 	"author": "",
@@ -16,6 +17,7 @@
 	"types": "dist/index.d.ts",
 	"files": ["/dist"],
 	"license": "MIT",
+	"type": "module",
 	"devDependencies": {
 		"@babel/register": "^7.24.6",
 		"@biomejs/biome": "1.8.3",

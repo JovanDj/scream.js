@@ -5,7 +5,7 @@
     <div class="container py-4 px-3 mx-auto">
         <h1>New Todo</h1>
 
-        <form up-confirm="JESI LI SIGURAN????" up-submit up-validate up-method="POST" method="POST" action="/todos" up-watch-disable>
+        <form up-confirm="JESI LI SIGURAN????" up-submit up-method="POST" method="POST" action="/todos" up-watch-disable>
             <div class="mb-3" up-form-group>
                 <label for="title" class="form-label">Title</label>
                 <input required value="{{ title }}" type="text" name="title" class="form-control" id="title" aria-describedby="title">
@@ -14,14 +14,6 @@
                     <p class="text-danger">{{errors.title.required}}</p>
                 {% endif %}
 
-            </div>
-            <div class="mb-3" up-form-group>
-                <label for="due-date" class="form-label">Due Date</label>
-                <input required value="{{ dueDate }}" type="datetime-local" name="due-date" class="form-control" id="due-date">
-
-                {% if errors.dueDate.required %}
-                    <p class="text-danger">{{errors.dueDate.required}}</p>
-                {% endif %}
             </div>
 
             <button type="submit" class="btn btn-primary">Submit</button>

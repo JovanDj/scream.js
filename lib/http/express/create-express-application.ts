@@ -14,6 +14,9 @@ export const createExpressApp: () => Application = () => {
 	app.set("views", viewsPath);
 	app.set("view engine", "njk");
 
+	app.use(express.urlencoded({ extended: true }));
+	app.use(express.static(path.join(process.cwd(), "resources")));
+
 	nunjucks
 		.configure(viewsPath, {
 			autoescape: true,
