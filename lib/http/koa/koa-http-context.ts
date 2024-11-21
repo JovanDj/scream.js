@@ -83,4 +83,8 @@ export class KoaHttpContext<Body = object> implements HttpContext<Body> {
 	handleError(error: unknown) {
 		this.ctx.app.emit("error", error, this.ctx);
 	}
+
+	internalServerError(message: string) {
+		this.status(500).end(message);
+	}
 }

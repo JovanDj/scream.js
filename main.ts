@@ -1,6 +1,7 @@
-import type { Application } from "@scream.js/http/application.interface";
-import { createExpressApp } from "@scream.js/http/express/create-express-application";
-import { todoController } from "src/todos";
+import type { Application } from "@scream.js/http/application.interface.js";
+import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
+
+import { todoController } from "src/todos/index.js";
 
 export const app: Application = createExpressApp();
 

@@ -6,4 +6,5 @@ export interface HttpContext<Body = object> extends Request<Body>, Response {
 	status(code: number): this;
 	handleError(error: unknown): void;
 	text(message: string): void;
+	internalServerError(message: string): void;
 }

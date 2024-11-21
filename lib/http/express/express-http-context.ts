@@ -1,51 +1,60 @@
+import { STATUS_CODES } from "node:http";
 import type express from "express";
 import type { NextFunction } from "express";
 import type { HttpContext } from "../http-context.js";
 
 export class ExpressHttpContext<Body = object> implements HttpContext<Body> {
+	readonly #request: express.Request<object, object, Body>;
+	readonly #response: express.Response;
+	readonly #next: NextFunction;
+
 	constructor(
-		private readonly _request: express.Request<object, object, Body>,
-		private readonly _response: express.Response,
-		private readonly _next: NextFunction,
-	) {}
+		request: express.Request<object, object, Body>,
+		response: express.Response,
+		next: NextFunction,
+	) {
+		this.#request = request;
+		this.#response = response;
+		this.#next = next;
+	}
 
 	get body() {
-		return { ...this._request.body };
+		return { ...this.#request.body };
 	}
 
 	get params() {
-		return { ...this._request.params };
+		return { ...this.#request.params };
 	}
 
 	get method() {
-		return this._request.method;
+		return this.#request.method;
 	}
 
 	get headers() {
-		return this._request.headers;
+		return this.#request.headers;
 	}
 
 	get url() {
-		return this._request.url;
+		return this.#request.url;
 	}
 
 	json(data: object) {
-		this._response.json(data);
+		this.#response.json(data);
 	}
 
 	end(chunk?: unknown) {
-		this._response.end(chunk);
+		this.#response.end(chunk);
 	}
 
 	status(code: number) {
-		this._response.status(code);
+		this.#response.status(code);
 		return this;
 	}
 
 	render(template: string, locals = {}) {
 		return new Promise<void>((resolve, reject) => {
 			try {
-				return resolve(this._response.render(template, locals));
+				return resolve(this.#response.render(template, locals));
 			} catch (error) {
 				if (error instanceof Error) {
 					return reject(error);
@@ -55,43 +64,47 @@ export class ExpressHttpContext<Body = object> implements HttpContext<Body> {
 	}
 
 	location(url: string) {
-		this._response.location(url);
+		this.#response.location(url);
 	}
 
 	redirect(url: string) {
-		this._response.redirect(url);
+		this.#response.redirect(url);
 	}
 
 	back() {
-		this._response.redirect("back");
+		this.#response.redirect("back");
 	}
 
 	text(message: string) {
-		this._response.setHeader("Content-Type", "text/plain");
+		this.#response.setHeader("Content-Type", "text/plain");
 		this.end(message);
 	}
 
 	acceptsLanguages(languages: string[]) {
-		return this._request.acceptsLanguages(languages) || "en-US";
+		return this.#request.acceptsLanguages(languages) || "en-US";
 	}
 
 	onClose(cb: () => void) {
-		this._request.on("close", cb);
+		this.#request.on("close", cb);
 	}
 
 	onError(cb: () => void) {
-		this._request.on("error", cb);
+		this.#request.on("error", cb);
 	}
 
 	hasHeader(header: string) {
-		return !!this._request.header(header);
+		return !!this.#request.header(header);
 	}
 
 	notFound() {
-		this.status(404).end();
+		this.#response.status(404).end(STATUS_CODES[404]);
+	}
+
+	internalServerError(message: string) {
+		this.status(500).text(message);
 	}
 
 	handleError(error: unknown) {
-		this._next(error);
+		this.#next(error);
 	}
 }

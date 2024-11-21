@@ -2,11 +2,9 @@ import type { Knex } from "knex";
 
 declare module "knex/types/tables.js" {
 	interface TodoRow {
-		todo_id: number;
+		id: number;
 		title: string;
-		due_date: string;
-		created_at: string;
-		updated_at: string;
+		user_id: UserRow["id"];
 	}
 
 	interface UserRow {

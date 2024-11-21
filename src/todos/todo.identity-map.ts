@@ -45,13 +45,13 @@ export class TodoIdentityMap implements Repository<Todo> {
 	}
 
 	async update(id: Todo["id"], entity: Todo) {
-		const updatedCount = await this.#repository.update(id, entity);
+		const todo = await this.#repository.update(id, entity);
 
-		if (updatedCount > 0) {
+		if (todo) {
 			this.#identityMap.delete(id);
 		}
 
-		return updatedCount;
+		return todo;
 	}
 
 	async delete(id: Todo["id"]) {

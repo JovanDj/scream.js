@@ -10,7 +10,8 @@
 		"baseUrl": ".",
 		"paths": {
 			"@scream.js/*": ["./lib/*"]
-		}
+		},
+		"verbatimModuleSyntax": true
 	},
 	"include": ["**/*.ts", "knexfile.cjs", "vite.config.mts", "e2e"],
 	"exclude": ["lib/http/scream"]
