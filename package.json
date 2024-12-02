@@ -20,7 +20,7 @@
 	"type": "module",
 	"devDependencies": {
 		"@babel/register": "^7.25.9",
-		"@biomejs/biome": "1.8.3",
+		"@biomejs/biome": "^1.9.4",
 		"@faker-js/faker": "^8.4.1",
 		"@playwright/test": "^1.49.0",
 		"@swc/core": "^1.9.3",
