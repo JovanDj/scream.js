@@ -2,13 +2,17 @@ import type { Join } from "../join.js";
 import type { SqlExpression } from "../sql-expression.js";
 
 export class JoinExpression implements SqlExpression {
-	constructor(
-		private readonly _table: string,
-		private readonly _condition: string,
-		private readonly _type: Join = "INNER",
-	) {}
+	readonly #table: string;
+	readonly #condition: string;
+	readonly #type: Join;
+
+	constructor(table: string, condition: string, type: Join = "INNER") {
+		this.#table = table;
+		this.#condition = condition;
+		this.#type = type;
+	}
 
 	interpret() {
-		return `${this._type} JOIN ${this._table} ON ${this._condition}`;
+		return `${this.#type} JOIN ${this.#table} ON ${this.#condition}`;
 	}
 }

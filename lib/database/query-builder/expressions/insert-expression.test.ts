@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import type { SqlExpression } from "../sql-expression.js";
 import { InsertExpression } from "./insert-expression.js";
 
@@ -8,7 +9,8 @@ describe("InsertExpression", () => {
 		const values = { id: 1, name: "Alice" };
 		const insertExpression: SqlExpression = new InsertExpression(table, values);
 
-		expect(insertExpression.interpret()).toStrictEqual(
+		assert.deepStrictEqual(
+			insertExpression.interpret(),
 			"INSERT INTO users (id, name) VALUES ('1', 'Alice')",
 		);
 	});

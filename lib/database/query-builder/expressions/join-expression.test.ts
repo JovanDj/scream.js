@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import type { SqlExpression } from "../sql-expression.js";
 import { JoinExpression } from "./join-expression.js";
 
@@ -8,7 +9,8 @@ describe("JoinExpression", () => {
 		const condition = "users.id = orders.user_id";
 		const joinExpression: SqlExpression = new JoinExpression(table, condition);
 
-		expect(joinExpression.interpret()).toStrictEqual(
+		assert.deepStrictEqual(
+			joinExpression.interpret(),
 			"INNER JOIN orders ON users.id = orders.user_id",
 		);
 	});
@@ -22,7 +24,8 @@ describe("JoinExpression", () => {
 			"LEFT",
 		);
 
-		expect(joinExpression.interpret()).toStrictEqual(
+		assert.deepStrictEqual(
+			joinExpression.interpret(),
 			"LEFT JOIN orders ON users.id = orders.user_id",
 		);
 	});

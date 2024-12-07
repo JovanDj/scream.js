@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import type { SqlExpression } from "../sql-expression.js";
 import { SelectExpression } from "./select-expression.js";
 
@@ -7,12 +8,12 @@ describe("SelectExpression", () => {
 		const fields = "name";
 		const selectExpression: SqlExpression = new SelectExpression(fields);
 
-		expect(selectExpression.interpret()).toStrictEqual("SELECT name");
+		assert.deepStrictEqual(selectExpression.interpret(), "SELECT name");
 	});
 
 	it("should form SELECT * expression with no fields provided", () => {
 		const selectExpression: SqlExpression = new SelectExpression();
 
-		expect(selectExpression.interpret()).toStrictEqual("SELECT *");
+		assert.deepStrictEqual(selectExpression.interpret(), "SELECT *");
 	});
 });

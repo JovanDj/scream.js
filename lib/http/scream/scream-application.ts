@@ -6,12 +6,12 @@ import {
 } from "node:http";
 import { parse } from "node:url";
 
-import type { Resource } from "../../resource";
-import type { Application } from "../application.interface";
-import type { Handler } from "../handler";
-import type { HttpContext } from "../http-context";
-import type { Middleware } from "../middleware";
-import { ScreamHttpContext } from "./scream-http-context";
+import type { Resource } from "../../resource.js";
+import type { Application } from "../application.interface.js";
+import type { Handler } from "../handler.js";
+import type { HttpContext } from "../http-context.js";
+import type { Middleware } from "../middleware.js";
+import { ScreamHttpContext } from "./scream-http-context.js";
 
 export class ScreamApp implements Application {
 	readonly #routes = new Map<string, Map<string, Handler>>(); // Method -> Path -> Handler
@@ -85,7 +85,7 @@ export class ScreamApp implements Application {
 	}
 
 	// Start the HTTP server and listen on a port
-	listen(port: number, cb?: () => void): this {
+	listen(port: number, cb?: () => void) {
 		const server = createServer(async (req, res) => {
 			try {
 				await this.handleRequest(req, res);
@@ -96,7 +96,6 @@ export class ScreamApp implements Application {
 			}
 		});
 
-		server.listen(port, cb);
-		return this;
+		return server.listen(port, cb);
 	}
 }

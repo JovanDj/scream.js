@@ -1,9 +1,13 @@
 import type { SqlExpression } from "../sql-expression.js";
 
 export class LimitExpression implements SqlExpression {
-	constructor(private readonly _limit: number) {}
+	readonly #limit: number;
+
+	constructor(limit: number) {
+		this.#limit = limit;
+	}
 
 	interpret() {
-		return `LIMIT ${this._limit.toString()}`;
+		return `LIMIT ${this.#limit.toString()}`;
 	}
 }

@@ -1,9 +1,13 @@
 import type { SqlExpression } from "../sql-expression.js";
 
 export class HavingExpression implements SqlExpression {
-	constructor(private readonly _condition: string) {}
+	readonly #condition: string;
+
+	constructor(condition: string) {
+		this.#condition = condition;
+	}
 
 	interpret() {
-		return `HAVING ${this._condition}`;
+		return `HAVING ${this.#condition}`;
 	}
 }

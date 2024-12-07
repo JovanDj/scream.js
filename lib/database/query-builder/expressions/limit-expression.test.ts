@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import type { SqlExpression } from "../sql-expression.js";
 import { LimitExpression } from "./limit-expression.js";
 
@@ -7,6 +8,6 @@ describe("LimitExpression", () => {
 		const limit = 10;
 		const limitExpression: SqlExpression = new LimitExpression(limit);
 
-		expect(limitExpression.interpret()).toStrictEqual("LIMIT 10");
+		assert.deepStrictEqual(limitExpression.interpret(), "LIMIT 10");
 	});
 });

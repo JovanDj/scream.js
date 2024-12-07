@@ -47,9 +47,7 @@ export class ExpressApp implements Application {
 	}
 
 	listen(port: number, cb?: () => void) {
-		this.#express.listen(port, cb);
-
-		return this;
+		return this.#express.listen(port, cb);
 	}
 
 	use(middleware: Middleware) {

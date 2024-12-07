@@ -1,12 +1,15 @@
 import type { SqlExpression } from "../sql-expression.js";
 
 export class OrderByExpression implements SqlExpression {
-	constructor(
-		private readonly _field: string,
-		private readonly _direction: "ASC" | "DESC" = "ASC",
-	) {}
+	readonly #field: string;
+	readonly #direction: "ASC" | "DESC";
+
+	constructor(field: string, direction: "ASC" | "DESC" = "ASC") {
+		this.#field = field;
+		this.#direction = direction;
+	}
 
 	interpret() {
-		return `ORDER BY ${this._field} ${this._direction}`;
+		return `ORDER BY ${this.#field} ${this.#direction}`;
 	}
 }

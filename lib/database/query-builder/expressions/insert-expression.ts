@@ -1,16 +1,20 @@
 import type { SqlExpression } from "../sql-expression.js";
 
 export class InsertExpression implements SqlExpression {
-	constructor(
-		private readonly _table: string,
-		private readonly _values: Record<string, number | string>,
-	) {}
+	readonly #table: string;
+	readonly #values: Record<string, number | string>;
+
+	constructor(table: string, values: Record<string, number | string>) {
+		this.#table = table;
+		this.#values = values;
+	}
 
 	interpret() {
-		const columns = Object.keys(this._values).join(", ");
-		const values = Object.values(this._values)
+		const columns = Object.keys(this.#values).join(", ");
+		const values = Object.values(this.#values)
 			.map((value) => `'${value.toString()}'`)
 			.join(", ");
-		return `INSERT INTO ${this._table} (${columns}) VALUES (${values})`;
+
+		return `INSERT INTO ${this.#table} (${columns}) VALUES (${values})`;
 	}
 }

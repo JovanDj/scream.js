@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import type { SqlExpression } from "../sql-expression.js";
 import { WhereExpression } from "./where-expression.js";
 
@@ -7,6 +8,6 @@ describe("WhereExpression", () => {
 		const values = "name = test";
 		const updateExpression: SqlExpression = new WhereExpression(values);
 
-		expect(updateExpression.interpret()).toStrictEqual("WHERE name = test");
+		assert.deepStrictEqual(updateExpression.interpret(), "WHERE name = test");
 	});
 });

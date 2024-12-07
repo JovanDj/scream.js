@@ -4,6 +4,7 @@ import views from "@ladjs/koa-views";
 import type { Resource } from "@scream.js/resource.js";
 import type Koa from "koa";
 import nunjucks from "nunjucks";
+import type { Application } from "../application.interface.js";
 import type { Handler } from "../handler.js";
 import type { Middleware } from "../middleware.js";
 import { KoaHttpContext } from "./koa-http-context.js";
@@ -16,7 +17,7 @@ const nunjucksEnv = new nunjucks.Environment(
 	}),
 );
 
-export class KoaApp {
+export class KoaApp implements Application {
 	readonly #koa: Koa;
 	readonly #router: Router;
 
@@ -109,8 +110,7 @@ export class KoaApp {
 		this.#koa.use(this.#router.routes());
 		this.#koa.use(this.#router.allowedMethods());
 
-		this.#koa.listen(port, cb);
-		return this;
+		return this.#koa.listen(port, cb);
 	}
 
 	use(middleware: Middleware) {
