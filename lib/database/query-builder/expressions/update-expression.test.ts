@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import type { SqlExpression } from "../sql-expression.js";
 import { UpdateExpression } from "./update-expression.js";
 
@@ -8,7 +9,8 @@ describe("UpdateExpression", () => {
 		const values = { name: "Alice", age: 30 };
 		const updateExpression: SqlExpression = new UpdateExpression(table, values);
 
-		expect(updateExpression.interpret()).toStrictEqual(
+		assert.deepStrictEqual(
+			updateExpression.interpret(),
 			"UPDATE users SET name='Alice', age='30'",
 		);
 	});

@@ -1,15 +1,19 @@
 import type { SqlExpression } from "../sql-expression.js";
 
 export class UpdateExpression implements SqlExpression {
-	constructor(
-		private readonly _table: string,
-		private readonly _values: Record<string, number | string>,
-	) {}
+	readonly #table: string;
+	readonly #values: Record<string, number | string>;
+
+	constructor(table: string, values: Record<string, number | string>) {
+		this.#table = table;
+		this.#values = values;
+	}
 
 	interpret() {
-		const updates = Object.entries(this._values)
-			.map(([key, value]) => `${key}='${value.toString()}'`)
+		const updates = Object.entries(this.#values)
+			.map(([key, value]) => `${key}='${value}'`)
 			.join(", ");
-		return `UPDATE ${this._table} SET ${updates}`;
+
+		return `UPDATE ${this.#table} SET ${updates}`;
 	}
 }

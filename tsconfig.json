@@ -12,6 +12,5 @@
 			"@scream.js/*": ["./lib/*"]
 		}
 	},
-	"include": ["**/*.ts", "e2e"],
-	"exclude": ["lib/http/scream"]
+	"include": ["**/*.ts", "e2e"]
 }

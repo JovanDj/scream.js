@@ -21,7 +21,7 @@ export const createExpressApp: () => Application = () => {
 		.configure(viewsPath, {
 			autoescape: true,
 			express: app,
-			watch: true,
+			watch: process.env["NODE_ENV"] === "development",
 			noCache: true,
 		})
 		.addGlobal("viteScripts", () => {

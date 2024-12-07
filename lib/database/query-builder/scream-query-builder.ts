@@ -14,94 +14,66 @@ import type { Join } from "./join.js";
 import type { SqlExpression } from "./sql-expression.js";
 
 export class ScreamQueryBuilder {
-	constructor(private readonly _expressions: readonly SqlExpression[] = []) {}
+	readonly #expressions: readonly SqlExpression[];
+
+	constructor(expressions: readonly SqlExpression[] = []) {
+		this.#expressions = expressions;
+	}
+
+	private createQueryBuilder(expression: SqlExpression) {
+		return new ScreamQueryBuilder([...this.#expressions, expression]);
+	}
 
 	select(fields = "*") {
-		return new ScreamQueryBuilder([
-			...this._expressions,
-			new SelectExpression(fields),
-		]);
+		return this.createQueryBuilder(new SelectExpression(fields));
 	}
 
 	from(table: string) {
-		return new ScreamQueryBuilder([
-			...this._expressions,
-			new FromExpression(table),
-		]);
+		return this.createQueryBuilder(new FromExpression(table));
 	}
 
 	where(condition: string) {
-		return new ScreamQueryBuilder([
-			...this._expressions,
-			new WhereExpression(condition),
-		]);
+		return this.createQueryBuilder(new WhereExpression(condition));
 	}
 
 	orderBy(field: string, direction: "ASC" | "DESC" = "ASC") {
-		return new ScreamQueryBuilder([
-			...this._expressions,
-			new OrderByExpression(field, direction),
-		]);
+		return this.createQueryBuilder(new OrderByExpression(field, direction));
 	}
 
 	groupBy(fields: string) {
-		return new ScreamQueryBuilder([
-			...this._expressions,
-			new GroupByExpression(fields),
-		]);
+		return this.createQueryBuilder(new GroupByExpression(fields));
 	}
 
 	having(condition: string) {
-		return new ScreamQueryBuilder([
-			...this._expressions,
-			new HavingExpression(condition),
-		]);
+		return this.createQueryBuilder(new HavingExpression(condition));
 	}
 
 	limit(limit: number) {
-		return new ScreamQueryBuilder([
-			...this._expressions,
-			new LimitExpression(limit),
-		]);
+		return this.createQueryBuilder(new LimitExpression(limit));
 	}
 
 	offset(offset: number) {
-		return new ScreamQueryBuilder([
-			...this._expressions,
-			new OffsetExpression(offset),
-		]);
+		return this.createQueryBuilder(new OffsetExpression(offset));
 	}
 
 	join(table: string, condition: string, type: Join = "INNER") {
-		return new ScreamQueryBuilder([
-			...this._expressions,
-			new JoinExpression(table, condition, type),
-		]);
+		return this.createQueryBuilder(new JoinExpression(table, condition, type));
 	}
 
 	insert(table: string, values: Record<string, number | string>) {
-		return new ScreamQueryBuilder([
-			...this._expressions,
-			new InsertExpression(table, values),
-		]);
+		return this.createQueryBuilder(new InsertExpression(table, values));
 	}
 
 	update(table: string, values: Record<string, number | string>) {
-		return new ScreamQueryBuilder([
-			...this._expressions,
-			new UpdateExpression(table, values),
-		]);
+		return this.createQueryBuilder(new UpdateExpression(table, values));
 	}
 
 	delete(table: string) {
-		return new ScreamQueryBuilder([
-			...this._expressions,
-			new DeleteExpression(table),
-		]);
+		return this.createQueryBuilder(new DeleteExpression(table));
 	}
 
 	build() {
-		return this._expressions
+		return this.#expressions
 			.map((expression) => expression.interpret())
 			.join(" ");
 	}

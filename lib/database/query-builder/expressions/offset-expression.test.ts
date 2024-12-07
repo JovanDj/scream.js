@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import type { SqlExpression } from "../sql-expression.js";
 import { OffsetExpression } from "./offset-expression.js";
 
@@ -7,6 +8,6 @@ describe("OffsetExpression", () => {
 		const offset = 20;
 		const offsetExpression: SqlExpression = new OffsetExpression(offset);
 
-		expect(offsetExpression.interpret()).toStrictEqual("OFFSET 20");
+		assert.deepStrictEqual(offsetExpression.interpret(), "OFFSET 20");
 	});
 });

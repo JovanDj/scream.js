@@ -30,6 +30,12 @@ export class ScreamHttpContext<Body = object> implements HttpContext<Body> {
 		this.#parsedUrl = parse(req.url || "", true);
 	}
 
+	internalServerError(message: string): void {
+		this.#res
+			.writeHead(500, STATUS_CODES[500], { "Content-Type": "text/plain" })
+			.end(message);
+	}
+
 	notFound() {
 		this.#res
 			.writeHead(404, STATUS_CODES[404], { "Content-Type": "text/plain" })
@@ -182,5 +188,7 @@ export class ScreamHttpContext<Body = object> implements HttpContext<Body> {
 		} catch (e) {
 			this.#bodyData = body as Body;
 		}
+
+		return;
 	}
 }

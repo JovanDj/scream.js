@@ -1,9 +1,13 @@
 import type { SqlExpression } from "../sql-expression.js";
 
 export class SelectExpression implements SqlExpression {
-	constructor(private readonly _fields = "*") {}
+	readonly #fields: string;
+
+	constructor(fields = "*") {
+		this.#fields = fields;
+	}
 
 	interpret() {
-		return `SELECT ${this._fields}`;
+		return `SELECT ${this.#fields}`;
 	}
 }

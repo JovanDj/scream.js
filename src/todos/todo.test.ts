@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { Todo } from "./todo.js";
 
 describe("Todo", () => {
@@ -7,7 +8,7 @@ describe("Todo", () => {
 
 		const serialized = todo.toJSON();
 
-		expect(serialized).toStrictEqual({
+		assert.deepStrictEqual(serialized, {
 			id: 1,
 			userId: 1,
 			title: "title",

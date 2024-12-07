@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import type { SqlExpression } from "../sql-expression.js";
 import { OrderByExpression } from "./order-by-expression.js";
 
@@ -12,7 +13,7 @@ describe("OrderByExpression", () => {
 			directon,
 		);
 
-		expect(fromExpression.interpret()).toStrictEqual("ORDER BY name ASC");
+		assert.deepStrictEqual(fromExpression.interpret(), "ORDER BY name ASC");
 	});
 
 	it("should form DESC expression", () => {
@@ -24,14 +25,13 @@ describe("OrderByExpression", () => {
 			directon,
 		);
 
-		expect(fromExpression.interpret()).toStrictEqual("ORDER BY name DESC");
+		assert.deepStrictEqual(fromExpression.interpret(), "ORDER BY name DESC");
 	});
 
 	it("should form ASC expression by default", () => {
 		const field = "name";
-
 		const fromExpression: SqlExpression = new OrderByExpression(field);
 
-		expect(fromExpression.interpret()).toStrictEqual("ORDER BY name ASC");
+		assert.deepStrictEqual(fromExpression.interpret(), "ORDER BY name ASC");
 	});
 });
