@@ -134,7 +134,10 @@ describe("ScreamTemplateEngine", () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.strictEqual(result, Array(1000).fill("Hello, John!").join(" "));
+			assert.deepStrictEqual(
+				result,
+				Array(1000).fill("Hello, John!").join(" "),
+			);
 		});
 	});
 
@@ -265,7 +268,38 @@ describe("ScreamTemplateEngine", () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.strictEqual(result, "Value: &lt;script&gt;");
+			assert.deepStrictEqual(result, "Value: &lt;script&gt;");
+		});
+	});
+
+	describe("Conditionals", () => {
+		it("should handle simple conditionals", () => {
+			const template = "{% if isLoggedIn %} Welcome, {{ name }}! {% endif %}";
+			const context = { isLoggedIn: true, name: "John" };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "Welcome, John!");
+		});
+
+		it("should handle conditionals with else", () => {
+			const template =
+				"{% if isLoggedIn %} Welcome! {% else %} Please log in. {% endif %}";
+			const context = { isLoggedIn: false };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "Please log in.");
+		});
+
+		it("should handle missing variables in conditionals", () => {
+			const template =
+				"{% if isAdmin %} Admin Panel {% else %} User Panel {% endif %}";
+			const context = {};
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "User Panel");
 		});
 	});
 });
