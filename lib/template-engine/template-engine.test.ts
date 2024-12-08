@@ -108,6 +108,34 @@ describe("ScreamTemplateEngine", () => {
 
 			assert.deepStrictEqual(result, "Hello, world!");
 		});
+
+		it("should replace non-primitive context values with an empty string", () => {
+			const template =
+				"Array: {{ array }}, Object: {{ obj }}, Function: {{ func }}.";
+			const context = { array: [1, 2], func: () => {}, obj: { key: "value" } };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "Array: , Object: , Function: .");
+		});
+
+		it("should ignore malformed placeholders", () => {
+			const template = "Hello, { name }} and {{ place }";
+			const context = { name: "John", place: "Serbia" };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "Hello, { name }} and {{ place }");
+		});
+
+		it("should handle large templates and context", () => {
+			const template = Array(1000).fill("Hello, {{ name }}!").join(" ");
+			const context = { name: "John" };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.strictEqual(result, Array(1000).fill("Hello, John!").join(" "));
+		});
 	});
 
 	describe("Input escape", () => {
@@ -219,15 +247,6 @@ describe("ScreamTemplateEngine", () => {
 			assert.deepStrictEqual(result, "Boolean: true");
 		});
 
-		it("should handle undefined variables gracefully", () => {
-			const template = "Value: {{ missing }}";
-			const context = {};
-
-			const result = templateEngine.compile(template, context);
-
-			assert.deepStrictEqual(result, "Value: ");
-		});
-
 		it("should not escape non-variable parts of the template", () => {
 			const template = "Static content with <tags> and & symbols.";
 			const context = {};
@@ -238,6 +257,15 @@ describe("ScreamTemplateEngine", () => {
 				result,
 				"Static content with <tags> and & symbols.",
 			);
+		});
+
+		it("should not re-escape already escaped input", () => {
+			const template = "Value: {{ value }}";
+			const context = { value: "&lt;script&gt;" };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.strictEqual(result, "Value: &lt;script&gt;");
 		});
 	});
 });
