@@ -6,7 +6,18 @@ export class ScreamTemplateEngine {
 			}
 
 			const value = context[variable];
-			return value !== undefined && value !== null ? String(value) : "";
+			return value !== undefined && value !== null
+				? this.#escapeHtml(String(value))
+				: "";
 		});
+	}
+
+	#escapeHtml(value: string) {
+		return value
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;")
+			.replace(/'/g, "&#39;");
 	}
 }
