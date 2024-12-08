@@ -1,130 +1,74 @@
 import type { Repository } from "@scream.js/database/repository.js";
+import type { Knex } from "knex";
 import type { TodoRow } from "knex/types/tables.js";
-import type { Database, Statement } from "sqlite";
 import { Todo } from "./todo.js";
 
-export class TodoRepository implements Repository<Todo>, AsyncDisposable {
-	readonly #findTodoById: Statement;
-	readonly #findAllTodos: Statement;
-	readonly #insertTodo: Statement;
-	readonly #updateTodo: Statement;
-	readonly #deleteTodo: Statement;
+export class TodoRepository implements Repository<Todo> {
+	private readonly db: Knex;
 
-	readonly #db: Database;
-
-	constructor(
-		db: Database,
-		findTodoById: Statement,
-		findAllTodos: Statement,
-		insertTodo: Statement,
-		updateTodo: Statement,
-		deleteTodo: Statement,
-	) {
-		this.#db = db;
-		this.#findTodoById = findTodoById;
-		this.#findAllTodos = findAllTodos;
-		this.#insertTodo = insertTodo;
-		this.#updateTodo = updateTodo;
-		this.#deleteTodo = deleteTodo;
+	constructor(db: Knex) {
+		this.db = db;
 	}
 
 	async findById(id: Todo["id"]) {
-		try {
-			await this.#db.exec("BEGIN DEFERRED TRANSACTION");
+		const row = await this.db<TodoRow>("todos").where({ id }).first();
 
-			const row = await this.#findTodoById.get<TodoRow>([id]);
-
-			await this.#db.exec("COMMIT");
-
-			if (!row) {
-				return undefined;
-			}
-
-			return new Todo(row.id, row.user_id, row.title);
-		} catch (error) {
-			await this.#db.exec("ROLLBACK");
-			throw error;
+		if (!row) {
+			return undefined;
 		}
+
+		return new Todo(row.id, row.user_id, row.title);
 	}
 
 	async findAll() {
-		const rows = await this.#findAllTodos.all<TodoRow[]>();
+		const rows = await this.db<TodoRow>("todos").select();
 
 		return rows.map((row) => new Todo(row.id, row.user_id, row.title));
 	}
 
-	async insert(entity: Partial<Todo>) {
-		try {
-			await this.#db.exec("BEGIN IMMEDIATE TRANSACTION");
-			const result = await this.#insertTodo.run([entity.title, entity.userId]);
+	async insert(entity: Partial<Todo>): Promise<Todo> {
+		const [id] = await this.db("todos")
+			.returning("id")
+			.insert({
+				title: entity.title ?? "",
+			});
 
-			if (!result.lastID) {
-				throw new Error("Could not insert a todo");
-			}
-
-			const todo = await this.#findTodoById.get<TodoRow>(result.lastID);
-
-			if (!todo) {
-				throw new Error("Todo was inserted but could not be found");
-			}
-
-			await this.#db.exec("COMMIT");
-
-			return new Todo(todo.id, todo.user_id, todo.title);
-		} catch (error) {
-			await this.#db.exec("ROLLBACK");
-			throw error;
+		if (!id) {
+			throw new Error("Could not insert a todo");
 		}
+
+		const todo = await this.findById(id);
+
+		if (!todo) {
+			throw new Error("Todo was inserted but could not be found");
+		}
+
+		return todo;
 	}
 
-	async update(id: Todo["id"], entity: Partial<Todo>) {
-		try {
-			await this.#db.exec("BEGIN IMMEDIATE TRANSACTION");
-			const result = await this.#updateTodo.run([entity.title, id]);
+	async update(id: Todo["id"], entity: Partial<Todo>): Promise<Todo> {
+		await this.db("todos")
+			.where({ id })
+			.update({
+				title: entity.title ?? "",
+			});
 
-			if (!result.changes) {
-				throw new Error("Could not update a todo");
-			}
+		const todo = await this.findById(id);
 
-			const todo = await this.#findTodoById.get<TodoRow>(id);
-
-			if (!todo) {
-				throw new Error("Todo was updated but could not be found");
-			}
-
-			await this.#db.exec("COMMIT");
-
-			return new Todo(todo.id, todo.user_id, todo.title);
-		} catch (error) {
-			await this.#db.exec("ROLLBACK");
-			throw error;
+		if (!todo) {
+			throw new Error("Todo was updated but could not be found");
 		}
+
+		return todo;
 	}
 
 	async delete(id: Todo["id"]) {
-		try {
-			await this.#db.exec("BEGIN IMMEDIATE TRANSACTION");
+		const affectedRows = await this.db("todos").where({ id }).del();
 
-			const result = await this.#deleteTodo.run([id]);
-
-			if (!result.changes) {
-				throw new Error("Could not delete a todo");
-			}
-
-			await this.#db.exec("COMMIT");
-
-			return result.changes;
-		} catch (error) {
-			await this.#db.exec("ROLLBACK");
-			throw error;
+		if (affectedRows === 0) {
+			throw new Error("Could not delete a todo");
 		}
-	}
 
-	async [Symbol.asyncDispose]() {
-		await this.#findTodoById.finalize();
-		await this.#findAllTodos.finalize();
-		await this.#insertTodo.finalize();
-		await this.#updateTodo.finalize();
-		await this.#deleteTodo.finalize();
+		return affectedRows;
 	}
 }

@@ -2,7 +2,7 @@ import type sqlite from "sqlite";
 import type { Connection } from "../connection.js";
 import { InsertResult } from "../insert-result.js";
 
-export class SqliteConnection implements Connection {
+export class SqliteConnection implements Connection, AsyncDisposable {
 	readonly #db: sqlite.Database;
 
 	constructor(db: sqlite.Database) {
@@ -29,5 +29,9 @@ export class SqliteConnection implements Connection {
 
 	async exec(sqlString: string) {
 		return this.#db.exec(sqlString);
+	}
+
+	[Symbol.asyncDispose]() {
+		return this.close();
 	}
 }
