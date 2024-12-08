@@ -1,51 +1,67 @@
 export class ScreamTemplateEngine {
 	compile(template: string, context: Record<string, unknown>) {
-		return template
-			.replace(
-				/{%\s*if\s+(\w+)\s*%}([\s\S]*?){%\s*else\s*%}([\s\S]*?){%\s*endif\s*%}/g,
-				(_, variable, trueBlock, falseBlock) => {
-					const condition = !!context[variable];
-					return condition ? trueBlock.trim() : falseBlock.trim();
-				},
-			)
-			.replace(
-				/{%\s*if\s+(\w+)\s*%}([\s\S]*?){%\s*endif\s*%}/g,
-				(_, variable, trueBlock) => {
-					const condition = !!context[variable];
-					return condition ? trueBlock.trim() : "";
-				},
-			)
-			.replace(/{{\s*(\w*)\s*}}/g, (_, variable) => {
-				if (!variable) {
-					return "";
-				}
-
-				const value = context[variable];
-
-				if (typeof value === "object" || typeof value === "function") {
-					return "";
-				}
-
-				return value !== undefined && value !== null
-					? this.#escapeHtml(String(value))
-					: "";
-			});
+		return this.#parse(template, context);
 	}
 
-	#escapeHtml(value: string) {
-		if (this.#isAlreadyEscaped(value)) {
-			return value;
+	#parse(template: string, context: Record<string, unknown>) {
+		const result: string[] = [];
+		let index = 0;
+
+		while (index < template.length) {
+			const currentChar = template[index];
+
+			if (!currentChar) {
+				continue;
+			}
+
+			if (currentChar === "{") {
+				if (template[index + 1] === "{") {
+					const { replacement, newIndex } = this.#parseVariable(
+						template,
+						index,
+						context,
+					);
+					result.push(replacement);
+					index = newIndex;
+					continue;
+				}
+			}
+
+			result.push(currentChar);
+			index++;
 		}
 
-		return value
-			.replace(/&/g, "&amp;")
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/"/g, "&quot;")
-			.replace(/'/g, "&#39;");
+		return result.join("");
 	}
 
-	#isAlreadyEscaped(value: string) {
-		return /&amp;|&lt;|&gt;|&quot;|&#39;/.test(value);
+	#parseVariable(
+		template: string,
+		startIndex: number,
+		context: Record<string, unknown>,
+	) {
+		const endIndex = template.indexOf("}}", startIndex);
+
+		if (endIndex === -1) {
+			return {
+				newIndex: startIndex + template.length,
+				replacement: template.slice(startIndex),
+			};
+		}
+
+		const variable = template.slice(startIndex + 2, endIndex).trim();
+		if (variable === "") {
+			return { newIndex: endIndex + 2, replacement: "" };
+		}
+
+		const value = context[variable];
+
+		let replacement = "";
+		if (value !== undefined && value !== null) {
+			if (typeof value !== "object" && typeof value !== "function") {
+				replacement = String(value);
+			}
+		}
+
+		return { newIndex: endIndex + 2, replacement };
 	}
 }
