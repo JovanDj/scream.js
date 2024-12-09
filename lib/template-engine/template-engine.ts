@@ -3,35 +3,34 @@ export class ScreamTemplateEngine {
 		return this.#parse(template, context);
 	}
 
-	#parse(template: string, context: Record<string, unknown>) {
-		const result: string[] = [];
+	#parse(template: string, context: Record<string, unknown>): string {
+		let result = "";
 		let index = 0;
 
 		while (index < template.length) {
 			const currentChar = template[index];
 
 			if (!currentChar) {
+				index++;
 				continue;
 			}
 
-			if (currentChar === "{") {
-				if (template[index + 1] === "{") {
-					const { replacement, newIndex } = this.#parseVariable(
-						template,
-						index,
-						context,
-					);
-					result.push(replacement);
-					index = newIndex;
-					continue;
-				}
+			if (currentChar === "{" && template[index + 1] === "{") {
+				const { replacement, newIndex } = this.#parseVariable(
+					template,
+					index,
+					context,
+				);
+				result += replacement;
+				index = newIndex;
+				continue;
 			}
 
-			result.push(currentChar);
+			result += currentChar;
 			index++;
 		}
 
-		return result.join("");
+		return result;
 	}
 
 	#parseVariable(
@@ -55,12 +54,13 @@ export class ScreamTemplateEngine {
 
 		const value = context[variable];
 
-		let replacement = "";
-		if (value !== undefined && value !== null) {
-			if (typeof value !== "object" && typeof value !== "function") {
-				replacement = String(value);
-			}
-		}
+		const replacement =
+			value !== undefined &&
+			value !== null &&
+			typeof value !== "object" &&
+			typeof value !== "function"
+				? String(value)
+				: "";
 
 		return { replacement, newIndex: endIndex + 2 };
 	}
