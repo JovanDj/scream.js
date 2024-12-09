@@ -3,12 +3,20 @@ type Token = {
 	value: string;
 };
 
+type ASTNode = {
+	type: "text" | "variable";
+	value: string;
+};
+
 export class ScreamTemplateEngine {
 	compile(template: string, context: Record<string, unknown>) {
-		const tokens = this.#tokenize(template);
-		return this.#render(tokens, context);
+		const tokens = this.#tokenize(template); // Phase 1: Tokenizer
+		const ast = this.#parse(tokens); // Phase 2: Parser
+		const transformedAst = this.#transform(ast); // Phase 3: Transformer
+		return this.#generate(transformedAst, context); // Phase 4: Generator
 	}
 
+	// Tokenizer: Converts template into tokens
 	#tokenize(template: string) {
 		const tokens: Token[] = [];
 		let index = 0;
@@ -32,6 +40,7 @@ export class ScreamTemplateEngine {
 		return tokens;
 	}
 
+	// Helper for tokenization
 	#isVariableStart(template: string, index: number) {
 		return template[index] === "{" && template[index + 1] === "{";
 	}
@@ -72,32 +81,42 @@ export class ScreamTemplateEngine {
 		};
 	}
 
-	#render(tokens: Token[], context: Record<string, unknown>) {
-		return tokens.map((token) => this.#renderToken(token, context)).join("");
+	// Parser: Converts tokens into an abstract syntax tree (AST)
+	#parse(tokens: Token[]) {
+		return tokens.map((token) => ({
+			type: token.type,
+			value: token.value,
+		}));
 	}
 
-	#renderToken(token: Token, context: Record<string, unknown>) {
-		if (token.type === "text") {
-			return token.value;
-		}
+	// Transformer: Modifies or optimizes the AST (currently a passthrough)
+	#transform(ast: ASTNode[]) {
+		// For now, we just return the same AST without modifications.
+		return ast;
+	}
 
-		const variableValue = context[token.value];
-		if (
-			token.value === "" ||
-			variableValue === undefined ||
-			variableValue === null
-		) {
-			return "";
-		}
+	// Generator: Converts AST into the final output string
+	#generate(ast: ASTNode[], context: Record<string, unknown>) {
+		return ast
+			.map((node) => {
+				if (node.type === "text") {
+					return node.value;
+				}
 
-		if (
-			typeof variableValue === "object" ||
-			typeof variableValue === "function"
-		) {
-			return "";
-		}
+				const variableValue = context[node.value];
+				if (
+					node.value === "" ||
+					variableValue === undefined ||
+					variableValue === null ||
+					typeof variableValue === "object" ||
+					typeof variableValue === "function"
+				) {
+					return "";
+				}
 
-		return this.#escape(String(variableValue));
+				return this.#escape(String(variableValue));
+			})
+			.join("");
 	}
 
 	#escape(value: string) {
