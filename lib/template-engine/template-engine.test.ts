@@ -1,12 +1,29 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
+import { Generator } from "./generator.js";
+import { Parser } from "./parser.js";
 import { ScreamTemplateEngine } from "./template-engine.js";
+import { Tokenizer } from "./tokenizer.js";
+import { Transformer } from "./transformer.js";
 
 describe("ScreamTemplateEngine", () => {
 	let templateEngine: ScreamTemplateEngine;
+	let tokenizer: Tokenizer;
+	let parser: Parser;
+	let transformer: Transformer;
+	let generator: Generator;
 
 	beforeEach(() => {
-		templateEngine = new ScreamTemplateEngine();
+		tokenizer = new Tokenizer();
+		parser = new Parser();
+		transformer = new Transformer();
+		generator = new Generator();
+		templateEngine = new ScreamTemplateEngine(
+			tokenizer,
+			parser,
+			transformer,
+			generator,
+		);
 	});
 
 	describe("Variable replacement", () => {
