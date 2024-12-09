@@ -1,67 +1,115 @@
+type Token = {
+	type: "text" | "variable";
+	value: string;
+};
+
 export class ScreamTemplateEngine {
 	compile(template: string, context: Record<string, unknown>) {
-		return this.#parse(template, context);
+		const tokens = this.#tokenize(template);
+		return this.#render(tokens, context);
 	}
 
-	#parse(template: string, context: Record<string, unknown>): string {
-		let result = "";
+	#tokenize(template: string) {
+		const tokens: Token[] = [];
 		let index = 0;
 
 		while (index < template.length) {
-			const currentChar = template[index];
-
-			if (!currentChar) {
-				index++;
-				continue;
-			}
-
-			if (currentChar === "{" && template[index + 1] === "{") {
-				const { replacement, newIndex } = this.#parseVariable(
+			if (this.#isVariableStart(template, index)) {
+				const { token, nextIndex } = this.#extractVariableToken(
 					template,
 					index,
-					context,
 				);
-				result += replacement;
-				index = newIndex;
+				tokens.push(token);
+				index = nextIndex;
 				continue;
 			}
 
-			result += currentChar;
-			index++;
+			const { token, nextIndex } = this.#extractTextToken(template, index);
+			tokens.push(token);
+			index = nextIndex;
 		}
 
-		return result;
+		return tokens;
 	}
 
-	#parseVariable(
-		template: string,
-		startIndex: number,
-		context: Record<string, unknown>,
-	) {
-		const endIndex = template.indexOf("}}", startIndex);
+	#isVariableStart(template: string, index: number) {
+		return template[index] === "{" && template[index + 1] === "{";
+	}
 
+	#extractVariableToken(template: string, startIndex: number) {
+		const endIndex = template.indexOf("}}", startIndex);
 		if (endIndex === -1) {
+			const token: Token = { type: "text", value: template.slice(startIndex) };
+
 			return {
-				replacement: template.slice(startIndex),
-				newIndex: startIndex + template.length,
+				token,
+				nextIndex: template.length,
 			};
 		}
 
 		const variable = template.slice(startIndex + 2, endIndex).trim();
-		if (variable === "") {
-			return { replacement: "", newIndex: endIndex + 2 };
+		const token: Token = { type: "variable", value: variable || "" };
+
+		return {
+			token,
+			nextIndex: endIndex + 2,
+		};
+	}
+
+	#extractTextToken(template: string, startIndex: number) {
+		const nextVariableIndex = template.indexOf("{{", startIndex);
+		const endIndex =
+			nextVariableIndex === -1 ? template.length : nextVariableIndex;
+
+		const token: Token = {
+			type: "text",
+			value: template.slice(startIndex, endIndex),
+		};
+
+		return {
+			token,
+			nextIndex: endIndex,
+		};
+	}
+
+	#render(tokens: Token[], context: Record<string, unknown>) {
+		return tokens.map((token) => this.#renderToken(token, context)).join("");
+	}
+
+	#renderToken(token: Token, context: Record<string, unknown>) {
+		if (token.type === "text") {
+			return token.value;
 		}
 
-		const value = context[variable];
+		const variableValue = context[token.value];
+		if (
+			token.value === "" ||
+			variableValue === undefined ||
+			variableValue === null
+		) {
+			return "";
+		}
 
-		const replacement =
-			value !== undefined &&
-			value !== null &&
-			typeof value !== "object" &&
-			typeof value !== "function"
-				? String(value)
-				: "";
+		if (
+			typeof variableValue === "object" ||
+			typeof variableValue === "function"
+		) {
+			return "";
+		}
 
-		return { replacement, newIndex: endIndex + 2 };
+		return this.#escape(String(variableValue));
+	}
+
+	#escape(value: string) {
+		if (/&(?:amp|lt|gt|quot|#39);/.test(value)) {
+			return value;
+		}
+
+		return value
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;")
+			.replace(/'/g, "&#39;");
 	}
 }
