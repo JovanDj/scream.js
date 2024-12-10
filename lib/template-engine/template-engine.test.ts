@@ -318,5 +318,74 @@ describe("ScreamTemplateEngine", () => {
 
 			assert.deepStrictEqual(result, "User Panel");
 		});
+
+		it("should handle conditionals with content outside", () => {
+			const template = "{% if name %}Name{% else %}{% endif %}After";
+			const context = { name: "John" };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "NameAfter");
+		});
+
+		it("should handle conditionals with content outside", () => {
+			const template =
+				"Before{% if name %}Inside{% else %}Else{% endif %}After";
+			const context = { name: "John" };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "BeforeInsideAfter");
+		});
+
+		it("should handle conditionals with content before and after", () => {
+			const template =
+				"Before{% if condition %}Inside{% else %}Else{% endif %}After";
+			const context = { condition: true };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "BeforeInsideAfter");
+		});
+
+		it("should handle nested conditionals", () => {
+			const template =
+				"{% if condition1 %}Outer{% if condition2 %}Inner{% endif %}{% endif %}";
+			const context = { condition1: true, condition2: false };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "Outer");
+		});
+
+		it("should handle deeply nested conditionals with alternate branches", () => {
+			const template =
+				"{% if condition1 %}Outer{% if condition2 %}Inner{% else %}Fallback{% endif %}{% else %}Default{% endif %}";
+			const context = { condition1: true, condition2: false };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "OuterFallback");
+		});
+
+		it("should handle missing variables in nested conditionals", () => {
+			const template =
+				"{% if condition1 %}Outer{% if condition2 %}Inner{% endif %}{% endif %}";
+			const context = {};
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "");
+		});
+
+		it("should handle multiple independent conditionals", () => {
+			const template =
+				"{% if condition1 %}First{% endif %}Middle{% if condition2 %}Second{% endif %}";
+			const context = { condition1: true, condition2: false };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "FirstMiddle");
+		});
 	});
 });

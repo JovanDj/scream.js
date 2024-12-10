@@ -3,8 +3,8 @@ import type { Token } from "./tokenizer.js";
 export type ASTNode = {
 	type: "text" | "variable" | "if" | "else";
 	value: string;
-	children?: ASTNode[];
-	alternate?: ASTNode[];
+	children: ASTNode[];
+	alternate: ASTNode[];
 };
 
 export class Parser {
@@ -18,6 +18,7 @@ export class Parser {
 					type: "if",
 					value: token.value,
 					children: [],
+					alternate: [],
 				};
 				if (stack.length === 0) {
 					ast.push(ifNode);
@@ -30,9 +31,6 @@ export class Parser {
 					continue;
 				}
 
-				if (!parent.children) {
-					parent.children = [];
-				}
 				parent.children.push(ifNode);
 				stack.push(ifNode);
 				continue;
@@ -40,25 +38,45 @@ export class Parser {
 
 			if (token.type === "else") {
 				const ifNode = stack[stack.length - 1];
+
 				if (!ifNode || ifNode.type !== "if") {
 					throw new Error("Unexpected {% else %} without matching {% if %}");
 				}
 
 				ifNode.alternate = [];
+
 				stack.push({
 					type: "else",
 					value: "",
 					children: ifNode.alternate,
+					alternate: [],
 				});
+
 				continue;
 			}
 
 			if (token.type === "endif") {
+				const lastNode = stack.pop();
+
+				if (!lastNode) {
+					continue;
+				}
+
+				if (lastNode.type === "else") {
+					stack.pop();
+					continue;
+				}
+
 				stack.pop();
 				continue;
 			}
 
-			const node: ASTNode = { type: token.type, value: token.value };
+			const node: ASTNode = {
+				type: token.type,
+				value: token.value,
+				alternate: [],
+				children: [],
+			};
 			if (stack.length === 0) {
 				ast.push(node);
 				continue;
@@ -68,9 +86,7 @@ export class Parser {
 			if (!parent) {
 				continue;
 			}
-			if (!parent.children) {
-				parent.children = [];
-			}
+
 			parent.children.push(node);
 		}
 

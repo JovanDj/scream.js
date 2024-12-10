@@ -67,7 +67,7 @@ export class Tokenizer {
 
 		return {
 			token,
-			nextIndex: startIndex + 11,
+			nextIndex: startIndex + 10,
 		};
 	}
 
@@ -76,7 +76,7 @@ export class Tokenizer {
 
 		return {
 			token,
-			nextIndex: startIndex + 12,
+			nextIndex: startIndex + 11,
 		};
 	}
 

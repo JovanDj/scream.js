@@ -29,12 +29,14 @@ export class Generator {
 			const condition = !!context[node.value];
 			const branch = condition ? node.children : node.alternate;
 
-			return (
-				branch
-					?.map((child) => this.#generateNode(child, context))
-					.join("")
-					.trim() ?? ""
-			);
+			if (!branch) {
+				return "";
+			}
+
+			return branch
+				.map((child) => this.#generateNode(child, context))
+				.join("")
+				.trim();
 		}
 
 		throw new Error(`Unknown node type: ${node.type}`);
