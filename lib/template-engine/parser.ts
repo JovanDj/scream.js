@@ -39,11 +39,13 @@ export class Parser {
 
 			if (token.type === "else") {
 				const ifNode = stack[stack.length - 1];
+
 				if (!ifNode || ifNode.type !== "if") {
 					throw new Error("Unexpected {% else %} without matching {% if %}");
 				}
 
 				ifNode.alternate = [];
+
 				stack.push({
 					alternate: [],
 					children: ifNode.alternate,
