@@ -15,7 +15,7 @@ declare module "knex/types/tables.js" {
 	interface Tables {
 		todos: Knex.CompositeTableType<
 			TodoRow, // Use for SELECT and WHERE
-			Partial<Pick<TodoRow, "due_date" | "title">>, // Use for INSERT
+			Partial<Pick<TodoRow, "due_date" | "title" | "user_id">>, // Use for INSERT
 			Partial<Omit<TodoRow, "id">> // Use for UPDATE
 		>;
 
