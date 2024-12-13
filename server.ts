@@ -1,3 +1,4 @@
+import "source-map-support/register";
 import { logger } from "./config/logger.js";
 import { app } from "./main.js";
 
