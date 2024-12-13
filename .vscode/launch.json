@@ -1,0 +1,18 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Debug with TSX",
+			"runtimeExecutable": "tsx",
+			"runtimeArgs": ["--inspect", "server.ts"],
+			"skipFiles": ["node_modules/**"],
+			"sourceMaps": true,
+			"env": {
+				"NODE_ENV": "development"
+			},
+			"console": "integratedTerminal"
+		}
+	]
+}
