@@ -388,4 +388,54 @@ describe("ScreamTemplateEngine", () => {
 			assert.deepStrictEqual(result, "FirstMiddle");
 		});
 	});
+
+	describe("Iterations", () => {
+		it("should iterate over a simple array", () => {
+			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
+			const context = { letters: ["A", "B", "C"] };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, " A  B  C ");
+		});
+
+		it("should render nothing for an empty array", () => {
+			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
+			const context = { letters: [] };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "");
+		});
+
+		it("should support nested loops");
+
+		it("should render nothing for non-array collections", () => {
+			const template = "{% for item in items %} {{ item }} {% endfor %}";
+			const context = { items: "not an array" };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "");
+		});
+
+		it.todo("should shadow parent context variables in for loop");
+
+		it("should render nothing when the collection variable is missing", () => {
+			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
+			const context = {}; // 'letters' not defined
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "");
+		});
+
+		it.todo("should handle collections with null or undefined values");
+
+		it.todo("should iterate over a collection of objects and use dot notation");
+
+		it.todo("should iterate over a collection and handle nested properties");
+
+		it.todo("should not leak iterator variable outside the for loop");
+	});
 });

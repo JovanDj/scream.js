@@ -1,7 +1,11 @@
-export type Token = {
-	type: "text" | "variable" | "if" | "else" | "endif";
-	value: string;
-};
+export type Token =
+	| { type: "text"; value: string }
+	| { type: "variable"; value: string }
+	| { type: "if"; value: string }
+	| { type: "else"; value: string }
+	| { type: "endif"; value: string }
+	| { type: "for"; value: string; iterator: string }
+	| { type: "endfor"; value: string };
 
 export class Tokenizer {
 	tokenize(template: string) {
@@ -43,11 +47,63 @@ export class Tokenizer {
 				continue;
 			}
 
+			if (template.startsWith("{% for", index)) {
+				const startTag = "{% for";
+				const endTag = "%}";
+
+				const endIndex = template.indexOf(endTag, index);
+
+				if (endIndex === -1) {
+					throw new Error("Unclosed {% for %} block in template.");
+				}
+
+				const loopContent = template
+					.slice(index + startTag.length, endIndex)
+					.trim();
+
+				const parts = loopContent.split(/\s+/);
+
+				if (parts.length !== 3 || parts[1] !== "in") {
+					throw new Error(
+						"Invalid syntax in {% for %} tag. Use '{% for item in collection %}'.",
+					);
+				}
+
+				const [iterator, , collection] = parts;
+
+				// Additional safety checks
+				if (!iterator || !collection) {
+					throw new Error(
+						"Invalid {% for %} syntax: Missing iterator or collection.",
+					);
+				}
+
+				const token: Token = { type: "for", value: collection, iterator };
+
+				tokens.push(token);
+				index = endIndex + endTag.length;
+				continue;
+			}
+
+			if (template.startsWith("{% endfor %}", index)) {
+				const endTag = "%}";
+				const endIndex = template.indexOf(endTag, index);
+
+				if (endIndex === -1) {
+					throw new Error("Unclosed {% endfor %} block in template.");
+				}
+
+				const token: Token = { type: "endfor", value: "" };
+
+				tokens.push(token);
+				index = endIndex + endTag.length;
+				continue;
+			}
+
 			const { token, nextIndex } = this.#extractTextToken(template, index);
 
 			tokens.push(token);
 
-			// Break early if the entire template is processed
 			if (nextIndex === template.length) {
 				break;
 			}
