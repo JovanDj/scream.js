@@ -1,10 +1,11 @@
 import type { Token } from "./tokenizer.js";
 
 export type ASTNode = {
-	type: "text" | "variable" | "if" | "else";
+	type: "text" | "variable" | "if" | "else" | "for" | "endfor";
 	value: string;
 	children: ASTNode[];
-	alternate: ASTNode[];
+	alternate?: ASTNode[];
+	iterator?: string | undefined;
 };
 
 export class Parser {
@@ -67,6 +68,38 @@ export class Parser {
 					continue;
 				}
 
+				stack.pop();
+				continue;
+			}
+
+			if (token.type === "for") {
+				if (token.type === "for") {
+					const forNode: ASTNode = {
+						alternate: [],
+						children: [],
+						iterator: token.iterator,
+						type: "for",
+						value: token.value,
+					};
+
+					if (stack.length === 0) {
+						ast.push(forNode);
+					} else {
+						const parent = stack.at(-1);
+						if (parent) {
+							parent.children = [...(parent.children || []), forNode];
+						}
+					}
+
+					stack.push(forNode);
+					continue;
+				}
+			}
+
+			if (token.type === "endfor") {
+				if (stack.at(-1)?.type !== "for") {
+					throw new Error("Unexpected {% endfor %} without matching {% for %}");
+				}
 				stack.pop();
 				continue;
 			}

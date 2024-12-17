@@ -11,7 +11,12 @@ export class Generator {
 		}
 
 		if (node.type === "variable") {
-			const variableValue = context[node.value];
+			const keys = node.value.split(".");
+
+			const variableValue = keys.reduce((acc, key) => {
+				return acc[key] as Record<string, unknown>;
+			}, context);
+
 			if (
 				node.value === "" ||
 				variableValue === undefined ||
@@ -37,6 +42,25 @@ export class Generator {
 				.map((child) => this.#generateNode(child, context))
 				.join("")
 				.trim();
+		}
+
+		if (node.type === "for") {
+			const collection = context[node.value];
+
+			if (!Array.isArray(collection) || !node.iterator) {
+				// If collection is not an array or iterator is missing, return an empty string
+				return "";
+			}
+
+			// Map over the collection and render children for each iteration
+			return collection
+				.map((item) => {
+					const localContext = { ...context, [node.iterator ?? ""]: item };
+					return node.children
+						.map((child) => this.#generateNode(child, localContext))
+						.join("");
+				})
+				.join("");
 		}
 
 		throw new Error(`Unknown node type: ${node.type}`);
