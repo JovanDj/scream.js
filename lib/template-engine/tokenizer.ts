@@ -1,7 +1,11 @@
-export type Token = {
-	type: "text" | "variable" | "if" | "else" | "endif";
-	value: string;
-};
+export type Token =
+	| { type: "text"; value: string }
+	| { type: "variable"; value: string }
+	| { type: "if"; value: string }
+	| { type: "else"; value: string }
+	| { type: "endif"; value: string }
+	| { type: "for"; value: string; iterator: string }
+	| { type: "endfor"; value: string };
 
 export class Tokenizer {
 	tokenize(template: string) {
@@ -43,15 +47,64 @@ export class Tokenizer {
 				continue;
 			}
 
-			const { token, nextIndex } = this.#extractTextToken(template, index);
+			if (template.startsWith("{% for", index)) {
+				const startTag = "{% for";
+				const endTag = "%}";
 
-			tokens.push(token);
+				const endIndex = template.indexOf(endTag, index);
 
-			// Break early if the entire template is processed
-			if (nextIndex === template.length) {
-				break;
+				if (endIndex === -1) {
+					throw new Error("Unclosed {% for %} block in template.");
+				}
+
+				const loopContent = template
+					.slice(index + startTag.length, endIndex)
+					.trim();
+
+				const parts = loopContent.split(/\s+/);
+
+				if (parts.length !== 3 || parts[1] !== "in") {
+					throw new Error(
+						"Invalid syntax in {% for %} tag. Use '{% for item in collection %}'.",
+					);
+				}
+
+				const [iterator, , collection] = parts;
+
+				// Additional safety checks
+				if (!iterator || !collection) {
+					throw new Error(
+						"Invalid {% for %} syntax: Missing iterator or collection.",
+					);
+				}
+
+				const token: Token = { iterator, type: "for", value: collection };
+
+				tokens.push(token);
+				index = endIndex + endTag.length;
+				continue;
 			}
 
+			if (template.startsWith("{% endfor %}", index)) {
+				const endTag = "%}";
+				const endIndex = template.indexOf(endTag, index);
+
+				if (endIndex === -1) {
+					throw new Error("Unclosed {% endfor %} block in template.");
+				}
+
+				const token: Token = { type: "endfor", value: "" };
+
+				tokens.push(token);
+				index = endIndex + endTag.length;
+				continue;
+			}
+
+			const { token, nextIndex } = this.#extractTextToken(template, index);
+
+			if (token) {
+				tokens.push(token);
+			}
 			index = nextIndex;
 		}
 
@@ -122,25 +175,9 @@ export class Tokenizer {
 			nextVariableIndex === -1 ? template.length : nextVariableIndex,
 		);
 
-		if (startIndex >= template.length) {
-			const token: Token = { type: "text", value: "" };
+		const text = template.slice(startIndex, endIndex);
 
-			return {
-				nextIndex: template.length,
-				token,
-			};
-		}
-
-		if (endIndex <= startIndex) {
-			throw new Error(
-				"Tokenizer failed to make progress. Infinite loop detected.",
-			);
-		}
-
-		const token: Token = {
-			type: "text",
-			value: template.slice(startIndex, endIndex),
-		};
+		const token: Token = { type: "text", value: text };
 
 		return {
 			nextIndex: endIndex,
