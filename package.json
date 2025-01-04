@@ -22,8 +22,8 @@
 		"@babel/register": "^7.25.9",
 		"@biomejs/biome": "^1.9.4",
 		"@faker-js/faker": "^8.4.1",
-		"@playwright/test": "^1.49.0",
-		"@swc/core": "^1.9.3",
+		"@playwright/test": "^1.49.1",
+		"@swc/core": "^1.10.4",
 		"@swc/register": "^0.1.10",
 		"@tsconfig/recommended": "^1.0.8",
 		"@tsconfig/strictest": "^2.0.5",
@@ -36,7 +36,7 @@
 		"@types/express-session": "^1.18.1",
 		"@types/koa": "^2.15.0",
 		"@types/koa__router": "^12.0.4",
-		"@types/node": "^22.10.1",
+		"@types/node": "^22.10.5",
 		"@types/nunjucks": "^3.2.6",
 		"@types/sqlite3": "^3.1.11",
 		"commitizen": "^4.3.1",
@@ -46,9 +46,9 @@
 		"esbuild-register": "^3.6.0",
 		"husky": "^9.1.7",
 		"knex": "^3.1.0",
-		"lint-staged": "^15.2.10",
+		"lint-staged": "^15.3.0",
 		"playwright": "^1.44.1",
-		"sass": "^1.81.0",
+		"sass": "^1.83.1",
 		"sucrase": "^3.35.0",
 		"ts-mockito": "^2.6.1",
 		"ts-node": "^10.9.2",
@@ -83,7 +83,7 @@
 		"cookie-parser": "^1.4.7",
 		"cors": "^2.8.5",
 		"ejs": "^3.1.10",
-		"express": "^4.21.1",
+		"express": "^4.21.2",
 		"express-async-errors": "^3.1.1",
 		"express-session": "^1.18.1",
 		"helmet": "^7.2.0",
@@ -99,7 +99,7 @@
 		"vite-plugin-nunjucks": "^0.2.0"
 	},
 	"volta": {
-		"node": "22.11.0"
+		"node": "22.12.0"
 	},
 	"config": {
 		"commitizen": {
