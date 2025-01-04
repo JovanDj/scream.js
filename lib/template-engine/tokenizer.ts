@@ -102,12 +102,9 @@ export class Tokenizer {
 
 			const { token, nextIndex } = this.#extractTextToken(template, index);
 
-			tokens.push(token);
-
-			if (nextIndex === template.length) {
-				break;
+			if (token) {
+				tokens.push(token);
 			}
-
 			index = nextIndex;
 		}
 
@@ -178,25 +175,9 @@ export class Tokenizer {
 			nextVariableIndex === -1 ? template.length : nextVariableIndex,
 		);
 
-		if (startIndex >= template.length) {
-			const token: Token = { type: "text", value: "" };
+		const text = template.slice(startIndex, endIndex);
 
-			return {
-				token,
-				nextIndex: template.length,
-			};
-		}
-
-		if (endIndex <= startIndex) {
-			throw new Error(
-				"Tokenizer failed to make progress. Infinite loop detected.",
-			);
-		}
-
-		const token: Token = {
-			type: "text",
-			value: template.slice(startIndex, endIndex),
-		};
+		const token: Token = { type: "text", value: text };
 
 		return {
 			token,
