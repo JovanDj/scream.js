@@ -11,7 +11,12 @@ export class Generator {
 		}
 
 		if (node.type === "variable") {
-			const variableValue = context[node.value];
+			const keys = node.value.split(".");
+
+			const variableValue = keys.reduce((acc, key) => {
+				return acc[key] as Record<string, unknown>;
+			}, context);
+
 			if (
 				node.value === "" ||
 				variableValue === undefined ||

@@ -79,6 +79,7 @@ export class Parser {
 						value: token.value,
 						iterator: token.iterator,
 						children: [],
+						alternate: [],
 					};
 
 					if (stack.length === 0) {

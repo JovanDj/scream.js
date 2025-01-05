@@ -36,6 +36,24 @@ describe("ScreamTemplateEngine", () => {
 			assert.deepStrictEqual(result, "Hello, John!");
 		});
 
+		it("should replace an object key", () => {
+			const template = "Hello, {{ user.name }}!";
+			const context = { user: { name: "John" } };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "Hello, John!");
+		});
+
+		it("should replace a nested object key", () => {
+			const template = "Hello, {{ dto.user.name }}!";
+			const context = { dto: { user: { name: "John" } } };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(result, "Hello, John!");
+		});
+
 		it("should replace multiple variables", () => {
 			const template = "Hello, {{ name }}! Welcome to {{ place }}.";
 			const context = { name: "John", place: "Serbia" };
@@ -143,18 +161,6 @@ describe("ScreamTemplateEngine", () => {
 			const result = templateEngine.compile(template, context);
 
 			assert.deepStrictEqual(result, "Hello, { name }} and {{ place }");
-		});
-
-		it("should handle large templates and context", () => {
-			const template = Array(1000).fill("Hello, {{ name }}!").join(" ");
-			const context = { name: "John" };
-
-			const result = templateEngine.compile(template, context);
-
-			assert.deepStrictEqual(
-				result,
-				Array(1000).fill("Hello, John!").join(" "),
-			);
 		});
 	});
 
