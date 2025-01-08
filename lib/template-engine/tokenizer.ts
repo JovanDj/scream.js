@@ -5,7 +5,10 @@ export type Token =
 	| { type: "else"; value: string }
 	| { type: "endif"; value: string }
 	| { type: "for"; value: string; iterator: string }
-	| { type: "endfor"; value: string };
+	| { type: "endfor"; value: string }
+	| { type: "extends"; value: string }
+	| { type: "block"; value: string }
+	| { type: "endblock"; value: string };
 
 export class Tokenizer {
 	tokenize(template: string) {
@@ -13,6 +16,35 @@ export class Tokenizer {
 		let index = 0;
 
 		while (index < template.length) {
+			if (template.startsWith("{% extends", index)) {
+				const endIndex = template.indexOf("%}", index);
+				const layoutName = template
+					.slice(index + "{% extends".length, endIndex)
+					.trim()
+					.replaceAll('"', "");
+				tokens.push({ type: "extends", value: layoutName });
+				index = endIndex + "%}".length;
+				continue;
+			}
+
+			if (template.startsWith("{% block", index)) {
+				const endIndex = template.indexOf("%}", index);
+				const blockName = template
+					.slice(index + "{% block".length, endIndex)
+					.trim();
+
+				tokens.push({ type: "block", value: blockName });
+				index = endIndex + "%}".length;
+				continue;
+			}
+
+			if (template.startsWith("{% endblock", index)) {
+				const endIndex = template.indexOf("%}", index);
+				tokens.push({ type: "endblock", value: "" });
+				index = endIndex + "%}".length;
+				continue;
+			}
+
 			if (template.startsWith("{% if", index)) {
 				const { token, nextIndex } = this.#extractConditionToken(
 					template,
