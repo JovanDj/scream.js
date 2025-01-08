@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import { Generator } from "./generator.js";
+import { InMemoryFileLoader } from "./in-memory-file-loader.js";
 import { Parser } from "./parser.js";
 import { ScreamTemplateEngine } from "./template-engine.js";
 import { Tokenizer } from "./tokenizer.js";
@@ -8,17 +9,20 @@ import { Transformer } from "./transformer.js";
 
 describe("ScreamTemplateEngine", () => {
 	let templateEngine: ScreamTemplateEngine;
+	let fileLoader: InMemoryFileLoader;
 	let tokenizer: Tokenizer;
 	let parser: Parser;
 	let transformer: Transformer;
 	let generator: Generator;
 
 	beforeEach(() => {
+		fileLoader = new InMemoryFileLoader();
 		tokenizer = new Tokenizer();
 		parser = new Parser();
-		transformer = new Transformer();
+		transformer = new Transformer(fileLoader, tokenizer, parser);
 		generator = new Generator();
 		templateEngine = new ScreamTemplateEngine(
+			fileLoader,
 			tokenizer,
 			parser,
 			transformer,
@@ -443,5 +447,38 @@ describe("ScreamTemplateEngine", () => {
 		it.todo("should iterate over a collection and handle nested properties");
 
 		it.todo("should not leak iterator variable outside the for loop");
+	});
+
+	describe("Layouts", () => {
+		beforeEach(() => {
+			fileLoader.setTemplate(
+				"layout.html",
+				"<main>{% block content %}Default Content{% endblock content %}</main>",
+			);
+		});
+
+		it("should render default block content when no overrides are provided", () => {
+			const childTemplate = `{% extends "layout.html" %}`;
+
+			const result = templateEngine.compile(childTemplate, {});
+
+			assert.strictEqual(result, "<main>Default Content</main>");
+		});
+
+		it("should render mixed content with default block and overridden block", () => {
+			fileLoader.setTemplate(
+				"layout.html",
+				"<header>Default Header</header><main>{% block content %}Default Content{% endblock content %}</main>",
+			);
+
+			const childTemplate = `{% extends "layout.html" %}{% block content %}Overridden Content{% endblock content %}`;
+
+			const result = templateEngine.compile(childTemplate, {});
+
+			assert.strictEqual(
+				result,
+				"<header>Default Header</header><main>Overridden Content</main>",
+			);
+		});
 	});
 });
