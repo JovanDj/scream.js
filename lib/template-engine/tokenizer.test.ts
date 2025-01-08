@@ -174,4 +174,25 @@ describe("Tokenizer", () => {
 			]);
 		});
 	});
+
+	describe("Layouts", () => {
+		it("should tokenize layouts ", () => {
+			const template = `{% extends "layout" %}`;
+
+			const tokens = tokenizer.tokenize(template);
+
+			assert.deepStrictEqual(tokens, [{ type: "extends", value: "layout" }]);
+		});
+
+		it("should tokenize blocks", () => {
+			const template = "{% block content %}{% endblock content %}";
+
+			const tokens = tokenizer.tokenize(template);
+
+			assert.deepStrictEqual(tokens, [
+				{ type: "block", value: "content" },
+				{ type: "endblock", value: "" },
+			]);
+		});
+	});
 });

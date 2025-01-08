@@ -10,6 +10,10 @@ export class Generator {
 			return node.value;
 		}
 
+		if (node.type === "block") {
+			return this.generate(node.children, context);
+		}
+
 		if (node.type === "variable") {
 			const keys = node.value.split(".");
 

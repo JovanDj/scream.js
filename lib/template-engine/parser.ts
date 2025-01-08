@@ -1,7 +1,16 @@
 import type { Token } from "./tokenizer.js";
 
 export type ASTNode = {
-	type: "text" | "variable" | "if" | "else" | "for" | "endfor";
+	type:
+		| "text"
+		| "variable"
+		| "if"
+		| "else"
+		| "for"
+		| "endfor"
+		| "extends"
+		| "block"
+		| "endblock";
 	value: string;
 	children: ASTNode[];
 	alternate?: ASTNode[];
@@ -14,6 +23,48 @@ export class Parser {
 		const stack: ASTNode[] = [];
 
 		for (const token of tokens) {
+			// Handle {% extends %} directive
+			if (token.type === "extends") {
+				const extendsNode: ASTNode = {
+					children: [],
+					type: "extends",
+					value: token.value,
+				};
+				ast.push(extendsNode);
+				continue;
+			}
+
+			// Handle {% block %} directive
+			if (token.type === "block") {
+				const blockNode: ASTNode = {
+					children: [],
+					type: "block",
+					value: token.value,
+				};
+
+				if (stack.length === 0) {
+					ast.push(blockNode);
+					stack.push(blockNode);
+					continue;
+				}
+
+				blockNode.children.push(blockNode);
+
+				stack.push(blockNode);
+				continue;
+			}
+
+			// Handle {% endblock %} directive
+			if (token.type === "endblock") {
+				if (stack.at(-1)?.type !== "block") {
+					throw new Error(
+						"Unexpected {% endblock %} without matching {% block %}",
+					);
+				}
+				stack.pop();
+				continue;
+			}
+
 			if (token.type === "if") {
 				const ifNode: ASTNode = {
 					alternate: [],

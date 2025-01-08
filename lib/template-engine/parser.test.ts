@@ -140,4 +140,148 @@ describe("Parser", () => {
 			]);
 		});
 	});
+
+	describe("Layouts", () => {
+		it("should parse an extends directive", () => {
+			const tokens: Token[] = [{ type: "extends", value: "layout" }];
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual(ast, [
+				{ children: [], type: "extends", value: "layout" },
+			]);
+		});
+
+		it("should parse a block with content", () => {
+			const tokens: Token[] = [
+				{ type: "block", value: "content" },
+				{ type: "text", value: "Hello" },
+				{ type: "endblock", value: "content" },
+			];
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual(ast, [
+				{
+					children: [
+						{ alternate: [], children: [], type: "text", value: "Hello" },
+					],
+					type: "block",
+					value: "content",
+				},
+			]);
+		});
+
+		it("should parse a nested if inside a block", () => {
+			const tokens: Token[] = [
+				{ type: "block", value: "content" },
+				{ type: "if", value: "user.isAdmin" },
+				{ type: "text", value: "Welcome Admin" },
+				{ type: "else", value: "" },
+				{ type: "text", value: "Welcome User" },
+				{ type: "endif", value: "" },
+				{ type: "endblock", value: "" },
+			];
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual(ast, [
+				{
+					children: [
+						{
+							alternate: [
+								{
+									alternate: [],
+									children: [],
+									type: "text",
+									value: "Welcome User",
+								},
+							],
+							children: [
+								{
+									alternate: [],
+									children: [],
+									type: "text",
+									value: "Welcome Admin",
+								},
+							],
+							type: "if",
+							value: "user.isAdmin",
+						},
+					],
+					type: "block",
+					value: "content",
+				},
+			]);
+		});
+
+		it("should throw an error for unmatched endblock", () => {
+			const tokens: Token[] = [{ type: "endblock", value: "" }];
+
+			assert.throws(() => parser.parse(tokens), /Unexpected {% endblock %}/);
+		});
+
+		it("should parse multiple blocks", () => {
+			const tokens: Token[] = [
+				{ type: "block", value: "header" },
+				{ type: "text", value: "Header Content" },
+				{ type: "endblock", value: "header" },
+				{ type: "block", value: "footer" },
+				{ type: "text", value: "Footer Content" },
+				{ type: "endblock", value: "footer" },
+			];
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual(ast, [
+				{
+					children: [
+						{
+							alternate: [],
+							children: [],
+							type: "text",
+							value: "Header Content",
+						},
+					],
+					type: "block",
+					value: "header",
+				},
+				{
+					children: [
+						{
+							alternate: [],
+							children: [],
+							type: "text",
+							value: "Footer Content",
+						},
+					],
+					type: "block",
+					value: "footer",
+				},
+			]);
+		});
+
+		it("should parse a block with loops and conditionals", () => {
+			const tokens: Token[] = [
+				{ type: "block", value: "content" },
+				{ iterator: "item", type: "for", value: "items" },
+
+				{ type: "endfor", value: "" },
+				{ type: "endblock", value: "content" },
+			];
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual(ast, [
+				{
+					children: [
+						{
+							alternate: [],
+							children: [],
+							iterator: "item",
+							type: "for",
+							value: "items",
+						},
+					],
+					type: "block",
+					value: "content",
+				},
+			]);
+		});
+	});
 });

@@ -135,4 +135,82 @@ describe("Generator", () => {
 			assert.strictEqual(result, "");
 		});
 	});
+
+	describe("Layouts", () => {
+		it("should generate content for simple and nested blocks", () => {
+			const ast: ASTNode[] = [
+				{ children: [], type: "text", value: "<main>" },
+				{
+					children: [{ children: [], type: "text", value: "Nested Content" }],
+					type: "block",
+					value: "content",
+				},
+				{ children: [], type: "text", value: "</main>" },
+			];
+			const output = generator.generate(ast, {});
+			assert.strictEqual(output, "<main>Nested Content</main>");
+		});
+
+		it("should generate default block content if no child overrides", () => {
+			const ast: ASTNode[] = [
+				{ children: [], type: "text", value: "<main>" },
+				{
+					children: [{ children: [], type: "text", value: "Default Content" }],
+					type: "block",
+					value: "content",
+				},
+				{ children: [], type: "text", value: "</main>" },
+			];
+
+			const output = generator.generate(ast, {});
+			assert.strictEqual(output, "<main>Default Content</main>");
+		});
+
+		it("should generate overridden block content", () => {
+			const ast: ASTNode[] = [
+				{ children: [], type: "text", value: "<main>" },
+				{
+					children: [{ children: [], type: "text", value: "Child Content" }],
+					type: "block",
+					value: "content",
+				},
+				{ children: [], type: "text", value: "</main>" },
+			];
+
+			const output = generator.generate(ast, {});
+			assert.strictEqual(output, "<main>Child Content</main>");
+		});
+
+		it("should generate mixed content with overridden and default blocks", () => {
+			const ast: ASTNode[] = [
+				{ children: [], type: "text", value: "<header>" },
+				{
+					children: [{ children: [], type: "text", value: "Default Header" }],
+					type: "block",
+					value: "header",
+				},
+				{ children: [], type: "text", value: "</header>" },
+				{ children: [], type: "text", value: "<main>" },
+				{
+					children: [{ children: [], type: "text", value: "Child Content" }],
+					type: "block",
+					value: "content",
+				},
+				{ children: [], type: "text", value: "</main>" },
+				{ children: [], type: "text", value: "<footer>" },
+				{
+					children: [{ children: [], type: "text", value: "Default Footer" }],
+					type: "block",
+					value: "footer",
+				},
+				{ children: [], type: "text", value: "</footer>" },
+			];
+
+			const output = generator.generate(ast, {});
+			assert.strictEqual(
+				output,
+				"<header>Default Header</header><main>Child Content</main><footer>Default Footer</footer>",
+			);
+		});
+	});
 });
