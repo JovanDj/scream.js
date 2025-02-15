@@ -54,13 +54,7 @@ export class Parser {
 				continue;
 			}
 
-			// Handle {% endblock %} directive
 			if (token.type === "endblock") {
-				if (stack.at(-1)?.type !== "block") {
-					throw new Error(
-						"Unexpected {% endblock %} without matching {% block %}",
-					);
-				}
 				stack.pop();
 				continue;
 			}

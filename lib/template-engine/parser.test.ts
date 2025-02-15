@@ -212,12 +212,6 @@ describe("Parser", () => {
 			]);
 		});
 
-		it("should throw an error for unmatched endblock", () => {
-			const tokens: Token[] = [{ type: "endblock", value: "" }];
-
-			assert.throws(() => parser.parse(tokens), /Unexpected {% endblock %}/);
-		});
-
 		it("should parse multiple blocks", () => {
 			const tokens: Token[] = [
 				{ type: "block", value: "header" },
