@@ -10,7 +10,8 @@
 		"baseUrl": ".",
 		"paths": {
 			"@scream.js/*": ["./lib/*"]
-		}
+		},
+		"verbatimModuleSyntax": true
 	},
 	"include": ["**/*.ts", "e2e"]
 }
