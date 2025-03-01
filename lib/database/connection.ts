@@ -1,14 +1,12 @@
 import type { InsertResult } from "./insert-result.js";
+import type { SqlQuery } from "./query-builder/sql-query.js";
 
 export interface Connection {
 	close(): Promise<void>;
 
-	/**
-	 * Execute single query
-	 */
-	run(sqlString: string, params?: string[]): Promise<InsertResult>;
+	run(sqlQuery: SqlQuery): Promise<InsertResult>;
 	exec(sqlString: string): Promise<void>;
 
-	all<T>(sqlString: string, params?: string[]): Promise<T[]>;
-	get<T>(sqlString: string, params?: string[]): Promise<T | undefined>;
+	all<T>(sqlQuery: SqlQuery): Promise<T[]>;
+	get<T>(sqlQuery: SqlQuery): Promise<T | undefined>;
 }

@@ -5,9 +5,8 @@ import { WhereExpression } from "./where-expression.js";
 
 describe("WhereExpression", () => {
 	it("should form WHERE expression", () => {
-		const values = "name = test";
-		const updateExpression: SqlExpression = new WhereExpression(values);
+		const whereExpression: SqlExpression = new WhereExpression("name", "=");
 
-		assert.deepStrictEqual(updateExpression.interpret(), "WHERE name = test");
+		assert.deepStrictEqual(whereExpression.interpret(), "WHERE name = ?");
 	});
 });
