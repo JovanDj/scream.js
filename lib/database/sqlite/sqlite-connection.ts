@@ -17,7 +17,7 @@ export class SqliteConnection implements Connection, AsyncDisposable {
 	}
 
 	async all<T>(query: SqlQuery) {
-		return this.#db.all<T>(query.sql, query.params);
+		return this.#db.all<T[]>(query.sql, query.params);
 	}
 
 	async get<T>(query: SqlQuery) {
@@ -30,6 +30,18 @@ export class SqliteConnection implements Connection, AsyncDisposable {
 
 	async exec(sqlString: string) {
 		return this.#db.exec(sqlString);
+	}
+
+	async transaction<T>(callback: () => Promise<T>) {
+		try {
+			await this.run({ sql: "BEGIN TRANSACTION;", params: [] });
+			const result = await callback();
+			await this.run({ sql: "END TRANSACTION;", params: [] });
+			return result;
+		} catch (error) {
+			await this.run({ sql: "ROLLBACK TRANSACTION;", params: [] });
+			throw error;
+		}
 	}
 
 	[Symbol.asyncDispose]() {

@@ -11,7 +11,8 @@ export class SqliteDatabase implements Database {
 			filename: database.database,
 		});
 
-		await db.exec("PRAGMA foreign_keys = ON;");
+		await db.run("PRAGMA foreign_keys = ON;");
+		await db.run("PRAGMA journal_mode=WAL");
 		return new SqliteConnection(db);
 	}
 }
