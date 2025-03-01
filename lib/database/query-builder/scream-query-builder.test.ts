@@ -1,31 +1,33 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { beforeEach, describe, it } from "node:test";
 import { ScreamQueryBuilder } from "./scream-query-builder.js";
 
 describe("ScreamQueryBuilder", () => {
-	it("should build a SELECT query", () => {
-		const builder = new ScreamQueryBuilder();
-		const sql = builder.select("*").build();
+	let builder: ScreamQueryBuilder;
 
-		assert.deepStrictEqual(sql, "SELECT *");
+	beforeEach(() => {
+		builder = new ScreamQueryBuilder();
+	});
+
+	it("should build a SELECT query", () => {
+		const sql = builder.select("1 + 1").build();
+
+		assert.deepStrictEqual(sql, "SELECT 1 + 1");
 	});
 
 	it("should build a SELECT query with FROM clause", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder.select("*").from("users").build();
 
 		assert.deepStrictEqual(sql, "SELECT * FROM users");
 	});
 
 	it("should build a SELECT query with WHERE clause", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder.select("*").from("users").where("id = 1").build();
 
 		assert.deepStrictEqual(sql, "SELECT * FROM users WHERE id = 1");
 	});
 
 	it("should build a SELECT query with ORDER BY clause", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder
 			.select("*")
 			.from("users")
@@ -36,14 +38,12 @@ describe("ScreamQueryBuilder", () => {
 	});
 
 	it("should build a SELECT query with GROUP BY clause", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder.select("*").from("users").groupBy("age").build();
 
 		assert.deepStrictEqual(sql, "SELECT * FROM users GROUP BY age");
 	});
 
 	it("should build a SELECT query with HAVING clause", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder
 			.select("*")
 			.from("users")
@@ -58,21 +58,18 @@ describe("ScreamQueryBuilder", () => {
 	});
 
 	it("should build a SELECT query with LIMIT clause", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder.select("*").from("users").limit(10).build();
 
 		assert.deepStrictEqual(sql, "SELECT * FROM users LIMIT 10");
 	});
 
 	it("should build a SELECT query with OFFSET clause", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder.select("*").from("users").limit(10).offset(5).build();
 
 		assert.deepStrictEqual(sql, "SELECT * FROM users LIMIT 10 OFFSET 5");
 	});
 
 	it("should build a SELECT query with JOIN clause", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder
 			.select("*")
 			.from("users")
@@ -86,7 +83,6 @@ describe("ScreamQueryBuilder", () => {
 	});
 
 	it("should build an INSERT query", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder.insert("users", { id: 1, name: "Alice" }).build();
 
 		assert.deepStrictEqual(
@@ -96,21 +92,18 @@ describe("ScreamQueryBuilder", () => {
 	});
 
 	it("should build an UPDATE query", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder.update("users", { name: "Alice", age: 30 }).build();
 
 		assert.deepStrictEqual(sql, "UPDATE users SET name='Alice', age='30'");
 	});
 
 	it("should build a DELETE query", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder.delete("users").build();
 
 		assert.deepStrictEqual(sql, "DELETE FROM users");
 	});
 
 	it("should build a complex query with multiple clauses", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder
 			.select("*")
 			.from("users")
@@ -130,21 +123,18 @@ describe("ScreamQueryBuilder", () => {
 	});
 
 	it("should handle empty string in SELECT fields", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder.select("").from("users").build();
 
 		assert.deepStrictEqual(sql, "SELECT  FROM users");
 	});
 
 	it("should handle special characters in table and column names", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder.select("name, age").from("user's_data").build();
 
 		assert.deepStrictEqual(sql, "SELECT name, age FROM user's_data");
 	});
 
 	it("should handle SQL keywords in table and column names", () => {
-		const builder = new ScreamQueryBuilder();
 		const sql = builder.select("select, from").from("table").build();
 
 		assert.deepStrictEqual(sql, "SELECT select, from FROM table");
