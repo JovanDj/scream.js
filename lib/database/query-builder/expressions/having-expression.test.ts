@@ -5,9 +5,11 @@ import { HavingExpression } from "./having-expression.js";
 
 describe("HavingExpression", () => {
 	it("should form HAVING expression", () => {
-		const condition = "COUNT(*) > 1";
-		const havingExpression: SqlExpression = new HavingExpression(condition);
+		const havingExpression: SqlExpression = new HavingExpression(
+			"COUNT(*)",
+			">",
+		);
 
-		assert.deepStrictEqual(havingExpression.interpret(), "HAVING COUNT(*) > 1");
+		assert.deepStrictEqual(havingExpression.interpret(), "HAVING COUNT(*) > ?");
 	});
 });

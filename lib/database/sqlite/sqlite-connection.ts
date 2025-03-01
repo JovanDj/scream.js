@@ -1,6 +1,7 @@
 import type sqlite from "sqlite";
 import type { Connection } from "../connection.js";
 import { InsertResult } from "../insert-result.js";
+import type { SqlQuery } from "../query-builder/sql-query.js";
 
 export class SqliteConnection implements Connection, AsyncDisposable {
 	readonly #db: sqlite.Database;
@@ -9,18 +10,18 @@ export class SqliteConnection implements Connection, AsyncDisposable {
 		this.#db = db;
 	}
 
-	async run(queryString: string, params: string[] = []) {
-		const result = await this.#db.run(queryString, params);
+	async run(query: SqlQuery) {
+		const result = await this.#db.run(query.sql, query.params);
 
 		return new InsertResult(result.lastID);
 	}
 
-	async all<T>(sqlString: string, params?: string[]) {
-		return this.#db.all<T>(sqlString, params);
+	async all<T>(query: SqlQuery) {
+		return this.#db.all<T>(query.sql, query.params);
 	}
 
-	async get<T>(sqlString: string, params?: string[]) {
-		return this.#db.get<T>(sqlString, params);
+	async get<T>(query: SqlQuery) {
+		return this.#db.get<T>(query.sql, query.params);
 	}
 
 	async close() {
