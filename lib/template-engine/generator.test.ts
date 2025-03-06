@@ -16,13 +16,13 @@ describe("Generator", () => {
 				{ children: [], type: "text", value: "Hello, World!" },
 			];
 			const result = generator.generate(ast, {});
-			assert.strictEqual(result, "Hello, World!");
+			assert.deepStrictEqual(result, "Hello, World!");
 		});
 
 		it("should handle empty text nodes", () => {
 			const ast: ASTNode[] = [{ children: [], type: "text", value: "" }];
 			const result = generator.generate(ast, {});
-			assert.strictEqual(result, "");
+			assert.deepStrictEqual(result, "");
 		});
 	});
 
@@ -33,14 +33,14 @@ describe("Generator", () => {
 			];
 			const context = { name: "John" };
 			const result = generator.generate(ast, context);
-			assert.strictEqual(result, "John");
+			assert.deepStrictEqual(result, "John");
 		});
 
 		it("should return an empty string for undefined variables", () => {
 			const ast: ASTNode[] = [{ children: [], type: "variable", value: "age" }];
 			const context = {};
 			const result = generator.generate(ast, context);
-			assert.strictEqual(result, "");
+			assert.deepStrictEqual(result, "");
 		});
 
 		it("should handle nested variables", () => {
@@ -49,7 +49,7 @@ describe("Generator", () => {
 			];
 			const context = { user: { name: "Jane" } };
 			const result = generator.generate(ast, context);
-			assert.strictEqual(result, "Jane");
+			assert.deepStrictEqual(result, "Jane");
 		});
 	});
 
@@ -65,7 +65,7 @@ describe("Generator", () => {
 			];
 			const context = { isAdmin: true };
 			const result = generator.generate(ast, context);
-			assert.strictEqual(result, "Welcome, Admin!");
+			assert.deepStrictEqual(result, "Welcome, Admin!");
 		});
 
 		it("should render the alternate of an if node when the condition is false", () => {
@@ -79,7 +79,7 @@ describe("Generator", () => {
 			];
 			const context = { isAdmin: false };
 			const result = generator.generate(ast, context);
-			assert.strictEqual(result, "Access Denied.");
+			assert.deepStrictEqual(result, "Access Denied.");
 		});
 
 		it("should render nothing if there are no children or alternate", () => {
@@ -88,7 +88,7 @@ describe("Generator", () => {
 			];
 			const context = { isAdmin: false };
 			const result = generator.generate(ast, context);
-			assert.strictEqual(result, "");
+			assert.deepStrictEqual(result, "");
 		});
 	});
 
@@ -104,7 +104,7 @@ describe("Generator", () => {
 			];
 			const context = { items: ["A", "B", "C"] };
 			const result = generator.generate(ast, context);
-			assert.strictEqual(result, "ABC");
+			assert.deepStrictEqual(result, "ABC");
 		});
 
 		it("should render nothing for an empty array", () => {
@@ -118,7 +118,7 @@ describe("Generator", () => {
 			];
 			const context = { items: [] };
 			const result = generator.generate(ast, context);
-			assert.strictEqual(result, "");
+			assert.deepStrictEqual(result, "");
 		});
 
 		it("should render nothing for non-array values", () => {
@@ -132,7 +132,7 @@ describe("Generator", () => {
 			];
 			const context = { items: null };
 			const result = generator.generate(ast, context);
-			assert.strictEqual(result, "");
+			assert.deepStrictEqual(result, "");
 		});
 	});
 
@@ -148,7 +148,7 @@ describe("Generator", () => {
 				{ children: [], type: "text", value: "</main>" },
 			];
 			const output = generator.generate(ast, {});
-			assert.strictEqual(output, "<main>Nested Content</main>");
+			assert.deepStrictEqual(output, "<main>Nested Content</main>");
 		});
 
 		it("should generate default block content if no child overrides", () => {
@@ -163,7 +163,7 @@ describe("Generator", () => {
 			];
 
 			const output = generator.generate(ast, {});
-			assert.strictEqual(output, "<main>Default Content</main>");
+			assert.deepStrictEqual(output, "<main>Default Content</main>");
 		});
 
 		it("should generate overridden block content", () => {
@@ -178,7 +178,7 @@ describe("Generator", () => {
 			];
 
 			const output = generator.generate(ast, {});
-			assert.strictEqual(output, "<main>Child Content</main>");
+			assert.deepStrictEqual(output, "<main>Child Content</main>");
 		});
 
 		it("should generate mixed content with overridden and default blocks", () => {
@@ -207,7 +207,7 @@ describe("Generator", () => {
 			];
 
 			const output = generator.generate(ast, {});
-			assert.strictEqual(
+			assert.deepStrictEqual(
 				output,
 				"<header>Default Header</header><main>Child Content</main><footer>Default Footer</footer>",
 			);
