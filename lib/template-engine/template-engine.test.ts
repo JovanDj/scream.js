@@ -462,7 +462,7 @@ describe("ScreamTemplateEngine", () => {
 
 			const result = templateEngine.compile(childTemplate, {});
 
-			assert.strictEqual(result, "<main>Default Content</main>");
+			assert.deepStrictEqual(result, "<main>Default Content</main>");
 		});
 
 		it("should render mixed content with default block and overridden block", () => {
@@ -475,7 +475,7 @@ describe("ScreamTemplateEngine", () => {
 
 			const result = templateEngine.compile(childTemplate, {});
 
-			assert.strictEqual(
+			assert.deepStrictEqual(
 				result,
 				"<header>Default Header</header><main>Overridden Content</main>",
 			);
