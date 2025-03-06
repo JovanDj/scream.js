@@ -5,13 +5,17 @@ import type { DataMapper } from "./mapper.js";
 export abstract class KnexDataMapper<T extends Entity, K extends object>
 	implements DataMapper<T, K>
 {
+	readonly #db: Knex;
+
 	protected abstract tableName: string;
 	protected abstract primaryKey: string;
 
-	constructor(protected readonly _db: Knex) {}
+	constructor(db: Knex) {
+		this.#db = db;
+	}
 
 	async findById(id: T["id"]) {
-		const row = (await this._db(this.tableName)
+		const row = (await this.#db(this.tableName)
 			.where(this.primaryKey, id)
 			.first()) as K | undefined;
 
@@ -23,13 +27,13 @@ export abstract class KnexDataMapper<T extends Entity, K extends object>
 	}
 
 	async findAll() {
-		const rows = (await this._db<K[]>(this.tableName).select<K[]>()) as K[];
+		const rows = (await this.#db<K[]>(this.tableName).select<K[]>()) as K[];
 
 		return this._toEntities(rows);
 	}
 
 	async insert(entity: T) {
-		const result = await this._db
+		const result = await this.#db
 			.insert(this.toRow(entity))
 			.into<K>(this.tableName);
 
@@ -37,13 +41,13 @@ export abstract class KnexDataMapper<T extends Entity, K extends object>
 	}
 
 	async update(id: T["id"], entity: Partial<T>) {
-		return this._db(this.tableName)
+		return this.#db(this.tableName)
 			.where(this.primaryKey, id)
 			.update(this.toRow(entity));
 	}
 
 	async delete(id: T["id"]) {
-		return this._db(this.tableName).where(this.primaryKey, id).delete();
+		return this.#db(this.tableName).where(this.primaryKey, id).delete();
 	}
 
 	private _toEntities(entities: K[]) {

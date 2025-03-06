@@ -1,14 +1,13 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { sql } from "../query-builder/sql-template-string.js";
-import type { SqliteConnection } from "./sqlite-connection.js";
-import { SqliteDatabase } from "./sqlite-database.js";
+import { SqliteConnection } from "./sqlite-connection.js";
 
 describe("SqliteDatabase", () => {
 	let connection: SqliteConnection;
 
 	beforeEach(async () => {
-		connection = await new SqliteDatabase().connect({ database: ":memory:" });
+		connection = await SqliteConnection.connect({ database: ":memory:" });
 	});
 
 	afterEach(async () => {
@@ -84,7 +83,7 @@ describe("SqliteDatabase", () => {
 				sql`SELECT * FROM users WHERE id = ${"1"};`,
 			);
 
-			assert.strictEqual(user, undefined);
+			assert.deepStrictEqual(user, undefined);
 		});
 	});
 
@@ -96,8 +95,8 @@ describe("SqliteDatabase", () => {
 		});
 
 		it("commits a transaction successfully", async () => {
-			await connection.transaction(async () => {
-				await connection.run(
+			await connection.transaction(async (trx) => {
+				await trx.run(
 					sql`INSERT INTO test (id, name) VALUES (${["1", "Alice"]})`,
 				);
 			});
@@ -110,8 +109,8 @@ describe("SqliteDatabase", () => {
 
 		it("rolls back a transaction on error", async () => {
 			try {
-				await connection.transaction(async () => {
-					await connection.run(
+				await connection.transaction(async (trx) => {
+					await trx.run(
 						sql`INSERT INTO test (id, name) VALUES (${["1", "Alice"]})`,
 					);
 					throw new Error("Forced error to rollback transaction");
@@ -123,16 +122,14 @@ describe("SqliteDatabase", () => {
 			const row = await connection.get(
 				sql`SELECT * FROM test WHERE id = ${"1"};`,
 			);
-			assert.strictEqual(row, undefined);
+			assert.deepStrictEqual(row, undefined);
 		});
 
 		it("returns data from a successful transaction", async () => {
-			const result = await connection.transaction(async () => {
-				await connection.run(
-					sql`INSERT INTO test (name) VALUES (${"test name"})`,
-				);
+			const result = await connection.transaction(async (trx) => {
+				await trx.run(sql`INSERT INTO test (name) VALUES (${"test name"})`);
 
-				const data = await connection.get<{ id: number; name: string }>(
+				const data = await trx.get<{ id: number; name: string }>(
 					sql`SELECT * FROM test WHERE name = ${"test name"};`,
 				);
 
@@ -143,19 +140,19 @@ describe("SqliteDatabase", () => {
 		});
 
 		it("returns computed result from a transaction", async () => {
-			const sum = await connection.transaction(async () => {
-				await connection.run(sql`CREATE TABLE numbers (num INTEGER);`);
-				await connection.run(sql`INSERT INTO numbers (num) VALUES (${["5"]})`);
-				await connection.run(sql`INSERT INTO numbers (num) VALUES (${["10"]})`);
+			const sum = await connection.transaction(async (trx) => {
+				await trx.run(sql`CREATE TABLE numbers (num INTEGER);`);
+				await trx.run(sql`INSERT INTO numbers (num) VALUES (${["5"]})`);
+				await trx.run(sql`INSERT INTO numbers (num) VALUES (${["10"]})`);
 
-				const rows = await connection.all<{ num: number }>(
+				const rows = await trx.all<{ num: number }>(
 					sql`SELECT num FROM numbers;`,
 				);
 
 				return rows.reduce((acc, row) => acc + row.num, 0);
 			});
 
-			assert.strictEqual(sum, 15);
+			assert.deepStrictEqual(sum, 15);
 		});
 	});
 });

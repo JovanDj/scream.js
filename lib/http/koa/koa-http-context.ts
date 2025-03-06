@@ -2,73 +2,77 @@ import type Koa from "koa";
 import type { HttpContext } from "../http-context.js";
 
 export class KoaHttpContext<Body = object> implements HttpContext<Body> {
-	constructor(private readonly ctx: Koa.Context) {}
+	readonly #ctx: Koa.Context;
+
+	constructor(ctx: Koa.Context) {
+		this.#ctx = ctx;
+	}
 
 	get params() {
-		return this.ctx["params"];
+		return this.#ctx["params"];
 	}
 
 	get body() {
-		return this.ctx.body as Body;
+		return this.#ctx.body as Body;
 	}
 
 	get method() {
-		return this.ctx.method;
+		return this.#ctx.method;
 	}
 
 	get headers() {
-		return this.ctx.headers;
+		return this.#ctx.headers;
 	}
 
 	get url() {
-		return this.ctx.url;
+		return this.#ctx.url;
 	}
 
 	onClose(cb: () => void) {
-		this.ctx.res.on("close", cb);
+		this.#ctx.res.on("close", cb);
 	}
 
 	hasHeader(header: string) {
-		return !!this.ctx.headers[header.toLowerCase()];
+		return !!this.#ctx.headers[header.toLowerCase()];
 	}
 
 	acceptsLanguages(languages: string[]) {
-		return this.ctx.acceptsLanguages(...languages) || "";
+		return this.#ctx.acceptsLanguages(...languages) || "";
 	}
 
 	json(data: object) {
-		this.ctx.body = data;
+		this.#ctx.body = data;
 	}
 
 	end(chunk?: unknown) {
-		this.ctx.res.end(chunk);
+		this.#ctx.res.end(chunk);
 	}
 
 	status(code: number) {
-		this.ctx.status = code;
+		this.#ctx.status = code;
 		return this;
 	}
 
 	async render(template: string, locals?: Record<string, unknown>) {
-		return this.ctx.render(template, locals);
+		return this.#ctx.render(template, locals);
 	}
 
 	location(url: string) {
-		this.ctx.set("Location", url);
+		this.#ctx.set("Location", url);
 	}
 
 	redirect(url: string) {
-		this.ctx.redirect(url);
+		this.#ctx.redirect(url);
 	}
 
 	back() {
-		const referrer = this.ctx.headers.referer || "/";
-		this.ctx.redirect(referrer);
+		const referrer = this.#ctx.headers.referer || "/";
+		this.#ctx.redirect(referrer);
 	}
 
 	text(message: string): void {
-		this.ctx.body = message;
-		this.ctx.type = "text/plain";
+		this.#ctx.body = message;
+		this.#ctx.type = "text/plain";
 	}
 
 	get id() {
@@ -81,7 +85,7 @@ export class KoaHttpContext<Body = object> implements HttpContext<Body> {
 	}
 
 	handleError(error: unknown) {
-		this.ctx.app.emit("error", error, this.ctx);
+		this.#ctx.app.emit("error", error, this.#ctx);
 	}
 
 	internalServerError(message: string) {

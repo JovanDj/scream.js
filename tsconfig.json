@@ -11,7 +11,10 @@
 		"paths": {
 			"@scream.js/*": ["./lib/*"]
 		},
-		"verbatimModuleSyntax": true
+		"verbatimModuleSyntax": true,
+		"inlineSourceMap": true,
+		"inlineSources": true,
+		"erasableSyntaxOnly": true
 	},
 	"include": ["**/*.ts", "e2e"]
 }
