@@ -1,10 +1,14 @@
 export class InsertResult {
-	constructor(private readonly _lastId?: number) {}
+	readonly #lastId: number | undefined;
+
+	constructor(lastId?: number) {
+		this.#lastId = lastId;
+	}
 
 	/**
 	 * Id of the last row that was created
 	 */
 	get lastId() {
-		return this._lastId;
+		return this.#lastId;
 	}
 }

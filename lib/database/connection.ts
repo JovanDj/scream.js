@@ -9,4 +9,6 @@ export interface Connection {
 
 	all<T>(sqlQuery: SqlQuery): Promise<T[]>;
 	get<T>(sqlQuery: SqlQuery): Promise<T | undefined>;
+
+	transaction<T>(callback: (trx: Connection) => Promise<T>): Promise<T>;
 }
