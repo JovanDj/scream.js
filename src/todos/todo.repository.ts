@@ -4,14 +4,14 @@ import type { TodoRow } from "knex/types/tables.js";
 import { Todo } from "./todo.js";
 
 export class TodoRepository implements Repository<Todo> {
-	private readonly db: Knex;
+	readonly #db: Knex;
 
 	constructor(db: Knex) {
-		this.db = db;
+		this.#db = db;
 	}
 
 	async findById(id: Todo["id"]) {
-		const row = await this.db<TodoRow>("todos").where({ id }).first();
+		const row = await this.#db<TodoRow>("todos").where("id", id).first();
 
 		if (!row) {
 			return undefined;
@@ -21,17 +21,16 @@ export class TodoRepository implements Repository<Todo> {
 	}
 
 	async findAll() {
-		const rows = await this.db<TodoRow>("todos").select();
+		const rows = await this.#db<TodoRow>("todos").select();
 
 		return rows.map((row) => new Todo(row.id, row.user_id, row.title));
 	}
 
-	async insert(entity: Partial<Todo>): Promise<Todo> {
-		const [id] = await this.db("todos")
-			.returning("id")
-			.insert({
-				title: entity.title ?? "",
-			});
+	async insert(entity: Partial<Todo>) {
+		const [id] = await this.#db<TodoRow>("todos").insert({
+			title: entity.title ?? "",
+			user_id: entity.userId ?? 1,
+		});
 
 		if (!id) {
 			throw new Error("Could not insert a todo");
@@ -46,8 +45,8 @@ export class TodoRepository implements Repository<Todo> {
 		return todo;
 	}
 
-	async update(id: Todo["id"], entity: Partial<Todo>): Promise<Todo> {
-		await this.db("todos")
+	async update(id: Todo["id"], entity: Partial<Todo>) {
+		await this.#db("todos")
 			.where({ id })
 			.update({
 				title: entity.title ?? "",
@@ -63,7 +62,7 @@ export class TodoRepository implements Repository<Todo> {
 	}
 
 	async delete(id: Todo["id"]) {
-		const affectedRows = await this.db("todos").where({ id }).del();
+		const affectedRows = await this.#db("todos").where("id", id).del();
 
 		if (affectedRows === 0) {
 			throw new Error("Could not delete a todo");

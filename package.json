@@ -4,7 +4,7 @@
 	"description": "",
 	"scripts": {
 		"dev": "tsx watch server.ts",
-		"test": "tsx --test",
+		"test": "cross-env NODE_ENV=test tsx --test",
 		"build": "tsc && tsc-alias",
 		"prepare": "husky",
 		"lint": "biome check",
@@ -78,6 +78,7 @@
 		"@popperjs/core": "^2.11.8",
 		"@tsconfig/node22": "^22.0.0",
 		"@types/pg": "^8.11.11",
+		"better-sqlite3": "^11.8.1",
 		"bootstrap": "^5.3.3",
 		"cheerio": "^1.0.0",
 		"cookie-parser": "^1.4.7",
