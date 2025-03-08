@@ -1,19 +1,18 @@
-import type { Repository } from "@scream.js/database/repository.js";
 import type { FlatObject } from "@scream.js/flat-object.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Resource } from "@scream.js/resource.js";
 
-import type { Todo } from "./todo.js";
+import type { TodoService } from "./todo.service.js";
 
 export class TodosController implements Resource {
-	readonly #todoRepository: Repository<Todo>;
+	readonly #todoService: TodoService;
 
-	constructor(todoRepository: Repository<Todo>) {
-		this.#todoRepository = todoRepository;
+	constructor(todoRepository: TodoService) {
+		this.#todoService = todoRepository;
 	}
 
 	async index(ctx: HttpContext) {
-		const todos = await this.#todoRepository.findAll();
+		const todos = await this.#todoService.findAll();
 
 		return ctx.render("index", { todos });
 	}
@@ -24,7 +23,7 @@ export class TodosController implements Resource {
 		}
 
 		try {
-			const todo = await this.#todoRepository.findById(+ctx.params["id"]);
+			const todo = await this.#todoService.findById(+ctx.params["id"]);
 
 			if (!todo) {
 				return ctx.notFound();
@@ -52,7 +51,7 @@ export class TodosController implements Resource {
 
 	async store(ctx: HttpContext<{ title: string }>) {
 		try {
-			const todo = await this.#todoRepository.insert({
+			const todo = await this.#todoService.create({
 				title: ctx.body.title,
 				userId: 1,
 			});
@@ -77,7 +76,7 @@ export class TodosController implements Resource {
 		}
 
 		try {
-			const todo = await this.#todoRepository.update(+ctx.params["id"], {});
+			const todo = await this.#todoService.update(+ctx.params["id"], {});
 			return ctx.redirect(`http://localhost:3000/todos/${todo.id}`);
 		} catch (error) {
 			if (error instanceof Error) {
@@ -93,7 +92,7 @@ export class TodosController implements Resource {
 			return ctx.notFound();
 		}
 
-		const changed = await this.#todoRepository.delete(+ctx.params["id"]);
+		const changed = await this.#todoService.delete(+ctx.params["id"]);
 
 		return ctx.status(200).end(changed);
 	}
