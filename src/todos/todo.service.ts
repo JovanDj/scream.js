@@ -1,11 +1,14 @@
-import type { Entity } from "@scream.js/database/entity.js";
 import type { Repository } from "@scream.js/database/repository.js";
-import type { Todo } from "./todo.js";
+import type {
+	CreateTodoInput,
+	TodoSchema,
+	UpdateTodoInput,
+} from "./todo.schema.js";
 
 export class TodoService {
-	readonly #todoRepository: Repository<Todo>;
+	readonly #todoRepository: Repository<TodoSchema>;
 
-	constructor(todoRepository: Repository<Todo>) {
+	constructor(todoRepository: Repository<TodoSchema>) {
 		this.#todoRepository = todoRepository;
 	}
 
@@ -13,19 +16,19 @@ export class TodoService {
 		return this.#todoRepository.findAll();
 	}
 
-	async findById(id: number) {
+	async findById(id: TodoSchema["id"]) {
 		return this.#todoRepository.findById(id);
 	}
 
-	async create(entity: Partial<Todo>) {
-		return this.#todoRepository.insert(entity);
+	async create(input: CreateTodoInput) {
+		return this.#todoRepository.insert(input);
 	}
 
-	async update(id: number, entity: Partial<Entity>) {
-		return this.#todoRepository.update(id, entity);
+	async update(id: TodoSchema["id"], input: UpdateTodoInput) {
+		return this.#todoRepository.update(id, input);
 	}
 
-	async delete(id: number) {
+	async delete(id: TodoSchema["id"]) {
 		return this.#todoRepository.delete(id);
 	}
 }

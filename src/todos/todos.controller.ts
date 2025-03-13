@@ -7,8 +7,8 @@ import type { TodoService } from "./todo.service.js";
 export class TodosController implements Resource {
 	readonly #todoService: TodoService;
 
-	constructor(todoRepository: TodoService) {
-		this.#todoService = todoRepository;
+	constructor(todoService: TodoService) {
+		this.#todoService = todoService;
 	}
 
 	async index(ctx: HttpContext) {
