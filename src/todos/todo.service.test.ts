@@ -3,13 +3,13 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import type { Repository } from "@scream.js/database/repository.js";
 import knex, { type Knex } from "knex";
 import config from "knexfile.js";
-import type { Todo } from "./todo.js";
 import { TodoRepository } from "./todo.repository.js";
+import type { TodoSchema } from "./todo.schema.js";
 import { TodoService } from "./todo.service.js";
 
 describe("TodoService", () => {
 	let db: Knex;
-	let todoRepository: Repository<Todo>;
+	let todoRepository: Repository<TodoSchema>;
 	let todoService: TodoService;
 
 	beforeEach(async () => {

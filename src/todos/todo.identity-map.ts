@@ -1,15 +1,15 @@
 import type { Repository } from "@scream.js/database/repository.js";
 import type { Logger } from "@scream.js/logger/logger.interface.js";
-import type { Todo } from "./todo.js";
+import type { TodoSchema } from "./todo.schema.js";
 
-export class TodoIdentityMap implements Repository<Todo> {
-	readonly #repository: Repository<Todo>;
-	readonly #identityMap: Map<Todo["id"], Todo>;
+export class TodoIdentityMap implements Repository<TodoSchema> {
+	readonly #repository: Repository<TodoSchema>;
+	readonly #identityMap: Map<TodoSchema["id"], TodoSchema>;
 	readonly #logger: Logger;
 
 	constructor(
-		repository: Repository<Todo>,
-		identityMap: Map<Todo["id"], Todo>,
+		repository: Repository<TodoSchema>,
+		identityMap: Map<TodoSchema["id"], TodoSchema>,
 		logger: Logger,
 	) {
 		this.#repository = repository;
@@ -17,7 +17,7 @@ export class TodoIdentityMap implements Repository<Todo> {
 		this.#logger = logger;
 	}
 
-	async findById(id: Todo["id"]) {
+	async findById(id: TodoSchema["id"]) {
 		if (!this.#identityMap.has(id)) {
 			this.#logger.log("cache miss");
 
@@ -40,11 +40,11 @@ export class TodoIdentityMap implements Repository<Todo> {
 		return this.#repository.findAll();
 	}
 
-	async insert(entity: Todo) {
+	async insert(entity: TodoSchema) {
 		return this.#repository.insert(entity);
 	}
 
-	async update(id: Todo["id"], entity: Todo) {
+	async update(id: TodoSchema["id"], entity: TodoSchema) {
 		const todo = await this.#repository.update(id, entity);
 
 		if (todo) {
@@ -54,7 +54,7 @@ export class TodoIdentityMap implements Repository<Todo> {
 		return todo;
 	}
 
-	async delete(id: Todo["id"]) {
+	async delete(id: TodoSchema["id"]) {
 		const deletedCount = await this.#repository.delete(id);
 
 		if (deletedCount > 0) {

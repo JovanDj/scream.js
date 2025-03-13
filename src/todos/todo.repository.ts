@@ -1,35 +1,46 @@
 import type { Repository } from "@scream.js/database/repository.js";
 import type { Knex } from "knex";
 import type { TodoRow } from "knex/types/tables.js";
-import { Todo } from "./todo.js";
+import type {
+	CreateTodoInput,
+	TodoSchema,
+	UpdateTodoInput,
+} from "./todo.schema.js";
 
-export class TodoRepository implements Repository<Todo> {
+export class TodoRepository implements Repository<TodoSchema> {
 	readonly #db: Knex;
 
 	constructor(db: Knex) {
 		this.#db = db;
 	}
+	findOne(): Promise<TodoSchema> {
+		throw new Error("Method not implemented.");
+	}
 
-	async findById(id: Todo["id"]) {
+	async findById(id: TodoSchema["id"]) {
 		const row = await this.#db<TodoRow>("todos").where("id", id).first();
 
 		if (!row) {
 			return undefined;
 		}
 
-		return new Todo(row.id, row.user_id, row.title);
+		return { id: row.id, userId: row.user_id, title: row.title };
 	}
 
 	async findAll() {
 		const rows = await this.#db<TodoRow>("todos").select();
 
-		return rows.map((row) => new Todo(row.id, row.user_id, row.title));
+		return rows.map((row) => ({
+			id: row.id,
+			userId: row.user_id,
+			title: row.title,
+		}));
 	}
 
-	async insert(entity: Partial<Todo>) {
+	async insert(input: CreateTodoInput) {
 		const [id] = await this.#db<TodoRow>("todos").insert({
-			title: entity.title ?? "",
-			user_id: entity.userId ?? 1,
+			title: input.title ?? "",
+			user_id: input.userId ?? 1,
 		});
 
 		if (!id) {
@@ -45,11 +56,11 @@ export class TodoRepository implements Repository<Todo> {
 		return todo;
 	}
 
-	async update(id: Todo["id"], entity: Partial<Todo>) {
+	async update(id: TodoSchema["id"], input: UpdateTodoInput) {
 		await this.#db("todos")
 			.where({ id })
 			.update({
-				title: entity.title ?? "",
+				title: input.title ?? "",
 			});
 
 		const todo = await this.findById(id);
@@ -61,7 +72,7 @@ export class TodoRepository implements Repository<Todo> {
 		return todo;
 	}
 
-	async delete(id: Todo["id"]) {
+	async delete(id: TodoSchema["id"]) {
 		const affectedRows = await this.#db("todos").where("id", id).del();
 
 		if (affectedRows === 0) {
