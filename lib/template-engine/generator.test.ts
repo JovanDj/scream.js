@@ -3,7 +3,7 @@ import { beforeEach, describe, it } from "node:test";
 import { Generator } from "./generator.js";
 import type { ASTNode } from "./parser.js";
 
-describe("Generator", () => {
+describe("Generator", { concurrency: true }, () => {
 	let generator: Generator;
 
 	beforeEach(() => {
