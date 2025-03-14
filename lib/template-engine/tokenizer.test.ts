@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import { Tokenizer } from "./tokenizer.js";
 
-describe("Tokenizer", () => {
+describe("Tokenizer", { concurrency: true }, () => {
 	let tokenizer: Tokenizer;
 
 	beforeEach(() => {

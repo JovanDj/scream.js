@@ -34,7 +34,18 @@ export class ScreamTemplateEngine {
 	compile(template: string, context: Record<string, unknown>) {
 		const tokens = this.#tokenizer.tokenize(template);
 		const ast = this.#parser.parse(tokens);
-		const transformedAst = this.#transformer.transform(ast);
-		return this.#generator.generate(transformedAst, context);
+
+		const extendsNode = ast.find((node) => node.type === "extends");
+		if (!extendsNode) {
+			return this.#generator.generate(ast, context);
+		}
+
+		const parentTemplate = this.#fileLoader.loadFile(extendsNode.value);
+		const parentTokens = this.#tokenizer.tokenize(parentTemplate);
+		const parentAST = this.#parser.parse(parentTokens);
+
+		// Step 3: Replace blocks in the parent AST with content from the child AST
+		const finalAst = this.#transformer.applyBlockOverrides(parentAST, ast);
+		return this.#generator.generate(finalAst, context);
 	}
 }
