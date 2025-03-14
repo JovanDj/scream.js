@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { sql } from "./sql-template-string.js";
 
-describe("SQL Template Literal Helper", () => {
+describe("SQL Template Literal Helper", { concurrency: true }, () => {
 	it("should work with a simple query", () => {
 		const query = sql`SELECT * FROM table`;
 		assert.deepStrictEqual(query.sql, "SELECT * FROM table");

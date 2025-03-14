@@ -13,9 +13,6 @@ export class TodoRepository implements Repository<TodoSchema> {
 	constructor(db: Knex) {
 		this.#db = db;
 	}
-	findOne(): Promise<TodoSchema> {
-		throw new Error("Method not implemented.");
-	}
 
 	async findById(id: TodoSchema["id"]) {
 		const row = await this.#db<TodoRow>("todos").where("id", id).first();
@@ -74,10 +71,6 @@ export class TodoRepository implements Repository<TodoSchema> {
 
 	async delete(id: TodoSchema["id"]) {
 		const affectedRows = await this.#db("todos").where("id", id).del();
-
-		if (affectedRows === 0) {
-			throw new Error("Could not delete a todo");
-		}
 
 		return affectedRows;
 	}
