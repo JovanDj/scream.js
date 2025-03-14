@@ -56,7 +56,7 @@
 		"tsconfig-paths": "^4.2.0",
 		"tsx": "^4.19.3",
 		"typescript": "^5.8.2",
-		"vite": "^6.2.1",
+		"vite": "^6.2.2",
 		"vite-tsconfig-paths": "^5.1.4",
 		"vitest": "^3.0.8"
 	},
@@ -78,7 +78,7 @@
 		"@popperjs/core": "^2.11.8",
 		"@tsconfig/node22": "^22.0.0",
 		"@types/pg": "^8.11.11",
-		"better-sqlite3": "^11.8.1",
+		"better-sqlite3": "^11.9.0",
 		"bootstrap": "^5.3.3",
 		"cheerio": "^1.0.0",
 		"cookie-parser": "^1.4.7",
