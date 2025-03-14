@@ -7,7 +7,7 @@ import { ScreamTemplateEngine } from "./template-engine.js";
 import { Tokenizer } from "./tokenizer.js";
 import { Transformer } from "./transformer.js";
 
-describe("ScreamTemplateEngine", () => {
+describe("ScreamTemplateEngine", { concurrency: true }, () => {
 	let templateEngine: ScreamTemplateEngine;
 	let fileLoader: InMemoryFileLoader;
 	let tokenizer: Tokenizer;

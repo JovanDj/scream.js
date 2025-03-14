@@ -3,7 +3,7 @@ import { beforeEach, describe, it } from "node:test";
 import { Parser } from "./parser.js";
 import type { Token } from "./tokenizer.js";
 
-describe("Parser", () => {
+describe("Parser", { concurrency: true }, () => {
 	let parser: Parser;
 
 	beforeEach(() => {

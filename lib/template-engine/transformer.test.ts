@@ -5,7 +5,7 @@ import { type ASTNode, Parser } from "./parser.js";
 import { Tokenizer } from "./tokenizer.js";
 import { Transformer } from "./transformer.js";
 
-describe("Transformer: Block Replacement", () => {
+describe("Transformer: Block Replacement", { concurrency: true }, () => {
 	let loader: InMemoryFileLoader;
 	let tokenizer: Tokenizer;
 	let parser: Parser;
