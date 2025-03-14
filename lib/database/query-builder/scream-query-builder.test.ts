@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import { ScreamQueryBuilder } from "./scream-query-builder.js";
 
-describe("ScreamQueryBuilder", () => {
+describe("ScreamQueryBuilder", { concurrency: true }, () => {
 	let builder: ScreamQueryBuilder;
 
 	beforeEach(() => {
