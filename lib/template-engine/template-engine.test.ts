@@ -166,6 +166,20 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			assert.deepStrictEqual(result, "Hello, { name }} and {{ place }");
 		});
+
+		it("should render empty string for non-serializable or symbolic values", () => {
+			const template = "{{ magic }}";
+			const context = { magic: Symbol("test") };
+			const result = templateEngine.compile(template, context);
+			assert.deepStrictEqual(result, "");
+		});
+
+		it("should render empty string if dot notation path hits non-object before reaching key", () => {
+			const template = "{{ user.name.first }}";
+			const context = { user: { name: "John" } }; // `name` is a string
+			const result = templateEngine.compile(template, context);
+			assert.deepStrictEqual(result, "");
+		});
 	});
 
 	describe("Input escape", () => {
@@ -397,6 +411,101 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			assert.deepStrictEqual(result, "FirstMiddle");
 		});
+
+		it("should treat 0 as falsy in conditionals", () => {
+			const template = "{% if count %}Has count{% else %}No count{% endif %}";
+			const context = { count: 0 };
+			const result = templateEngine.compile(template, context);
+			assert.deepStrictEqual(result, "No count");
+		});
+
+		it("should treat non-empty string as truthy in conditionals", () => {
+			const template =
+				"{% if username %}Hi, {{ username }}{% else %}Guest{% endif %}";
+			const context = { username: "Alice" };
+			const result = templateEngine.compile(template, context);
+			assert.deepStrictEqual(result, "Hi, Alice");
+		});
+
+		it("should treat empty string as falsy in conditionals", () => {
+			const template =
+				"{% if empty %}Has value{% else %}Empty string{% endif %}";
+			const context = { empty: "" };
+			const result = templateEngine.compile(template, context);
+			assert.deepStrictEqual(result, "Empty string");
+		});
+
+		describe("Conditionals - dot notation in if conditions", () => {
+			it("should evaluate truthy dot notation expressions correctly", () => {
+				const template =
+					"{% if items.length %}Items exist{% else %}No items{% endif %}";
+				const context = { items: [{ id: 1 }, { id: 2 }] };
+
+				const result = templateEngine.compile(template, context);
+
+				assert.deepStrictEqual(result, "Items exist");
+			});
+
+			it("should evaluate falsy dot notation expressions correctly when array is empty", () => {
+				const template =
+					"{% if items.length %}Items exist{% else %}No items{% endif %}";
+				const context = { items: [] };
+
+				const result = templateEngine.compile(template, context);
+
+				assert.deepStrictEqual(result, "No items");
+			});
+
+			it("should evaluate falsy dot notation expressions correctly when property is missing", () => {
+				const template =
+					"{% if items.length %}Items exist{% else %}No items{% endif %}";
+				const context = {};
+
+				const result = templateEngine.compile(template, context);
+
+				assert.deepStrictEqual(result, "No items");
+			});
+
+			it("should evaluate truthy deeply nested dot notation expressions", () => {
+				const template =
+					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
+				const context = { user: { profile: { name: "Alice" } } };
+
+				const result = templateEngine.compile(template, context);
+
+				assert.deepStrictEqual(result, "Hello");
+			});
+
+			it("should evaluate falsy deeply nested dot notation expressions when inner property is missing", () => {
+				const template =
+					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
+				const context = { user: { profile: {} } };
+
+				const result = templateEngine.compile(template, context);
+
+				assert.deepStrictEqual(result, "No name");
+			});
+
+			it("should evaluate falsy dot notation expressions when intermediate value is not an object", () => {
+				const template =
+					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
+				const context = { user: { profile: null } };
+
+				const result = templateEngine.compile(template, context);
+
+				assert.deepStrictEqual(result, "No name");
+			});
+
+			it("should evaluate falsy dot notation expressions when top-level key is not an object", () => {
+				const template =
+					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
+				const context = { user: "notAnObject" };
+
+				const result = templateEngine.compile(template, context);
+
+				assert.deepStrictEqual(result, "No name");
+			});
+		});
 	});
 
 	describe("Iterations", () => {
@@ -433,10 +542,26 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 		it("should render nothing when the collection variable is missing", () => {
 			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
-			const context = {}; // 'letters' not defined
+			const context = {};
 
 			const result = templateEngine.compile(template, context);
 
+			assert.deepStrictEqual(result, "");
+		});
+
+		it("should support dot notation in collection reference", () => {
+			const template =
+				"{% for item in user.items %}{{ item.name }} {% endfor %}";
+			const context = { user: { items: [{ name: "A" }, { name: "B" }] } };
+			const result = templateEngine.compile(template, context);
+			assert.deepStrictEqual(result.trim(), "A B");
+		});
+
+		it("should render nothing if dot-notated collection is undefined", () => {
+			const template =
+				"{% for item in user.items %}{{ item.name }} {% endfor %}";
+			const context = {}; // no user
+			const result = templateEngine.compile(template, context);
 			assert.deepStrictEqual(result, "");
 		});
 
@@ -453,32 +578,47 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		beforeEach(() => {
 			fileLoader.setTemplate(
 				"layout.html",
-				"<main>{% block content %}Default Content{% endblock content %}</main>",
+				"<header>{% block header %}Default Header{% endblock header %}</header><main>{% block content %}Default Content{% endblock content %}</main><footer>{% block footer %}Default Footer{% endblock footer %}</footer>",
 			);
 		});
 
-		it("should render default block content when no overrides are provided", () => {
-			const childTemplate = `{% extends "layout.html" %}`;
+		it("should render all overridden blocks correctly", () => {
+			const childTemplate = `{% extends "layout.html" %}
+			{% block header %}Custom Header{% endblock header %}
+			{% block content %}Custom Content{% endblock content %}
+			{% block footer %}Custom Footer{% endblock footer %}`;
 
 			const result = templateEngine.compile(childTemplate, {});
-
-			assert.deepStrictEqual(result, "<main>Default Content</main>");
-		});
-
-		it("should render mixed content with default block and overridden block", () => {
-			fileLoader.setTemplate(
-				"layout.html",
-				"<header>Default Header</header><main>{% block content %}Default Content{% endblock content %}</main>",
-			);
-
-			const childTemplate = `{% extends "layout.html" %}{% block content %}Overridden Content{% endblock content %}`;
-
-			const result = templateEngine.compile(childTemplate, {});
-
 			assert.deepStrictEqual(
 				result,
-				"<header>Default Header</header><main>Overridden Content</main>",
+				"<header>Custom Header</header><main>Custom Content</main><footer>Custom Footer</footer>",
 			);
 		});
+
+		it("should preserve default blocks if only some are overridden", () => {
+			const childTemplate = `{% extends "layout.html" %}
+			{% block content %}Only Content Changed{% endblock content %}`;
+
+			const result = templateEngine.compile(childTemplate, {});
+			assert.deepStrictEqual(
+				result,
+				"<header>Default Header</header><main>Only Content Changed</main><footer>Default Footer</footer>",
+			);
+		});
+
+		it("should preserve unknown blocks in the layout", () => {
+			const layoutWithExtraBlock =
+				"<main>{% block content %}Default Content{% endblock content %}</main>{% block sidebar %}Default Sidebar{% endblock sidebar %}";
+
+			fileLoader.setTemplate("layout.html", layoutWithExtraBlock);
+
+			const childTemplate = `{% extends "layout.html" %}
+			{% block content %}Main Page{% endblock content %}`;
+
+			const result = templateEngine.compile(childTemplate, {});
+			assert.deepStrictEqual(result, "<main>Main Page</main>Default Sidebar");
+		});
+
+		it.todo("should support nested layouts and override hierarchy");
 	});
 });

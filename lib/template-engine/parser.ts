@@ -23,7 +23,6 @@ export class Parser {
 		const stack: ASTNode[] = [];
 
 		for (const token of tokens) {
-			// Handle {% extends %} directive
 			if (token.type === "extends") {
 				const extendsNode: ASTNode = {
 					children: [],
@@ -34,7 +33,6 @@ export class Parser {
 				continue;
 			}
 
-			// Handle {% block %} directive
 			if (token.type === "block") {
 				const blockNode: ASTNode = {
 					children: [],
