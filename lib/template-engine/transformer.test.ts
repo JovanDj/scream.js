@@ -73,11 +73,11 @@ describe("Transformer: applyBlockOverrides()", { concurrency: true }, () => {
 			{ type: "text", value: "</main>", children: [], alternate: [] },
 		];
 
-		const childAST: ASTNode[] = []; // no block overrides
+		const childAST: ASTNode[] = [];
 
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
 
-		assert.deepStrictEqual(transformedAST, parentAST); // should remain unchanged
+		assert.deepStrictEqual(transformedAST, parentAST);
 	});
 
 	it("should preserve non-block nodes and only override matching blocks", () => {

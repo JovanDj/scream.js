@@ -103,7 +103,6 @@ export class Tokenizer {
 
 				const [iterator, , collection] = parts;
 
-				// Additional safety checks
 				if (!iterator || !collection) {
 					throw new Error(
 						"Invalid {% for %} syntax: Missing iterator or collection.",
