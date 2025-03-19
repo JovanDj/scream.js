@@ -51,6 +51,50 @@ describe("Generator", { concurrency: true }, () => {
 			const result = generator.generate(ast, context);
 			assert.deepStrictEqual(result, "Jane");
 		});
+
+		it("should render empty string for non-serializable or symbolic values", () => {
+			const ast: ASTNode[] = [
+				{ children: [], type: "variable", value: "weird" },
+			];
+			const context = { weird: Symbol("test") };
+			const result = generator.generate(ast, context);
+			assert.deepStrictEqual(result, "");
+		});
+
+		it("should render empty string for function values", () => {
+			const ast: ASTNode[] = [
+				{ children: [], type: "variable", value: "func" },
+			];
+			const context = { func: () => "hi" };
+			const result = generator.generate(ast, context);
+			assert.deepStrictEqual(result, "");
+		});
+
+		it("should render empty string for object values", () => {
+			const ast: ASTNode[] = [{ children: [], type: "variable", value: "obj" }];
+			const context = { obj: { a: 1 } };
+			const result = generator.generate(ast, context);
+			assert.deepStrictEqual(result, "");
+		});
+
+		it("should escape HTML special characters", () => {
+			const ast: ASTNode[] = [{ children: [], type: "variable", value: "xss" }];
+			const context = { xss: "<script>alert('x')</script>" };
+			const result = generator.generate(ast, context);
+			assert.deepStrictEqual(
+				result,
+				"&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;",
+			);
+		});
+
+		it("should not escape values that already look escaped", () => {
+			const ast: ASTNode[] = [
+				{ children: [], type: "variable", value: "safe" },
+			];
+			const context = { safe: "&lt;div&gt;" };
+			const result = generator.generate(ast, context);
+			assert.deepStrictEqual(result, "&lt;div&gt;");
+		});
 	});
 
 	describe("Generator - Conditional Nodes", () => {
@@ -89,6 +133,48 @@ describe("Generator", { concurrency: true }, () => {
 			const context = { isAdmin: false };
 			const result = generator.generate(ast, context);
 			assert.deepStrictEqual(result, "");
+		});
+
+		it("should treat number 0 as falsy", () => {
+			const ast: ASTNode[] = [
+				{
+					alternate: [{ children: [], type: "text", value: "Falsy" }],
+					children: [{ children: [], type: "text", value: "Truthy" }],
+					type: "if",
+					value: "zero",
+				},
+			];
+			const context = { zero: 0 };
+			const result = generator.generate(ast, context);
+			assert.deepStrictEqual(result, "Falsy");
+		});
+
+		it("should treat non-empty string as truthy", () => {
+			const ast: ASTNode[] = [
+				{
+					alternate: [{ children: [], type: "text", value: "Falsy" }],
+					children: [{ children: [], type: "text", value: "Truthy" }],
+					type: "if",
+					value: "str",
+				},
+			];
+			const context = { str: "hello" };
+			const result = generator.generate(ast, context);
+			assert.deepStrictEqual(result, "Truthy");
+		});
+
+		it("should treat empty string as falsy", () => {
+			const ast: ASTNode[] = [
+				{
+					alternate: [{ children: [], type: "text", value: "Falsy" }],
+					children: [{ children: [], type: "text", value: "Truthy" }],
+					type: "if",
+					value: "emptyStr",
+				},
+			];
+			const context = { emptyStr: "" };
+			const result = generator.generate(ast, context);
+			assert.deepStrictEqual(result, "Falsy");
 		});
 	});
 
@@ -133,6 +219,49 @@ describe("Generator", { concurrency: true }, () => {
 			const context = { items: null };
 			const result = generator.generate(ast, context);
 			assert.deepStrictEqual(result, "");
+		});
+
+		it("should support dot notation in collection reference", () => {
+			const ast: ASTNode[] = [
+				{
+					children: [{ children: [], type: "variable", value: "item" }],
+					iterator: "item",
+					type: "for",
+					value: "user.items",
+				},
+			];
+			const context = { user: { items: ["A", "B"] } };
+			const result = generator.generate(ast, context);
+			assert.deepStrictEqual(result, "AB");
+		});
+
+		it("should render nothing if dot-notated collection is undefined", () => {
+			const ast: ASTNode[] = [
+				{
+					children: [{ children: [], type: "variable", value: "item" }],
+					iterator: "item",
+					type: "for",
+					value: "missing.items",
+				},
+			];
+			const context = {};
+			const result = generator.generate(ast, context);
+			assert.deepStrictEqual(result, "");
+		});
+
+		it("should not leak iterator variable outside the for loop", () => {
+			const ast: ASTNode[] = [
+				{
+					children: [{ children: [], type: "variable", value: "item" }],
+					iterator: "item",
+					type: "for",
+					value: "items",
+				},
+				{ children: [], type: "variable", value: "item" },
+			];
+			const context = { items: ["X"] };
+			const result = generator.generate(ast, context);
+			assert.deepStrictEqual(result, "X");
 		});
 	});
 
@@ -211,6 +340,23 @@ describe("Generator", { concurrency: true }, () => {
 				output,
 				"<header>Default Header</header><main>Child Content</main><footer>Default Footer</footer>",
 			);
+		});
+
+		it("should preserve sibling block rendering order", () => {
+			const ast: ASTNode[] = [
+				{
+					children: [{ children: [], type: "text", value: "A" }],
+					type: "block",
+					value: "first",
+				},
+				{
+					children: [{ children: [], type: "text", value: "B" }],
+					type: "block",
+					value: "second",
+				},
+			];
+			const result = generator.generate(ast, {});
+			assert.deepStrictEqual(result, "AB");
 		});
 	});
 });

@@ -1,5 +1,9 @@
 import type { ASTNode } from "./parser.js";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
 export class Generator {
 	generate(ast: ASTNode[], context: Record<string, unknown>) {
 		return ast.map((node) => this.#generateNode(node, context)).join("");
@@ -15,18 +19,15 @@ export class Generator {
 		}
 
 		if (node.type === "variable") {
-			const keys = node.value.split(".");
-
-			const variableValue = keys.reduce((acc, key) => {
-				return acc[key] as Record<string, unknown>;
-			}, context);
+			const variableValue = this.#resolveValue(context, node.value);
 
 			if (
 				node.value === "" ||
-				variableValue === undefined ||
 				variableValue === null ||
+				variableValue === undefined ||
 				typeof variableValue === "object" ||
-				typeof variableValue === "function"
+				typeof variableValue === "function" ||
+				typeof variableValue === "symbol"
 			) {
 				return "";
 			}
@@ -35,7 +36,7 @@ export class Generator {
 		}
 
 		if (node.type === "if") {
-			const condition = !!context[node.value];
+			const condition = !!this.#resolveValue(context, node.value);
 			const branch = condition ? node.children : node.alternate;
 
 			if (!branch) {
@@ -49,14 +50,12 @@ export class Generator {
 		}
 
 		if (node.type === "for") {
-			const collection = context[node.value];
+			const collection = this.#resolveValue(context, node.value);
 
 			if (!Array.isArray(collection) || !node.iterator) {
-				// If collection is not an array or iterator is missing, return an empty string
 				return "";
 			}
 
-			// Map over the collection and render children for each iteration
 			return collection
 				.map((item) => {
 					const localContext = { ...context, [node.iterator ?? ""]: item };
@@ -81,5 +80,14 @@ export class Generator {
 			.replace(/>/g, "&gt;")
 			.replace(/"/g, "&quot;")
 			.replace(/'/g, "&#39;");
+	}
+
+	#resolveValue(context: Record<string, unknown>, path: string) {
+		return path.split(".").reduce<unknown>((obj, key) => {
+			if (isRecord(obj) && key in obj) {
+				return obj[key];
+			}
+			return undefined;
+		}, context);
 	}
 }

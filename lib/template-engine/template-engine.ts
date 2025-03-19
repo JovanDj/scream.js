@@ -44,7 +44,6 @@ export class ScreamTemplateEngine {
 		const parentTokens = this.#tokenizer.tokenize(parentTemplate);
 		const parentAST = this.#parser.parse(parentTokens);
 
-		// Step 3: Replace blocks in the parent AST with content from the child AST
 		const finalAst = this.#transformer.applyBlockOverrides(parentAST, ast);
 		return this.#generator.generate(finalAst, context);
 	}
