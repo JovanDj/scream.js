@@ -19,7 +19,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		fileLoader = new InMemoryFileLoader();
 		tokenizer = new Tokenizer();
 		parser = new Parser();
-		transformer = new Transformer(fileLoader, tokenizer, parser);
+		transformer = new Transformer();
 		generator = new Generator();
 		templateEngine = new ScreamTemplateEngine(
 			fileLoader,
