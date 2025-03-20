@@ -269,9 +269,9 @@ describe("Generator", { concurrency: true }, () => {
 		it("should render block content directly if not extended", () => {
 			const ast: ASTNode[] = [
 				{
+					children: [{ children: [], type: "text", value: "Wrapped content" }],
 					type: "block",
 					value: "content",
-					children: [{ type: "text", value: "Wrapped content", children: [] }],
 				},
 			];
 			const result = generator.generate(ast, {});
