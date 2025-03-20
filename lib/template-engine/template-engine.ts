@@ -1,6 +1,6 @@
 import type { FileLoader } from "./file-loader.js";
 import type { Generator } from "./generator.js";
-import type { Parser } from "./parser.js";
+import type { ASTNode, Parser } from "./parser.js";
 import type { Tokenizer } from "./tokenizer.js";
 import type { Transformer } from "./transformer.js";
 
@@ -25,8 +25,8 @@ export class ScreamTemplateEngine {
 		this.#generator = generator;
 	}
 
-	async compileFile(path: string, context: Record<string, unknown>) {
-		const template = await this.#fileLoader.loadFile(path);
+	compileFile(path: string, context: Record<string, unknown>) {
+		const template = this.#fileLoader.loadFile(path);
 
 		return this.compile(template, context);
 	}
@@ -35,16 +35,22 @@ export class ScreamTemplateEngine {
 		const tokens = this.#tokenizer.tokenize(template);
 		const ast = this.#parser.parse(tokens);
 
+		const finalAst = this.#checkExtends(ast);
+		return this.#generator.generate(finalAst, context);
+	}
+
+	#checkExtends(ast: ASTNode[]): ASTNode[] {
 		const extendsNode = ast.find((node) => node.type === "extends");
 		if (!extendsNode) {
-			return this.#generator.generate(ast, context);
+			return ast;
 		}
 
 		const parentTemplate = this.#fileLoader.loadFile(extendsNode.value);
 		const parentTokens = this.#tokenizer.tokenize(parentTemplate);
 		const parentAST = this.#parser.parse(parentTokens);
 
-		const finalAst = this.#transformer.applyBlockOverrides(parentAST, ast);
-		return this.#generator.generate(finalAst, context);
+		const mergedParent = this.#checkExtends(parentAST);
+
+		return this.#transformer.applyBlockOverrides(mergedParent, ast);
 	}
 }
