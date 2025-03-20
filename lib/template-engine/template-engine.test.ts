@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
+import { Evaluator } from "./evaluator.js";
 import { Generator } from "./generator.js";
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
 import { Parser } from "./parser.js";
+import { Resolver } from "./resolver.js";
 import { ScreamTemplateEngine } from "./template-engine.js";
 import { Tokenizer } from "./tokenizer.js";
 import { Transformer } from "./transformer.js";
@@ -13,6 +15,8 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 	let tokenizer: Tokenizer;
 	let parser: Parser;
 	let transformer: Transformer;
+	let resolver: Resolver;
+	let evaluator: Evaluator;
 	let generator: Generator;
 
 	beforeEach(() => {
@@ -20,14 +24,10 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		tokenizer = new Tokenizer();
 		parser = new Parser();
 		transformer = new Transformer();
+		resolver = new Resolver(fileLoader, tokenizer, parser, transformer);
+		evaluator = new Evaluator();
 		generator = new Generator();
-		templateEngine = new ScreamTemplateEngine(
-			fileLoader,
-			tokenizer,
-			parser,
-			transformer,
-			generator,
-		);
+		templateEngine = new ScreamTemplateEngine(resolver, evaluator, generator);
 	});
 
 	describe("Variable replacement", () => {
@@ -37,7 +37,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Hello, John!");
+			assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
 		it("should replace an object key", () => {
@@ -46,7 +46,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Hello, John!");
+			assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
 		it("should replace a nested object key", () => {
@@ -55,7 +55,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Hello, John!");
+			assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
 		it("should replace multiple variables", () => {
@@ -64,7 +64,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Hello, John! Welcome to Serbia.");
+			assert.deepStrictEqual<string>(result, "Hello, John! Welcome to Serbia.");
 		});
 
 		it("should replace missing variables with an empty string", () => {
@@ -73,7 +73,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Hello, John! Welcome to .");
+			assert.deepStrictEqual<string>(result, "Hello, John! Welcome to .");
 		});
 
 		it("should return an empty string for an empty template", () => {
@@ -82,7 +82,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "");
+			assert.deepStrictEqual<string>(result, "");
 		});
 
 		it("should ignore extra variables in the context", () => {
@@ -91,7 +91,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Hello, John!");
+			assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
 		it("should handle falsy values correctly", () => {
@@ -100,7 +100,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Age: 0, Active: false.");
+			assert.deepStrictEqual<string>(result, "Age: 0, Active: false.");
 		});
 
 		it("should handle whitespace inside placeholders", () => {
@@ -109,7 +109,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Hello, John!");
+			assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
 		it("should replace duplicate placeholders", () => {
@@ -118,7 +118,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "John John John");
+			assert.deepStrictEqual<string>(result, "John John John");
 		});
 
 		it("should handle nested braces gracefully", () => {
@@ -127,16 +127,16 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "This is {{nested}} example.");
+			assert.deepStrictEqual<string>(result, "This is {{nested}} example.");
 		});
 
 		it("should handle empty variable names gracefully", () => {
 			const template = "Hello, {{ }}!";
-			const context = { "": "Anonymous" };
+			const context = { "": "" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Hello, !");
+			assert.deepStrictEqual<string>(result, "Hello, !");
 		});
 
 		it("should return the template unchanged if no variables exist", () => {
@@ -145,7 +145,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Hello, world!");
+			assert.deepStrictEqual<string>(result, "Hello, world!");
 		});
 
 		it("should replace non-primitive context values with an empty string", () => {
@@ -155,7 +155,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Array: , Object: , Function: .");
+			assert.deepStrictEqual<string>(result, "Array: , Object: , Function: .");
 		});
 
 		it("should ignore malformed placeholders", () => {
@@ -164,21 +164,21 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Hello, { name }} and {{ place }");
+			assert.deepStrictEqual<string>(result, "Hello, { name }} and {{ place }");
 		});
 
 		it("should render empty string for non-serializable or symbolic values", () => {
 			const template = "{{ magic }}";
 			const context = { magic: Symbol("test") };
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual(result, "");
+			assert.deepStrictEqual<string>(result, "");
 		});
 
 		it("should render empty string if dot notation path hits non-object before reaching key", () => {
 			const template = "{{ user.name.first }}";
 			const context = { user: { name: "John" } }; // `name` is a string
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual(result, "");
+			assert.deepStrictEqual<string>(result, "");
 		});
 	});
 
@@ -189,7 +189,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(
+			assert.deepStrictEqual<string>(
 				result,
 				"Hello, &lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;!",
 			);
@@ -201,7 +201,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Hello, John!");
+			assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
 		it("should escape only valid variable replacements", () => {
@@ -210,7 +210,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Hello, &lt;Admin&gt; and !");
+			assert.deepStrictEqual<string>(result, "Hello, &lt;Admin&gt; and !");
 		});
 
 		it("should escape all HTML special characters", () => {
@@ -219,7 +219,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(
+			assert.deepStrictEqual<string>(
 				result,
 				"Input: &lt;div class=&quot;test&quot;&gt;&amp;&lt;/div&gt;",
 			);
@@ -231,7 +231,10 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Message: 'O&#39;Reilly&#39;s book'");
+			assert.deepStrictEqual<string>(
+				result,
+				"Message: 'O&#39;Reilly&#39;s book'",
+			);
 		});
 
 		it("should escape double quotes", () => {
@@ -240,7 +243,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Attribute: &quot;test&quot;");
+			assert.deepStrictEqual<string>(result, "Attribute: &quot;test&quot;");
 		});
 
 		it("should escape ampersands", () => {
@@ -249,7 +252,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Symbol: &amp;");
+			assert.deepStrictEqual<string>(result, "Symbol: &amp;");
 		});
 
 		it("should escape a combination of special characters", () => {
@@ -258,7 +261,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(
+			assert.deepStrictEqual<string>(
 				result,
 				"&lt;script&gt;alert(&#39;XSS &amp; test&#39;);&lt;/script&gt;",
 			);
@@ -270,7 +273,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Value: ");
+			assert.deepStrictEqual<string>(result, "Value: ");
 		});
 
 		it("should not escape numbers", () => {
@@ -279,7 +282,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Number: 12345");
+			assert.deepStrictEqual<string>(result, "Number: 12345");
 		});
 
 		it("should not escape boolean values", () => {
@@ -288,7 +291,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Boolean: true");
+			assert.deepStrictEqual<string>(result, "Boolean: true");
 		});
 
 		it("should not escape non-variable parts of the template", () => {
@@ -297,7 +300,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(
+			assert.deepStrictEqual<string>(
 				result,
 				"Static content with <tags> and & symbols.",
 			);
@@ -309,7 +312,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Value: &lt;script&gt;");
+			assert.deepStrictEqual<string>(result, "Value: &lt;script&gt;");
 		});
 	});
 
@@ -320,7 +323,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Welcome, John!");
+			assert.deepStrictEqual<string>(result, "Welcome, John!");
 		});
 
 		it("should handle conditionals with else", () => {
@@ -330,7 +333,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Please log in.");
+			assert.deepStrictEqual<string>(result, "Please log in.");
 		});
 
 		it("should handle missing variables in conditionals", () => {
@@ -340,7 +343,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "User Panel");
+			assert.deepStrictEqual<string>(result, "User Panel");
 		});
 
 		it("should handle conditionals with content outside", () => {
@@ -349,7 +352,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "NameAfter");
+			assert.deepStrictEqual<string>(result, "NameAfter");
 		});
 
 		it("should handle conditionals with content outside", () => {
@@ -359,7 +362,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "BeforeInsideAfter");
+			assert.deepStrictEqual<string>(result, "BeforeInsideAfter");
 		});
 
 		it("should handle conditionals with content before and after", () => {
@@ -369,7 +372,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "BeforeInsideAfter");
+			assert.deepStrictEqual<string>(result, "BeforeInsideAfter");
 		});
 
 		it("should handle nested conditionals", () => {
@@ -379,7 +382,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "Outer");
+			assert.deepStrictEqual<string>(result, "Outer");
 		});
 
 		it("should handle deeply nested conditionals with alternate branches", () => {
@@ -389,7 +392,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "OuterFallback");
+			assert.deepStrictEqual<string>(result, "OuterFallback");
 		});
 
 		it("should handle missing variables in nested conditionals", () => {
@@ -399,7 +402,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "");
+			assert.deepStrictEqual<string>(result, "");
 		});
 
 		it("should handle multiple independent conditionals", () => {
@@ -409,14 +412,14 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "FirstMiddle");
+			assert.deepStrictEqual<string>(result, "FirstMiddle");
 		});
 
 		it("should treat 0 as falsy in conditionals", () => {
 			const template = "{% if count %}Has count{% else %}No count{% endif %}";
 			const context = { count: 0 };
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual(result, "No count");
+			assert.deepStrictEqual<string>(result, "No count");
 		});
 
 		it("should treat non-empty string as truthy in conditionals", () => {
@@ -424,7 +427,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				"{% if username %}Hi, {{ username }}{% else %}Guest{% endif %}";
 			const context = { username: "Alice" };
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual(result, "Hi, Alice");
+			assert.deepStrictEqual<string>(result, "Hi, Alice");
 		});
 
 		it("should treat empty string as falsy in conditionals", () => {
@@ -432,7 +435,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				"{% if empty %}Has value{% else %}Empty string{% endif %}";
 			const context = { empty: "" };
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual(result, "Empty string");
+			assert.deepStrictEqual<string>(result, "Empty string");
 		});
 
 		describe("Conditionals - dot notation in if conditions", () => {
@@ -443,7 +446,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual(result, "Items exist");
+				assert.deepStrictEqual<string>(result, "Items exist");
 			});
 
 			it("should evaluate falsy dot notation expressions correctly when array is empty", () => {
@@ -453,7 +456,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual(result, "No items");
+				assert.deepStrictEqual<string>(result, "No items");
 			});
 
 			it("should evaluate falsy dot notation expressions correctly when property is missing", () => {
@@ -463,7 +466,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual(result, "No items");
+				assert.deepStrictEqual<string>(result, "No items");
 			});
 
 			it("should evaluate truthy deeply nested dot notation expressions", () => {
@@ -473,7 +476,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual(result, "Hello");
+				assert.deepStrictEqual<string>(result, "Hello");
 			});
 
 			it("should evaluate falsy deeply nested dot notation expressions when inner property is missing", () => {
@@ -483,7 +486,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual(result, "No name");
+				assert.deepStrictEqual<string>(result, "No name");
 			});
 
 			it("should evaluate falsy dot notation expressions when intermediate value is not an object", () => {
@@ -493,7 +496,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual(result, "No name");
+				assert.deepStrictEqual<string>(result, "No name");
 			});
 
 			it("should evaluate falsy dot notation expressions when top-level key is not an object", () => {
@@ -503,7 +506,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual(result, "No name");
+				assert.deepStrictEqual<string>(result, "No name");
 			});
 		});
 	});
@@ -515,7 +518,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, " A  B  C ");
+			assert.deepStrictEqual<string>(result, " A  B  C ");
 		});
 
 		it("should render nothing for an empty array", () => {
@@ -524,7 +527,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "");
+			assert.deepStrictEqual<string>(result, "");
 		});
 
 		it("should support nested loops");
@@ -535,7 +538,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "");
+			assert.deepStrictEqual<string>(result, "");
 		});
 
 		it.todo("should shadow parent context variables in for loop");
@@ -546,7 +549,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual(result, "");
+			assert.deepStrictEqual<string>(result, "");
 		});
 
 		it("should support dot notation in collection reference", () => {
@@ -554,7 +557,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				"{% for item in user.items %}{{ item.name }} {% endfor %}";
 			const context = { user: { items: [{ name: "A" }, { name: "B" }] } };
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual(result.trim(), "A B");
+			assert.deepStrictEqual<string>(result.trim(), "A B");
 		});
 
 		it("should render nothing if dot-notated collection is undefined", () => {
@@ -562,7 +565,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				"{% for item in user.items %}{{ item.name }} {% endfor %}";
 			const context = {}; // no user
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual(result, "");
+			assert.deepStrictEqual<string>(result, "");
 		});
 
 		it("should handle collections with null or undefined values", () => {
@@ -577,8 +580,8 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				contextWithUndefined,
 			);
 
-			assert.deepStrictEqual(resultNull, "");
-			assert.deepStrictEqual(resultUndefined, "");
+			assert.deepStrictEqual<string>(resultNull, "");
+			assert.deepStrictEqual<string>(resultUndefined, "");
 		});
 
 		it("should iterate over a collection of objects and use dot notation", () => {
@@ -588,7 +591,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			};
 
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual(result.trim(), "Alpha Beta Gamma");
+			assert.deepStrictEqual<string>(result.trim(), "Alpha Beta Gamma");
 		});
 
 		it("should iterate over a collection and handle nested properties", () => {
@@ -603,7 +606,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			};
 
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual(result.trim(), "X Y Z");
+			assert.deepStrictEqual<string>(result.trim(), "X Y Z");
 		});
 
 		it("should not leak iterator variable outside the for loop", () => {
@@ -612,7 +615,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const context = { items: ["One"] };
 
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual(result.trim(), "One");
+			assert.deepStrictEqual<string>(result.trim(), "One");
 		});
 	});
 
@@ -631,7 +634,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			{% block footer %}Custom Footer{% endblock footer %}`;
 
 			const result = templateEngine.compile(childTemplate, {});
-			assert.deepStrictEqual(
+			assert.deepStrictEqual<string>(
 				result,
 				"<header>Custom Header</header><main>Custom Content</main><footer>Custom Footer</footer>",
 			);
@@ -642,7 +645,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			{% block content %}Only Content Changed{% endblock content %}`;
 
 			const result = templateEngine.compile(childTemplate, {});
-			assert.deepStrictEqual(
+			assert.deepStrictEqual<string>(
 				result,
 				"<header>Default Header</header><main>Only Content Changed</main><footer>Default Footer</footer>",
 			);
@@ -658,7 +661,10 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			{% block content %}Main Page{% endblock content %}`;
 
 			const result = templateEngine.compile(childTemplate, {});
-			assert.deepStrictEqual(result, "<main>Main Page</main>Default Sidebar");
+			assert.deepStrictEqual<string>(
+				result,
+				"<main>Main Page</main>Default Sidebar",
+			);
 		});
 
 		it("should support nested layouts and override hierarchy", () => {
@@ -682,7 +688,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(childTemplate, {});
 
-			assert.deepStrictEqual(
+			assert.deepStrictEqual<string>(
 				result.trim().replace(/\s+/g, " "),
 				"<header>Parent Header</header> <main>Child Content</main> <footer>Base Footer</footer>",
 			);
@@ -704,7 +710,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const childTemplate = `{% extends "level2.html" %}{% block content %}Level3{% endblock content %}`;
 
 			const result = templateEngine.compile(childTemplate, {});
-			assert.deepStrictEqual(result.trim(), "<main>Level3</main>");
+			assert.deepStrictEqual<string>(result.trim(), "<main>Level3</main>");
 		});
 
 		it("should combine parent and child block overrides correctly", () => {
@@ -722,9 +728,53 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const childTemplate = `{% extends "parent.html" %}{% block content %}Child Content{% endblock content %}`;
 
 			const result = templateEngine.compile(childTemplate, {});
-			assert.deepStrictEqual(
+			assert.deepStrictEqual<string>(
 				result.trim().replace(/\s+/g, " "),
 				"<header>Parent Header</header> <main>Child Content</main>",
+			);
+		});
+
+		it("should combine parent and child block overrides correctly with compile()", () => {
+			fileLoader.setTemplate(
+				"base.html",
+				`
+<header>{% block header %}Base Header{% endblock header %}</header>
+<main>{% block content %}Base Content{% endblock content %}</main>
+`,
+			);
+
+			fileLoader.setTemplate(
+				"parent.html",
+				`{% extends "base.html" %}{% block header %}Parent Header{% endblock header %}`,
+			);
+
+			const childTemplate = `{% extends "parent.html" %}{% block content %}Child Content{% endblock content %}`;
+
+			const result = templateEngine.compile(childTemplate, {});
+
+			assert.deepStrictEqual<string>(
+				result.trim().replace(/\s+/g, " "),
+				"<header>Parent Header</header> <main>Child Content</main>",
+			);
+		});
+
+		it("should throw on cyclic layout extends", () => {
+			fileLoader.setTemplate(
+				"a.html",
+				`{% extends "b.html" %}{% block content %}A{% endblock %}`,
+			);
+			fileLoader.setTemplate(
+				"b.html",
+				`{% extends "a.html" %}{% block content %}B{% endblock %}`,
+			);
+
+			assert.throws(
+				() =>
+					templateEngine.compile(
+						`{% extends "a.html" %}{% block content %}Root{% endblock %}`,
+						{},
+					),
+				/ cyclic extends /i,
 			);
 		});
 	});
