@@ -1,22 +1,18 @@
 import type { ASTNode } from "./parser.js";
 
 export class Transformer {
-	applyBlockOverrides(parentAST: ASTNode[], childAST: ASTNode[]) {
+	applyBlockOverrides(parentAST: ASTNode[], childAST: ASTNode[]): ASTNode[] {
 		const childBlocks = childAST.filter((node) => node.type === "block");
 
 		return parentAST.map((node) => {
-			if (node.type !== "block") {
-				return node;
-			}
+			if (node.type !== "block") return node;
 
 			const override = childBlocks.find((b) => b.value === node.value);
-			if (!override) {
-				return node;
-			}
+			const newChildren = override?.children ?? node.children;
 
 			return {
 				...node,
-				children: [...override.children],
+				children: this.applyBlockOverrides(newChildren, childAST),
 			};
 		});
 	}
