@@ -565,13 +565,55 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			assert.deepStrictEqual(result, "");
 		});
 
-		it.todo("should handle collections with null or undefined values");
+		it("should handle collections with null or undefined values", () => {
+			const template = "{% for item in items %}{{ item }} {% endfor %}";
 
-		it.todo("should iterate over a collection of objects and use dot notation");
+			const contextWithNull = { items: null };
+			const contextWithUndefined = {};
 
-		it.todo("should iterate over a collection and handle nested properties");
+			const resultNull = templateEngine.compile(template, contextWithNull);
+			const resultUndefined = templateEngine.compile(
+				template,
+				contextWithUndefined,
+			);
 
-		it.todo("should not leak iterator variable outside the for loop");
+			assert.deepStrictEqual(resultNull, "");
+			assert.deepStrictEqual(resultUndefined, "");
+		});
+
+		it("should iterate over a collection of objects and use dot notation", () => {
+			const template = "{% for item in items %}{{ item.name }} {% endfor %}";
+			const context = {
+				items: [{ name: "Alpha" }, { name: "Beta" }, { name: "Gamma" }],
+			};
+
+			const result = templateEngine.compile(template, context);
+			assert.deepStrictEqual(result.trim(), "Alpha Beta Gamma");
+		});
+
+		it("should iterate over a collection and handle nested properties", () => {
+			const template =
+				"{% for item in items %}{{ item.meta.name }} {% endfor %}";
+			const context = {
+				items: [
+					{ meta: { name: "X" } },
+					{ meta: { name: "Y" } },
+					{ meta: { name: "Z" } },
+				],
+			};
+
+			const result = templateEngine.compile(template, context);
+			assert.deepStrictEqual(result.trim(), "X Y Z");
+		});
+
+		it("should not leak iterator variable outside the for loop", () => {
+			const template =
+				"{% for item in items %}{{ item }} {% endfor %}{{ item }}";
+			const context = { items: ["One"] };
+
+			const result = templateEngine.compile(template, context);
+			assert.deepStrictEqual(result.trim(), "One");
+		});
 	});
 
 	describe("Layouts", () => {
@@ -619,6 +661,71 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			assert.deepStrictEqual(result, "<main>Main Page</main>Default Sidebar");
 		});
 
-		it.todo("should support nested layouts and override hierarchy");
+		it("should support nested layouts and override hierarchy", () => {
+			fileLoader.setTemplate(
+				"base.html",
+				`
+				<header>{% block header %}Base Header{% endblock header %}</header>
+				<main>{% block content %}Base Content{% endblock content %}</main>
+				<footer>{% block footer %}Base Footer{% endblock footer %}</footer>
+    			`,
+			);
+
+			fileLoader.setTemplate(
+				"parent.html",
+				`{% extends "base.html" %}
+				{% block header %}Parent Header{% endblock header %}
+				{% block content %}Parent Content{% endblock content %}`,
+			);
+
+			const childTemplate = `{% extends "parent.html" %}{% block content %}Child Content{% endblock content %}`;
+
+			const result = templateEngine.compile(childTemplate, {});
+
+			assert.deepStrictEqual(
+				result.trim().replace(/\s+/g, " "),
+				"<header>Parent Header</header> <main>Child Content</main> <footer>Base Footer</footer>",
+			);
+		});
+
+		it("should support 4-level nested layout inheritance", () => {
+			fileLoader.setTemplate(
+				"base.html",
+				"<main>{% block content %}Base{% endblock content %}</main>",
+			);
+			fileLoader.setTemplate(
+				"level1.html",
+				`{% extends "base.html" %}{% block content %}Level1{% endblock content %}`,
+			);
+			fileLoader.setTemplate(
+				"level2.html",
+				`{% extends "level1.html" %}{% block content %}Level2{% endblock content %}`,
+			);
+			const childTemplate = `{% extends "level2.html" %}{% block content %}Level3{% endblock content %}`;
+
+			const result = templateEngine.compile(childTemplate, {});
+			assert.deepStrictEqual(result.trim(), "<main>Level3</main>");
+		});
+
+		it("should combine parent and child block overrides correctly", () => {
+			fileLoader.setTemplate(
+				"base.html",
+				`
+    <header>{% block header %}Base Header{% endblock header %}</header>
+    <main>{% block content %}Base Content{% endblock content %}</main>
+  `,
+			);
+			fileLoader.setTemplate(
+				"parent.html",
+				`{% extends "base.html" %}{% block header %}Parent Header{% endblock header %}`,
+			);
+			const childTemplate = `{% extends "parent.html" %}{% block content %}Child Content{% endblock content %}`;
+
+			const result = templateEngine.compile(childTemplate, {});
+			assert.deepStrictEqual(
+				result.trim().replace(/\s+/g, " "),
+				"<header>Parent Header</header> <main>Child Content</main>",
+			);
+		});
 	});
 });

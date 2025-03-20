@@ -266,6 +266,18 @@ describe("Generator", { concurrency: true }, () => {
 	});
 
 	describe("Layouts", () => {
+		it("should render block content directly if not extended", () => {
+			const ast: ASTNode[] = [
+				{
+					type: "block",
+					value: "content",
+					children: [{ type: "text", value: "Wrapped content", children: [] }],
+				},
+			];
+			const result = generator.generate(ast, {});
+			assert.deepStrictEqual(result, "Wrapped content");
+		});
+
 		it("should generate content for simple and nested blocks", () => {
 			const ast: ASTNode[] = [
 				{ children: [], type: "text", value: "<main>" },
