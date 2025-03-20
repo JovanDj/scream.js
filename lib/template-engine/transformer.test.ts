@@ -158,4 +158,122 @@ describe("Transformer: applyBlockOverrides()", { concurrency: true }, () => {
 
 		assert.deepStrictEqual(transformedAST, expectedAST);
 	});
+
+	it("should support nested blocks and override inner block only", () => {
+		const parentAST: ASTNode[] = [
+			{ type: "text", value: "<main>", children: [], alternate: [] },
+			{
+				type: "block",
+				value: "content",
+				children: [
+					{ type: "text", value: "<section>", children: [], alternate: [] },
+					{
+						type: "block",
+						value: "inner",
+						children: [
+							{
+								type: "text",
+								value: "Default Inner",
+								children: [],
+								alternate: [],
+							},
+						],
+					},
+					{ type: "text", value: "</section>", children: [], alternate: [] },
+				],
+			},
+			{ type: "text", value: "</main>", children: [], alternate: [] },
+		];
+
+		const childAST: ASTNode[] = [
+			{
+				type: "block",
+				value: "inner",
+				children: [
+					{
+						type: "text",
+						value: "Overridden Inner",
+						children: [],
+						alternate: [],
+					},
+				],
+			},
+		];
+
+		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
+
+		const expectedAST: ASTNode[] = [
+			{ type: "text", value: "<main>", children: [], alternate: [] },
+			{
+				type: "block",
+				value: "content",
+				children: [
+					{ type: "text", value: "<section>", children: [], alternate: [] },
+					{
+						type: "block",
+						value: "inner",
+						children: [
+							{
+								type: "text",
+								value: "Overridden Inner",
+								children: [],
+								alternate: [],
+							},
+						],
+					},
+					{ type: "text", value: "</section>", children: [], alternate: [] },
+				],
+			},
+			{ type: "text", value: "</main>", children: [], alternate: [] },
+		];
+
+		assert.deepStrictEqual(transformedAST, expectedAST);
+	});
+
+	it("should leave unmatched child blocks unused", () => {
+		const parentAST: ASTNode[] = [
+			{
+				type: "text",
+				value: "<p>No blocks here</p>",
+				children: [],
+				alternate: [],
+			},
+		];
+
+		const childAST: ASTNode[] = [
+			{
+				type: "block",
+				value: "content",
+				children: [
+					{ type: "text", value: "Unused block", children: [], alternate: [] },
+				],
+			},
+		];
+
+		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
+
+		assert.deepStrictEqual(transformedAST, parentAST);
+	});
+
+	it("should handle empty children array gracefully", () => {
+		const parentAST: ASTNode[] = [
+			{ type: "block", value: "content", children: [], alternate: [] },
+		];
+
+		const childAST: ASTNode[] = [
+			{
+				type: "block",
+				value: "content",
+				children: [],
+			},
+		];
+
+		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
+
+		const expectedAST: ASTNode[] = [
+			{ type: "block", value: "content", children: [], alternate: [] },
+		];
+
+		assert.deepStrictEqual(transformedAST, expectedAST);
+	});
 });
