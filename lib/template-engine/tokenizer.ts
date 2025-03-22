@@ -12,134 +12,120 @@ export type Token =
 
 export class Tokenizer {
 	tokenize(template: string) {
-		const tokens: Token[] = [];
-		let index = 0;
+		return this.#tokenize(template, 0, []);
+	}
 
-		while (index < template.length) {
-			if (template.startsWith("{% extends", index)) {
-				const endIndex = template.indexOf("%}", index);
-				const layoutName = template
-					.slice(index + "{% extends".length, endIndex)
-					.trim()
-					.replaceAll('"', "");
-				tokens.push({ type: "extends", value: layoutName });
-				index = endIndex + "%}".length;
-				continue;
-			}
-
-			if (template.startsWith("{% block", index)) {
-				const endIndex = template.indexOf("%}", index);
-				const blockName = template
-					.slice(index + "{% block".length, endIndex)
-					.trim();
-
-				tokens.push({ type: "block", value: blockName });
-				index = endIndex + "%}".length;
-				continue;
-			}
-
-			if (template.startsWith("{% endblock", index)) {
-				const endIndex = template.indexOf("%}", index);
-				tokens.push({ type: "endblock", value: "" });
-				index = endIndex + "%}".length;
-				continue;
-			}
-
-			if (template.startsWith("{% if", index)) {
-				const { token, nextIndex } = this.#extractConditionToken(
-					template,
-					index,
-				);
-				tokens.push(token);
-				index = nextIndex;
-				continue;
-			}
-
-			if (template.startsWith("{% else %}", index)) {
-				const { token, nextIndex } = this.#extractElseToken(index);
-				tokens.push(token);
-				index = nextIndex;
-				continue;
-			}
-
-			if (template.startsWith("{% endif %}", index)) {
-				const { token, nextIndex } = this.#extractEndIfToken(index);
-				tokens.push(token);
-				index = nextIndex;
-				continue;
-			}
-
-			if (this.#isVariableStart(template, index)) {
-				const { token, nextIndex } = this.#extractVariableToken(
-					template,
-					index,
-				);
-				tokens.push(token);
-				index = nextIndex;
-				continue;
-			}
-
-			if (template.startsWith("{% for", index)) {
-				const startTag = "{% for";
-				const endTag = "%}";
-
-				const endIndex = template.indexOf(endTag, index);
-
-				if (endIndex === -1) {
-					throw new Error("Unclosed {% for %} block in template.");
-				}
-
-				const loopContent = template
-					.slice(index + startTag.length, endIndex)
-					.trim();
-
-				const parts = loopContent.split(/\s+/);
-
-				if (parts.length !== 3 || parts[1] !== "in") {
-					throw new Error(
-						"Invalid syntax in {% for %} tag. Use '{% for item in collection %}'.",
-					);
-				}
-
-				const [iterator, , collection] = parts;
-
-				if (!iterator || !collection) {
-					throw new Error(
-						"Invalid {% for %} syntax: Missing iterator or collection.",
-					);
-				}
-
-				const token: Token = { type: "for", value: collection, iterator };
-
-				tokens.push(token);
-				index = endIndex + endTag.length;
-				continue;
-			}
-
-			if (template.startsWith("{% endfor %}", index)) {
-				const endTag = "%}";
-				const endIndex = template.indexOf(endTag, index);
-
-				if (endIndex === -1) {
-					throw new Error("Unclosed {% endfor %} block in template.");
-				}
-
-				const token: Token = { type: "endfor", value: "" };
-
-				tokens.push(token);
-				index = endIndex + endTag.length;
-				continue;
-			}
-
-			const { token, nextIndex } = this.#extractTextToken(template, index);
-
-			if (token) {
-				tokens.push(token);
-			}
-			index = nextIndex;
+	#tokenize(
+		template: string,
+		index: number,
+		acc: readonly Token[],
+	): readonly Token[] {
+		if (index >= template.length) {
+			return acc;
 		}
 
-		return tokens;
+		if (template.startsWith("{% extends", index)) {
+			const endIndex = template.indexOf("%}", index);
+			const layoutName = template
+				.slice(index + "{% extends".length, endIndex)
+				.trim()
+				.replaceAll('"', "");
+
+			return this.#tokenize(template, endIndex + 2, [
+				...acc,
+				{ type: "extends", value: layoutName },
+			]);
+		}
+
+		if (template.startsWith("{% block", index)) {
+			const endIndex = template.indexOf("%}", index);
+			const blockName = template
+				.slice(index + "{% block".length, endIndex)
+				.trim();
+
+			return this.#tokenize(template, endIndex + 2, [
+				...acc,
+				{ type: "block", value: blockName },
+			]);
+		}
+
+		if (template.startsWith("{% endblock", index)) {
+			const endIndex = template.indexOf("%}", index);
+			return this.#tokenize(template, endIndex + 2, [
+				...acc,
+				{ type: "endblock", value: "" },
+			]);
+		}
+
+		if (template.startsWith("{% if", index)) {
+			const { token, nextIndex } = this.#extractConditionToken(template, index);
+			return this.#tokenize(template, nextIndex, [...acc, token]);
+		}
+
+		if (template.startsWith("{% else %}", index)) {
+			const { token, nextIndex } = this.#extractElseToken(index);
+			return this.#tokenize(template, nextIndex, [...acc, token]);
+		}
+
+		if (template.startsWith("{% endif %}", index)) {
+			const { token, nextIndex } = this.#extractEndIfToken(index);
+			return this.#tokenize(template, nextIndex, [...acc, token]);
+		}
+
+		if (this.#isVariableStart(template, index)) {
+			const { token, nextIndex } = this.#extractVariableToken(template, index);
+			return this.#tokenize(template, nextIndex, [...acc, token]);
+		}
+
+		if (template.startsWith("{% for", index)) {
+			const startTag = "{% for";
+			const endTag = "%}";
+			const endIndex = template.indexOf(endTag, index);
+
+			if (endIndex === -1) {
+				throw new Error("Unclosed {% for %} block in template.");
+			}
+
+			const loopContent = template
+				.slice(index + startTag.length, endIndex)
+				.trim();
+
+			const parts = loopContent.split(/\s+/);
+
+			if (parts.length !== 3 || parts[1] !== "in")
+				throw new Error(
+					"Invalid syntax in {% for %} tag. Use '{% for item in collection %}'.",
+				);
+
+			const [iterator, , collection] = parts;
+
+			if (!iterator || !collection)
+				throw new Error(
+					"Invalid {% for %} syntax: Missing iterator or collection.",
+				);
+
+			return this.#tokenize(template, endIndex + endTag.length, [
+				...acc,
+				{ type: "for", value: collection, iterator },
+			]);
+		}
+
+		if (template.startsWith("{% endfor %}", index)) {
+			const endTag = "%}";
+			const endIndex = template.indexOf(endTag, index);
+
+			if (endIndex === -1) {
+				throw new Error("Unclosed {% endfor %} block in template.");
+			}
+
+			return this.#tokenize(template, endIndex + endTag.length, [
+				...acc,
+				{ type: "endfor", value: "" },
+			]);
+		}
+
+		const { token, nextIndex } = this.#extractTextToken(template, index);
+		return this.#tokenize(template, nextIndex, token ? [...acc, token] : acc);
 	}
 
 	#extractConditionToken(template: string, startIndex: number) {
@@ -147,28 +133,17 @@ export class Tokenizer {
 		const condition = template.slice(startIndex + 5, endIndex).trim();
 		const token: Token = { type: "if", value: condition };
 
-		return {
-			token,
-			nextIndex: endIndex + 2,
-		};
+		return { token, nextIndex: endIndex + 2 };
 	}
 
 	#extractElseToken(startIndex: number) {
 		const token: Token = { type: "else", value: "" };
-
-		return {
-			token,
-			nextIndex: startIndex + 10,
-		};
+		return { token, nextIndex: startIndex + 10 };
 	}
 
 	#extractEndIfToken(startIndex: number) {
 		const token: Token = { type: "endif", value: "" };
-
-		return {
-			token,
-			nextIndex: startIndex + 11,
-		};
+		return { token, nextIndex: startIndex + 11 };
 	}
 
 	#isVariableStart(template: string, index: number) {
@@ -177,25 +152,16 @@ export class Tokenizer {
 
 	#extractVariableToken(template: string, startIndex: number) {
 		const endIndex = template.indexOf("}}", startIndex);
-		if (endIndex === -1) {
-			const token: Token = {
-				type: "text",
-				value: template.slice(startIndex),
-			};
 
-			return {
-				token,
-				nextIndex: template.length,
-			};
+		if (endIndex === -1) {
+			const token: Token = { type: "text", value: template.slice(startIndex) };
+			return { token, nextIndex: template.length };
 		}
 
 		const variable = template.slice(startIndex + 2, endIndex).trim();
 		const token: Token = { type: "variable", value: variable || "" };
 
-		return {
-			token,
-			nextIndex: endIndex + 2,
-		};
+		return { token, nextIndex: endIndex + 2 };
 	}
 
 	#extractTextToken(template: string, startIndex: number) {
@@ -207,12 +173,8 @@ export class Tokenizer {
 		);
 
 		const text = template.slice(startIndex, endIndex);
-
 		const token: Token = { type: "text", value: text };
 
-		return {
-			token,
-			nextIndex: endIndex,
-		};
+		return { token, nextIndex: endIndex };
 	}
 }
