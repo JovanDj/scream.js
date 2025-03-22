@@ -12,7 +12,7 @@ describe("Generator", { concurrency: true }, () => {
 
 	describe("Text nodes", () => {
 		it("should return the text value of a text node", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{ type: "text", value: "Hello, World!", children: [] },
 			];
 			const result = generator.generate(ast, {});
@@ -20,7 +20,9 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should handle empty text nodes", () => {
-			const ast: ASTNode[] = [{ type: "text", value: "", children: [] }];
+			const ast: readonly ASTNode[] = [
+				{ type: "text", value: "", children: [] },
+			];
 			const result = generator.generate(ast, {});
 			assert.deepStrictEqual(result, "");
 		});
@@ -28,7 +30,7 @@ describe("Generator", { concurrency: true }, () => {
 
 	describe("Variable nodes", () => {
 		it("should replace a single variable", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "name", children: [] },
 			];
 			const context = { name: "John" };
@@ -37,14 +39,16 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should return an empty string for undefined variables", () => {
-			const ast: ASTNode[] = [{ type: "variable", value: "age", children: [] }];
+			const ast: readonly ASTNode[] = [
+				{ type: "variable", value: "age", children: [] },
+			];
 			const context = {};
 			const result = generator.generate(ast, context);
 			assert.deepStrictEqual(result, "");
 		});
 
 		it("should handle nested variables", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "user.name", children: [] },
 			];
 			const context = { user: { name: "Jane" } };
@@ -53,7 +57,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should render empty string for non-serializable or symbolic values", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "weird", children: [] },
 			];
 			const context = { weird: Symbol("test") };
@@ -62,7 +66,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should render empty string for function values", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "func", children: [] },
 			];
 			const context = { func: () => "hi" };
@@ -71,14 +75,18 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should render empty string for object values", () => {
-			const ast: ASTNode[] = [{ type: "variable", value: "obj", children: [] }];
+			const ast: readonly ASTNode[] = [
+				{ type: "variable", value: "obj", children: [] },
+			];
 			const context = { obj: { a: 1 } };
 			const result = generator.generate(ast, context);
 			assert.deepStrictEqual(result, "");
 		});
 
 		it("should escape HTML special characters", () => {
-			const ast: ASTNode[] = [{ type: "variable", value: "xss", children: [] }];
+			const ast: readonly ASTNode[] = [
+				{ type: "variable", value: "xss", children: [] },
+			];
 			const context = { xss: "<script>alert('x')</script>" };
 			const result = generator.generate(ast, context);
 			assert.deepStrictEqual(
@@ -88,7 +96,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should not escape values that already look escaped", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "safe", children: [] },
 			];
 			const context = { safe: "&lt;div&gt;" };
@@ -99,7 +107,7 @@ describe("Generator", { concurrency: true }, () => {
 
 	describe("Generator - Conditional Nodes", () => {
 		it("should render the children of an if node when the condition is true", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "if",
 					value: "isAdmin",
@@ -113,7 +121,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should render the alternate of an if node when the condition is false", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "if",
 					value: "isAdmin",
@@ -127,7 +135,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should render nothing if there are no children or alternate", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{ type: "if", value: "isAdmin", children: [], alternate: [] },
 			];
 			const context = { isAdmin: false };
@@ -136,7 +144,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should treat number 0 as falsy", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "if",
 					value: "zero",
@@ -150,7 +158,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should treat non-empty string as truthy", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "if",
 					value: "str",
@@ -164,7 +172,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should treat empty string as falsy", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "if",
 					value: "emptyStr",
@@ -180,7 +188,7 @@ describe("Generator", { concurrency: true }, () => {
 
 	describe("Generator - Loop Nodes", () => {
 		it("should iterate over an array and render the children for each item", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "for",
 					value: "items",
@@ -194,7 +202,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should render nothing for an empty array", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "for",
 					value: "items",
@@ -208,7 +216,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should render nothing for non-array values", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "for",
 					value: "items",
@@ -222,7 +230,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should support dot notation in collection reference", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "for",
 					value: "user.items",
@@ -236,7 +244,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should render nothing if dot-notated collection is undefined", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "for",
 					value: "missing.items",
@@ -250,7 +258,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should not leak iterator variable outside the for loop", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "for",
 					value: "items",
@@ -267,7 +275,7 @@ describe("Generator", { concurrency: true }, () => {
 
 	describe("Layouts", () => {
 		it("should render block content directly if not extended", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "block",
 					value: "content",
@@ -279,7 +287,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should generate content for simple and nested blocks", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{ type: "text", value: "<main>", children: [] },
 				{
 					type: "block",
@@ -293,7 +301,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should generate default block content if no child overrides", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{ type: "text", value: "<main>", children: [] },
 				{
 					type: "block",
@@ -308,7 +316,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should generate overridden block content", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{ type: "text", value: "<main>", children: [] },
 				{
 					type: "block",
@@ -323,7 +331,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should generate mixed content with overridden and default blocks", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{ type: "text", value: "<header>", children: [] },
 				{
 					type: "block",
@@ -355,7 +363,7 @@ describe("Generator", { concurrency: true }, () => {
 		});
 
 		it("should preserve sibling block rendering order", () => {
-			const ast: ASTNode[] = [
+			const ast: readonly ASTNode[] = [
 				{
 					type: "block",
 					value: "first",

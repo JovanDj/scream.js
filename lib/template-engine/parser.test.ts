@@ -277,5 +277,62 @@ describe("Parser", { concurrency: true }, () => {
 				},
 			]);
 		});
+
+		it("should not insert the block node as its own child", () => {
+			const tokens: Token[] = [
+				{ type: "block", value: "content" },
+				{ type: "text", value: "Inside block" },
+				{ type: "endblock", value: "content" },
+			];
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual(ast, [
+				{
+					type: "block",
+					value: "content",
+					children: [
+						{
+							type: "text",
+							value: "Inside block",
+							children: [],
+							alternate: [],
+						},
+					],
+				},
+			]);
+		});
+
+		it("should not nest a block inside another block's children", () => {
+			const tokens: Token[] = [
+				{ type: "block", value: "outer" },
+				{ type: "block", value: "inner" },
+				{ type: "text", value: "Hello" },
+				{ type: "endblock", value: "inner" },
+				{ type: "endblock", value: "outer" },
+			];
+
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual(ast, [
+				{
+					type: "block",
+					value: "outer",
+					children: [
+						{
+							type: "block",
+							value: "inner",
+							children: [
+								{
+									type: "text",
+									value: "Hello",
+									children: [],
+									alternate: [],
+								},
+							],
+						},
+					],
+				},
+			]);
+		});
 	});
 });

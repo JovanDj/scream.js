@@ -11,7 +11,7 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	it("should replace blocks in the parent template with child content", () => {
-		const parentAST: ASTNode[] = [
+		const parentAST: readonly ASTNode[] = [
 			{ type: "text", value: "<main>", children: [], alternate: [] },
 			{
 				type: "block",
@@ -28,7 +28,7 @@ describe("Transformer", { concurrency: true }, () => {
 			{ type: "text", value: "</main>", children: [], alternate: [] },
 		];
 
-		const childAST: ASTNode[] = [
+		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "content",
@@ -40,7 +40,7 @@ describe("Transformer", { concurrency: true }, () => {
 
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
 
-		const expectedAST: ASTNode[] = [
+		const expectedAST: readonly ASTNode[] = [
 			{ type: "text", value: "<main>", children: [], alternate: [] },
 			{
 				type: "block",
@@ -56,7 +56,7 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	it("should retain default block content if no overrides are provided", () => {
-		const parentAST: ASTNode[] = [
+		const parentAST: readonly ASTNode[] = [
 			{ type: "text", value: "<main>", children: [], alternate: [] },
 			{
 				type: "block",
@@ -73,7 +73,7 @@ describe("Transformer", { concurrency: true }, () => {
 			{ type: "text", value: "</main>", children: [], alternate: [] },
 		];
 
-		const childAST: ASTNode[] = [];
+		const childAST: readonly ASTNode[] = [];
 
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
 
@@ -81,7 +81,7 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	it("should preserve non-block nodes and only override matching blocks", () => {
-		const parentAST: ASTNode[] = [
+		const parentAST: readonly ASTNode[] = [
 			{ type: "text", value: "<main>", children: [], alternate: [] },
 			{
 				type: "block",
@@ -110,7 +110,7 @@ describe("Transformer", { concurrency: true }, () => {
 			{ type: "text", value: "</main>", children: [], alternate: [] },
 		];
 
-		const childAST: ASTNode[] = [
+		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "content",
@@ -127,7 +127,7 @@ describe("Transformer", { concurrency: true }, () => {
 
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
 
-		const expectedAST: ASTNode[] = [
+		const expectedAST: readonly ASTNode[] = [
 			{ type: "text", value: "<main>", children: [], alternate: [] },
 			{
 				type: "block",
@@ -160,7 +160,7 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	it("should support nested blocks and override inner block only", () => {
-		const parentAST: ASTNode[] = [
+		const parentAST: readonly ASTNode[] = [
 			{ type: "text", value: "<main>", children: [], alternate: [] },
 			{
 				type: "block",
@@ -185,7 +185,7 @@ describe("Transformer", { concurrency: true }, () => {
 			{ type: "text", value: "</main>", children: [], alternate: [] },
 		];
 
-		const childAST: ASTNode[] = [
+		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "inner",
@@ -202,7 +202,7 @@ describe("Transformer", { concurrency: true }, () => {
 
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
 
-		const expectedAST: ASTNode[] = [
+		const expectedAST: readonly ASTNode[] = [
 			{ type: "text", value: "<main>", children: [], alternate: [] },
 			{
 				type: "block",
@@ -231,7 +231,7 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	it("should leave unmatched child blocks unused", () => {
-		const parentAST: ASTNode[] = [
+		const parentAST: readonly ASTNode[] = [
 			{
 				type: "text",
 				value: "<p>No blocks here</p>",
@@ -240,7 +240,7 @@ describe("Transformer", { concurrency: true }, () => {
 			},
 		];
 
-		const childAST: ASTNode[] = [
+		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "content",
@@ -256,11 +256,11 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	it("should handle empty children array gracefully", () => {
-		const parentAST: ASTNode[] = [
+		const parentAST: readonly ASTNode[] = [
 			{ type: "block", value: "content", children: [], alternate: [] },
 		];
 
-		const childAST: ASTNode[] = [
+		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "content",
@@ -270,7 +270,7 @@ describe("Transformer", { concurrency: true }, () => {
 
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
 
-		const expectedAST: ASTNode[] = [
+		const expectedAST: readonly ASTNode[] = [
 			{ type: "block", value: "content", children: [], alternate: [] },
 		];
 
@@ -278,7 +278,7 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	it("should override top-level blocks in grandparent layout", () => {
-		const grandParentAST: ASTNode[] = [
+		const grandParentAST: readonly ASTNode[] = [
 			{ type: "text", value: "<html>", children: [], alternate: [] },
 			{
 				type: "block",
@@ -303,7 +303,7 @@ describe("Transformer", { concurrency: true }, () => {
 			{ type: "text", value: "</html>", children: [], alternate: [] },
 		];
 
-		const parentAST: ASTNode[] = [
+		const parentAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "content",
@@ -318,7 +318,7 @@ describe("Transformer", { concurrency: true }, () => {
 			},
 		];
 
-		const childAST: ASTNode[] = [
+		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "content",
@@ -341,7 +341,7 @@ describe("Transformer", { concurrency: true }, () => {
 		// Step 2: apply child override on result
 		const finalAST = transformer.applyBlockOverrides(intermediateAST, childAST);
 
-		const expectedAST: ASTNode[] = [
+		const expectedAST: readonly ASTNode[] = [
 			{ type: "text", value: "<html>", children: [], alternate: [] },
 			{
 				type: "block",
@@ -370,7 +370,7 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	it("should preserve nested default content when not overridden in child layout", () => {
-		const grandParentAST: ASTNode[] = [
+		const grandParentAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "outer",
@@ -393,7 +393,7 @@ describe("Transformer", { concurrency: true }, () => {
 			},
 		];
 
-		const parentAST: ASTNode[] = [
+		const parentAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "outer",
@@ -416,14 +416,14 @@ describe("Transformer", { concurrency: true }, () => {
 			},
 		];
 
-		const childAST: ASTNode[] = [];
+		const childAST: readonly ASTNode[] = [];
 
 		const finalAST = transformer.applyBlockOverrides(
 			transformer.applyBlockOverrides(grandParentAST, parentAST),
 			childAST,
 		);
 
-		const expectedAST: ASTNode[] = [
+		const expectedAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "outer",
@@ -450,7 +450,7 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	it("should override nested inner block from child even if parent doesn't override outer", () => {
-		const grandParentAST: ASTNode[] = [
+		const grandParentAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "outer",
@@ -466,9 +466,9 @@ describe("Transformer", { concurrency: true }, () => {
 			},
 		];
 
-		const parentAST: ASTNode[] = []; // no overrides
+		const parentAST: readonly ASTNode[] = []; // no overrides
 
-		const childAST: ASTNode[] = [
+		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "inner",
@@ -481,7 +481,7 @@ describe("Transformer", { concurrency: true }, () => {
 			childAST,
 		);
 
-		const expectedAST: ASTNode[] = [
+		const expectedAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "outer",
@@ -501,7 +501,7 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	it("should allow overriding parent outer block and child inner block independently", () => {
-		const grandParentAST: ASTNode[] = [
+		const grandParentAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "outer",
@@ -517,7 +517,7 @@ describe("Transformer", { concurrency: true }, () => {
 			},
 		];
 
-		const parentAST: ASTNode[] = [
+		const parentAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "outer",
@@ -533,7 +533,7 @@ describe("Transformer", { concurrency: true }, () => {
 			},
 		];
 
-		const childAST: ASTNode[] = [
+		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "inner",
@@ -547,7 +547,7 @@ describe("Transformer", { concurrency: true }, () => {
 		);
 		const finalAST = transformer.applyBlockOverrides(intermediate, childAST);
 
-		const expectedAST: ASTNode[] = [
+		const expectedAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "outer",
@@ -567,7 +567,7 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	it("should ignore unused block overrides in child layout", () => {
-		const grandParentAST: ASTNode[] = [
+		const grandParentAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "content",
@@ -575,9 +575,9 @@ describe("Transformer", { concurrency: true }, () => {
 			},
 		];
 
-		const parentAST: ASTNode[] = [];
+		const parentAST: readonly ASTNode[] = [];
 
-		const childAST: ASTNode[] = [
+		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "nonexistent",
@@ -590,7 +590,7 @@ describe("Transformer", { concurrency: true }, () => {
 			childAST,
 		);
 
-		const expectedAST: ASTNode[] = [
+		const expectedAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "content",
@@ -602,14 +602,14 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	it("should not mutate original AST nodes when applying overrides", () => {
-		const baseAST: ASTNode[] = [
+		const baseAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "main",
 				children: [{ type: "text", value: "Base", children: [] }],
 			},
 		];
-		const overrideAST: ASTNode[] = [
+		const overrideAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "main",

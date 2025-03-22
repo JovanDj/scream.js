@@ -1,7 +1,7 @@
 import type { Token } from "./tokenizer.js";
 
 export type ASTNode = {
-	type:
+	readonly type:
 		| "text"
 		| "variable"
 		| "if"
@@ -11,160 +11,196 @@ export type ASTNode = {
 		| "extends"
 		| "block"
 		| "endblock";
-	value: string;
-	children: ASTNode[];
-	alternate?: ASTNode[];
-	iterator?: string | undefined;
+	readonly value: string;
+	readonly children: readonly ASTNode[];
+	readonly alternate?: readonly ASTNode[];
+	readonly iterator?: string;
+};
+
+type ParseResult = {
+	readonly ast: readonly ASTNode[];
+	readonly nextIndex: number;
+};
+
+type NodeResult = {
+	readonly node: ASTNode;
+	readonly nextIndex: number;
 };
 
 export class Parser {
-	parse(tokens: Token[]) {
-		const ast: ASTNode[] = [];
-		const stack: ASTNode[] = [];
+	parse(tokens: readonly Token[]) {
+		return this.#parseTopLevel(tokens, 0).ast;
+	}
 
-		for (const token of tokens) {
-			if (token.type === "extends") {
-				const extendsNode: ASTNode = {
-					type: "extends",
-					value: token.value,
-					children: [],
-				};
-				ast.push(extendsNode);
-				continue;
-			}
-
-			if (token.type === "block") {
-				const blockNode: ASTNode = {
-					type: "block",
-					value: token.value,
-					children: [],
-				};
-
-				if (stack.length === 0) {
-					ast.push(blockNode);
-					stack.push(blockNode);
-					continue;
-				}
-
-				blockNode.children.push(blockNode);
-
-				stack.push(blockNode);
-				continue;
-			}
-
-			if (token.type === "endblock") {
-				stack.pop();
-				continue;
-			}
-
-			if (token.type === "if") {
-				const ifNode: ASTNode = {
-					type: "if",
-					value: token.value,
-					children: [],
-					alternate: [],
-				};
-				if (stack.length === 0) {
-					ast.push(ifNode);
-					stack.push(ifNode);
-					continue;
-				}
-
-				const parent = stack[stack.length - 1];
-				if (!parent) {
-					continue;
-				}
-
-				parent.children.push(ifNode);
-				stack.push(ifNode);
-				continue;
-			}
-
-			if (token.type === "else") {
-				const ifNode = stack[stack.length - 1];
-
-				if (!ifNode || ifNode.type !== "if") {
-					throw new Error("Unexpected {% else %} without matching {% if %}");
-				}
-
-				ifNode.alternate = [];
-
-				stack.push({
-					type: "else",
-					value: "",
-					children: ifNode.alternate,
-					alternate: [],
-				});
-
-				continue;
-			}
-
-			if (token.type === "endif") {
-				const lastNode = stack.pop();
-
-				if (!lastNode) {
-					continue;
-				}
-
-				if (lastNode.type === "else") {
-					stack.pop();
-					continue;
-				}
-
-				stack.pop();
-				continue;
-			}
-
-			if (token.type === "for") {
-				if (token.type === "for") {
-					const forNode: ASTNode = {
-						type: "for",
-						value: token.value,
-						iterator: token.iterator,
-						children: [],
-						alternate: [],
-					};
-
-					if (stack.length === 0) {
-						ast.push(forNode);
-					} else {
-						const parent = stack.at(-1);
-						if (parent) {
-							parent.children = [...(parent.children || []), forNode];
-						}
-					}
-
-					stack.push(forNode);
-					continue;
-				}
-			}
-
-			if (token.type === "endfor") {
-				if (stack.at(-1)?.type !== "for") {
-					throw new Error("Unexpected {% endfor %} without matching {% for %}");
-				}
-				stack.pop();
-				continue;
-			}
-
-			const node: ASTNode = {
-				type: token.type,
-				value: token.value,
-				alternate: [],
-				children: [],
-			};
-			if (stack.length === 0) {
-				ast.push(node);
-				continue;
-			}
-
-			const parent = stack[stack.length - 1];
-			if (!parent) {
-				continue;
-			}
-			parent.children.push(node);
+	#parseTopLevel(tokens: readonly Token[], index: number): ParseResult {
+		if (index >= tokens.length) {
+			return { ast: [], nextIndex: index };
 		}
 
-		return ast;
+		const token = tokens[index];
+		if (token?.type === "endfor" || token?.type === "endblock") {
+			return { ast: [], nextIndex: index };
+		}
+
+		const { node, nextIndex } = this.#parseNextNode(tokens, index);
+		const { ast: restNodes, nextIndex: finalIndex } = this.#parseTopLevel(
+			tokens,
+			nextIndex,
+		);
+
+		return { ast: [node, ...restNodes], nextIndex: finalIndex };
+	}
+
+	#parseNextNode(tokens: readonly Token[], index: number): NodeResult {
+		const token = tokens[index];
+		if (!token) {
+			throw new Error("Unexpected end of input");
+		}
+
+		switch (token.type) {
+			case "text":
+			case "variable":
+				return {
+					node: {
+						type: token.type,
+						value: token.value,
+						children: [],
+						alternate: [],
+					},
+					nextIndex: index + 1,
+				};
+
+			case "extends":
+				return {
+					node: { type: "extends", value: token.value, children: [] },
+					nextIndex: index + 1,
+				};
+
+			case "block":
+				return this.#parseBlock(tokens, index);
+
+			case "if":
+				return this.#parseIf(tokens, index);
+
+			case "for":
+				return this.#parseFor(tokens, index);
+
+			default:
+				throw new Error(`Unexpected token: ${token.type}`);
+		}
+	}
+
+	#parseBlock(tokens: readonly Token[], index: number): NodeResult {
+		const startToken = tokens[index];
+		if (!startToken) {
+			throw new Error("Missing start token for block");
+		}
+		const { ast: children, nextIndex } = this.#parseTopLevel(tokens, index + 1);
+		return {
+			node: { type: "block", value: startToken.value, children },
+			nextIndex: nextIndex + 1,
+		};
+	}
+
+	#parseIf(tokens: readonly Token[], index: number): NodeResult {
+		const startToken = tokens[index];
+		if (!startToken) {
+			throw new Error("Missing start token for if");
+		}
+		const { ast: ifChildren, nextIndex: afterIf } = this.#parseUntil(
+			tokens,
+			index + 1,
+			["else", "endif"],
+		);
+		const nextToken = tokens[afterIf];
+		if (!nextToken) {
+			throw new Error("Unexpected end of input after if block");
+		}
+
+		if (nextToken.type === "else") {
+			const { ast: elseChildren, nextIndex: afterElse } = this.#parseUntil(
+				tokens,
+				afterIf + 1,
+				["endif"],
+			);
+
+			const endifCheck = tokens[afterElse];
+			if (!endifCheck || endifCheck.type !== "endif") {
+				throw new Error("Expected {% endif %} after {% else %}");
+			}
+
+			return {
+				node: {
+					type: "if",
+					value: startToken.value,
+					children: ifChildren,
+					alternate: elseChildren,
+				},
+				nextIndex: afterElse + 1,
+			};
+		}
+
+		if (nextToken.type === "endif") {
+			return {
+				node: {
+					type: "if",
+					value: startToken.value,
+					children: ifChildren,
+					alternate: [],
+				},
+				nextIndex: afterIf + 1,
+			};
+		}
+
+		throw new Error("Expected endif or else after if block");
+	}
+
+	#parseFor(tokens: readonly Token[], index: number): NodeResult {
+		const startToken = tokens[index];
+		if (
+			!startToken ||
+			startToken.type !== "for" ||
+			typeof startToken.iterator !== "string"
+		) {
+			throw new Error("Invalid for token");
+		}
+
+		const { ast: children, nextIndex } = this.#parseTopLevel(tokens, index + 1);
+		return {
+			node: {
+				type: "for",
+				value: startToken.value,
+				iterator: startToken.iterator,
+				children,
+				alternate: [],
+			},
+			nextIndex: nextIndex + 1,
+		};
+	}
+
+	#parseUntil(
+		tokens: readonly Token[],
+		index: number,
+		endTypes: ReadonlyArray<string>,
+	): ParseResult {
+		const walk = (idx: number, acc: readonly ASTNode[]): ParseResult => {
+			if (idx >= tokens.length) {
+				throw new Error("Unexpected end of input inside block");
+			}
+
+			const currentToken = tokens[idx];
+			if (!currentToken) {
+				throw new Error("Unexpected undefined token during walk");
+			}
+
+			if (endTypes.includes(currentToken.type)) {
+				return { ast: acc, nextIndex: idx };
+			}
+
+			const { node, nextIndex } = this.#parseNextNode(tokens, idx);
+			return walk(nextIndex, [...acc, node]);
+		};
+
+		return walk(index, []);
 	}
 }

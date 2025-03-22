@@ -5,7 +5,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export class Generator {
-	generate(ast: ASTNode[], context: Record<string, unknown>) {
+	generate(ast: readonly ASTNode[], context: Record<string, unknown>) {
 		return ast.map((node) => this.#generateNode(node, context)).join("");
 	}
 

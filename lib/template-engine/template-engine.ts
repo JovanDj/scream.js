@@ -39,7 +39,7 @@ export class ScreamTemplateEngine {
 		return this.#generator.generate(finalAst, context);
 	}
 
-	#checkExtends(ast: ASTNode[]): ASTNode[] {
+	#checkExtends(ast: readonly ASTNode[]): readonly ASTNode[] {
 		const extendsNode = ast.find((node) => node.type === "extends");
 		if (!extendsNode) {
 			return ast;
