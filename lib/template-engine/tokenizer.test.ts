@@ -195,4 +195,53 @@ describe("Tokenizer", { concurrency: true }, () => {
 			]);
 		});
 	});
+
+	describe("Tokenizer – Edge Cases & Errors", () => {
+		it.todo("should throw on unclosed variable tag");
+
+		it("should throw on unclosed for block", () => {
+			const template = "{% for item in items";
+			assert.throws(() => tokenizer.tokenize(template), /Unclosed {% for %}/);
+		});
+
+		it("should throw on malformed for tag (missing 'in')", () => {
+			const template = "{% for item items %}";
+			assert.throws(
+				() => tokenizer.tokenize(template),
+				/Invalid syntax in {% for %}/,
+			);
+		});
+
+		it.todo("should throw on malformed for tag (missing iterator)");
+
+		it("should handle plain text only", () => {
+			const template = "Just plain text.";
+			const tokens = tokenizer.tokenize(template);
+			assert.deepStrictEqual(tokens, [
+				{ type: "text", value: "Just plain text." },
+			]);
+		});
+
+		it("should handle whitespace-only template", () => {
+			const template = "   \n\t  ";
+			const tokens = tokenizer.tokenize(template);
+			assert.deepStrictEqual(tokens, [{ type: "text", value: "   \n\t  " }]);
+		});
+
+		it("should tokenize a mix of control flow and variables", () => {
+			const template =
+				"{% if user %}Hi, {{ user.name }}!{% else %}Log in.{% endif %}";
+			const tokens = tokenizer.tokenize(template);
+
+			assert.deepStrictEqual(tokens, [
+				{ type: "if", value: "user" },
+				{ type: "text", value: "Hi, " },
+				{ type: "variable", value: "user.name" },
+				{ type: "text", value: "!" },
+				{ type: "else", value: "" },
+				{ type: "text", value: "Log in." },
+				{ type: "endif", value: "" },
+			]);
+		});
+	});
 });

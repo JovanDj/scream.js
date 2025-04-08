@@ -4,20 +4,17 @@ export class Transformer {
 	applyBlockOverrides(
 		parentAST: readonly ASTNode[],
 		childAST: readonly ASTNode[],
+		childBlocks = childAST.filter((node) => node.type === "block"),
 	): readonly ASTNode[] {
-		const childBlocks = childAST.filter((node) => node.type === "block");
-
 		return parentAST.map((node) => {
-			if (node.type !== "block") {
-				return node;
-			}
+			if (node.type !== "block") return node;
 
 			const override = childBlocks.find((b) => b.value === node.value);
 			const newChildren = override?.children ?? node.children;
 
 			return {
 				...node,
-				children: this.applyBlockOverrides(newChildren, childAST),
+				children: this.applyBlockOverrides(newChildren, childAST, childBlocks),
 			};
 		});
 	}

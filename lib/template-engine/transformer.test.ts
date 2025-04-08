@@ -230,28 +230,22 @@ describe("Transformer", { concurrency: true }, () => {
 		assert.deepStrictEqual(transformedAST, expectedAST);
 	});
 
-	it("should leave unmatched child blocks unused", () => {
+	it("should leave unmatched child blocks and non-block parent nodes unchanged", () => {
 		const parentAST: readonly ASTNode[] = [
-			{
-				type: "text",
-				value: "<p>No blocks here</p>",
-				children: [],
-				alternate: [],
-			},
+			{ type: "text", value: "Plain Text", children: [], alternate: [] },
 		];
 
 		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
-				value: "content",
+				value: "not-used",
 				children: [
-					{ type: "text", value: "Unused block", children: [], alternate: [] },
+					{ type: "text", value: "Override", children: [], alternate: [] },
 				],
 			},
 		];
 
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
-
 		assert.deepStrictEqual(transformedAST, parentAST);
 	});
 
@@ -601,15 +595,16 @@ describe("Transformer", { concurrency: true }, () => {
 		assert.deepStrictEqual(finalAST, expectedAST);
 	});
 
-	it("should not mutate original AST nodes when applying overrides", () => {
-		const baseAST: readonly ASTNode[] = [
+	it("should not mutate parent or child ASTs when applying overrides", () => {
+		const parentAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "main",
 				children: [{ type: "text", value: "Base", children: [] }],
 			},
 		];
-		const overrideAST: readonly ASTNode[] = [
+
+		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "main",
@@ -617,9 +612,77 @@ describe("Transformer", { concurrency: true }, () => {
 			},
 		];
 
-		const originalASTCopy = JSON.parse(JSON.stringify(baseAST));
-		transformer.applyBlockOverrides(baseAST, overrideAST);
+		const parentCopy = JSON.parse(JSON.stringify(parentAST));
+		const childCopy = JSON.parse(JSON.stringify(childAST));
 
-		assert.deepStrictEqual(baseAST, originalASTCopy);
+		transformer.applyBlockOverrides(parentAST, childAST);
+
+		assert.deepStrictEqual(parentAST, parentCopy);
+		assert.deepStrictEqual(childAST, childCopy);
+	});
+
+	it("should apply overrides to deeply nested blocks", () => {
+		const parentAST: readonly ASTNode[] = [
+			{
+				type: "block",
+				value: "outer",
+				children: [
+					{
+						type: "block",
+						value: "middle",
+						children: [
+							{
+								type: "block",
+								value: "inner",
+								children: [
+									{ type: "text", value: "Default Inner", children: [] },
+								],
+							},
+						],
+					},
+				],
+			},
+		];
+
+		const childAST: readonly ASTNode[] = [
+			{
+				type: "block",
+				value: "inner",
+				children: [{ type: "text", value: "Overridden Inner", children: [] }],
+			},
+		];
+
+		const result = transformer.applyBlockOverrides(parentAST, childAST);
+
+		assert.deepStrictEqual(
+			result[0]?.children[0]?.children[0]?.children[0]?.value,
+			"Overridden Inner",
+		);
+	});
+
+	it("should only use the first matching block from child AST", () => {
+		const parentAST: readonly ASTNode[] = [
+			{
+				type: "block",
+				value: "content",
+				children: [{ type: "text", value: "Default", children: [] }],
+			},
+		];
+
+		const childAST: readonly ASTNode[] = [
+			{
+				type: "block",
+				value: "content",
+				children: [{ type: "text", value: "Override A", children: [] }],
+			},
+			{
+				type: "block",
+				value: "content",
+				children: [{ type: "text", value: "Override B", children: [] }],
+			},
+		];
+
+		const result = transformer.applyBlockOverrides(parentAST, childAST);
+		assert.deepStrictEqual(result[0]?.children[0]?.value, "Override A");
 	});
 });

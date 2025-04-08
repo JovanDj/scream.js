@@ -335,4 +335,77 @@ describe("Parser", { concurrency: true }, () => {
 			]);
 		});
 	});
+
+	describe("Parser - Edge Cases & Errors", () => {
+		it("should throw on endif without if", () => {
+			const tokens: Token[] = [{ type: "endif", value: "" }];
+			assert.throws(() => parser.parse(tokens), /Unexpected token: endif/);
+		});
+
+		it("should throw on else without if", () => {
+			const tokens: Token[] = [{ type: "else", value: "" }];
+			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+		});
+
+		it.todo("should throw on endfor without for");
+
+		it.todo("should throw on unclosed if");
+
+		it.todo("should throw on unclosed for");
+
+		it("should handle empty input", () => {
+			const tokens: Token[] = [];
+			const ast = parser.parse(tokens);
+			assert.deepStrictEqual(ast, []);
+		});
+
+		it.todo("should handle template with only whitespace text");
+
+		it("should parse a complex nested template", () => {
+			const tokens: Token[] = [
+				{ type: "extends", value: "layout" },
+				{ type: "block", value: "content" },
+				{ type: "if", value: "user" },
+				{ type: "text", value: "Hello, " },
+				{ type: "variable", value: "user.name" },
+				{ type: "else", value: "" },
+				{ type: "text", value: "Please log in." },
+				{ type: "endif", value: "" },
+				{ type: "endblock", value: "content" },
+			];
+
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual(ast, [
+				{ type: "extends", value: "layout", children: [] },
+				{
+					type: "block",
+					value: "content",
+					children: [
+						{
+							type: "if",
+							value: "user",
+							children: [
+								{ type: "text", value: "Hello, ", children: [], alternate: [] },
+								{
+									type: "variable",
+									value: "user.name",
+									children: [],
+									alternate: [],
+								},
+							],
+							alternate: [
+								{
+									type: "text",
+									value: "Please log in.",
+									children: [],
+									alternate: [],
+								},
+							],
+						},
+					],
+				},
+			]);
+		});
+	});
 });
