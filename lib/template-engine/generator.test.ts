@@ -10,373 +10,67 @@ describe("Generator", { concurrency: true }, () => {
 		generator = new Generator();
 	});
 
-	describe("Text nodes", () => {
-		it("should return the text value of a text node", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "text", value: "Hello, World!", children: [] },
-			];
-			const result = generator.generate(ast, {});
-			assert.deepStrictEqual(result, "Hello, World!");
-		});
-
-		it("should handle empty text nodes", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "text", value: "", children: [] },
-			];
-			const result = generator.generate(ast, {});
-			assert.deepStrictEqual(result, "");
-		});
+	it("renders a flat sequence of text nodes", () => {
+		const ast: readonly ASTNode[] = [
+			{ type: "text", value: "Hello", children: [] },
+			{ type: "text", value: " ", children: [] },
+			{ type: "text", value: "World", children: [] },
+			{ type: "text", value: "!", children: [] },
+		];
+		const output = generator.generate(ast);
+		assert.strictEqual(output, "Hello World!");
 	});
 
-	describe("Variable nodes", () => {
-		it("should replace a single variable", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "name", children: [] },
-			];
-			const context = { name: "John" };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "John");
-		});
-
-		it("should return an empty string for undefined variables", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "age", children: [] },
-			];
-			const context = {};
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "");
-		});
-
-		it("should handle nested variables", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "user.name", children: [] },
-			];
-			const context = { user: { name: "Jane" } };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "Jane");
-		});
-
-		it("should render empty string for non-serializable or symbolic values", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "weird", children: [] },
-			];
-			const context = { weird: Symbol("test") };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "");
-		});
-
-		it("should render empty string for function values", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "func", children: [] },
-			];
-			const context = { func: () => "hi" };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "");
-		});
-
-		it("should render empty string for object values", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "obj", children: [] },
-			];
-			const context = { obj: { a: 1 } };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "");
-		});
-
-		it("should escape HTML special characters", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "xss", children: [] },
-			];
-			const context = { xss: "<script>alert('x')</script>" };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(
-				result,
-				"&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;",
-			);
-		});
-
-		it("should not escape values that already look escaped", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "safe", children: [] },
-			];
-			const context = { safe: "&lt;div&gt;" };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "&lt;div&gt;");
-		});
+	it("renders a single variable node", () => {
+		const ast: readonly ASTNode[] = [
+			{ type: "variable", value: "Evaluated", children: [] },
+		];
+		const output = generator.generate(ast);
+		assert.strictEqual(output, "Evaluated");
 	});
 
-	describe("Generator - Conditional Nodes", () => {
-		it("should render the children of an if node when the condition is true", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "if",
-					value: "isAdmin",
-					children: [{ type: "text", value: "Welcome, Admin!", children: [] }],
-					alternate: [],
-				},
-			];
-			const context = { isAdmin: true };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "Welcome, Admin!");
-		});
-
-		it("should render the alternate of an if node when the condition is false", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "if",
-					value: "isAdmin",
-					children: [{ type: "text", value: "Welcome, Admin!", children: [] }],
-					alternate: [{ type: "text", value: "Access Denied.", children: [] }],
-				},
-			];
-			const context = { isAdmin: false };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "Access Denied.");
-		});
-
-		it("should render nothing if there are no children or alternate", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "if", value: "isAdmin", children: [], alternate: [] },
-			];
-			const context = { isAdmin: false };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "");
-		});
-
-		it("should treat number 0 as falsy", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "if",
-					value: "zero",
-					children: [{ type: "text", value: "Truthy", children: [] }],
-					alternate: [{ type: "text", value: "Falsy", children: [] }],
-				},
-			];
-			const context = { zero: 0 };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "Falsy");
-		});
-
-		it("should treat non-empty string as truthy", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "if",
-					value: "str",
-					children: [{ type: "text", value: "Truthy", children: [] }],
-					alternate: [{ type: "text", value: "Falsy", children: [] }],
-				},
-			];
-			const context = { str: "hello" };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "Truthy");
-		});
-
-		it("should treat empty string as falsy", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "if",
-					value: "emptyStr",
-					children: [{ type: "text", value: "Truthy", children: [] }],
-					alternate: [{ type: "text", value: "Falsy", children: [] }],
-				},
-			];
-			const context = { emptyStr: "" };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "Falsy");
-		});
+	it("renders nested blocks with text content", () => {
+		const ast: readonly ASTNode[] = [
+			{
+				type: "block",
+				value: "outer",
+				children: [
+					{ type: "text", value: "Start ", children: [] },
+					{
+						type: "block",
+						value: "inner",
+						children: [
+							{ type: "text", value: "Middle", children: [] },
+							{ type: "variable", value: "!", children: [] },
+						],
+					},
+					{ type: "text", value: " End", children: [] },
+				],
+			},
+		];
+		const output = generator.generate(ast);
+		assert.strictEqual(output, "Start Middle! End");
 	});
 
-	describe("Generator - Loop Nodes", () => {
-		it("should iterate over an array and render the children for each item", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "for",
-					value: "items",
-					iterator: "item",
-					children: [{ type: "variable", value: "item", children: [] }],
-				},
-			];
-			const context = { items: ["A", "B", "C"] };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "ABC");
-		});
-
-		it("should render nothing for an empty array", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "for",
-					value: "items",
-					iterator: "item",
-					children: [{ type: "variable", value: "item", children: [] }],
-				},
-			];
-			const context = { items: [] };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "");
-		});
-
-		it("should render nothing for non-array values", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "for",
-					value: "items",
-					iterator: "item",
-					children: [{ type: "variable", value: "item", children: [] }],
-				},
-			];
-			const context = { items: null };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "");
-		});
-
-		it("should support dot notation in collection reference", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "for",
-					value: "user.items",
-					iterator: "item",
-					children: [{ type: "variable", value: "item", children: [] }],
-				},
-			];
-			const context = { user: { items: ["A", "B"] } };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "AB");
-		});
-
-		it("should render nothing if dot-notated collection is undefined", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "for",
-					value: "missing.items",
-					iterator: "item",
-					children: [{ type: "variable", value: "item", children: [] }],
-				},
-			];
-			const context = {};
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "");
-		});
-
-		it("should not leak iterator variable outside the for loop", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "for",
-					value: "items",
-					iterator: "item",
-					children: [{ type: "variable", value: "item", children: [] }],
-				},
-				{ type: "variable", value: "item", children: [] },
-			];
-			const context = { items: ["X"] };
-			const result = generator.generate(ast, context);
-			assert.deepStrictEqual(result, "X");
-		});
+	it("renders empty result when given empty AST", () => {
+		const ast: readonly ASTNode[] = [];
+		const output = generator.generate(ast);
+		assert.strictEqual(output, "");
 	});
 
-	describe("Layouts", () => {
-		it("should render block content directly if not extended", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "block",
-					value: "content",
-					children: [{ type: "text", value: "Wrapped content", children: [] }],
-				},
-			];
-			const result = generator.generate(ast, {});
-			assert.deepStrictEqual(result, "Wrapped content");
-		});
+	it("renders alternate branch when children are empty", () => {
+		const generator = new Generator();
 
-		it("should generate content for simple and nested blocks", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "text", value: "<main>", children: [] },
-				{
-					type: "block",
-					value: "content",
-					children: [{ type: "text", value: "Nested Content", children: [] }],
-				},
-				{ type: "text", value: "</main>", children: [] },
-			];
-			const output = generator.generate(ast, {});
-			assert.deepStrictEqual(output, "<main>Nested Content</main>");
-		});
+		const ast: readonly ASTNode[] = [
+			{
+				type: "if",
+				value: "unused",
+				children: [],
+				alternate: [{ type: "text", value: "Fallback shown", children: [] }],
+			},
+		];
 
-		it("should generate default block content if no child overrides", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "text", value: "<main>", children: [] },
-				{
-					type: "block",
-					value: "content",
-					children: [{ type: "text", value: "Default Content", children: [] }],
-				},
-				{ type: "text", value: "</main>", children: [] },
-			];
-
-			const output = generator.generate(ast, {});
-			assert.deepStrictEqual(output, "<main>Default Content</main>");
-		});
-
-		it("should generate overridden block content", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "text", value: "<main>", children: [] },
-				{
-					type: "block",
-					value: "content",
-					children: [{ type: "text", value: "Child Content", children: [] }],
-				},
-				{ type: "text", value: "</main>", children: [] },
-			];
-
-			const output = generator.generate(ast, {});
-			assert.deepStrictEqual(output, "<main>Child Content</main>");
-		});
-
-		it("should generate mixed content with overridden and default blocks", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "text", value: "<header>", children: [] },
-				{
-					type: "block",
-					value: "header",
-					children: [{ type: "text", value: "Default Header", children: [] }],
-				},
-				{ type: "text", value: "</header>", children: [] },
-				{ type: "text", value: "<main>", children: [] },
-				{
-					type: "block",
-					value: "content",
-					children: [{ type: "text", value: "Child Content", children: [] }],
-				},
-				{ type: "text", value: "</main>", children: [] },
-				{ type: "text", value: "<footer>", children: [] },
-				{
-					type: "block",
-					value: "footer",
-					children: [{ type: "text", value: "Default Footer", children: [] }],
-				},
-				{ type: "text", value: "</footer>", children: [] },
-			];
-
-			const output = generator.generate(ast, {});
-			assert.deepStrictEqual(
-				output,
-				"<header>Default Header</header><main>Child Content</main><footer>Default Footer</footer>",
-			);
-		});
-
-		it("should preserve sibling block rendering order", () => {
-			const ast: readonly ASTNode[] = [
-				{
-					type: "block",
-					value: "first",
-					children: [{ type: "text", value: "A", children: [] }],
-				},
-				{
-					type: "block",
-					value: "second",
-					children: [{ type: "text", value: "B", children: [] }],
-				},
-			];
-			const result = generator.generate(ast, {});
-			assert.deepStrictEqual(result, "AB");
-		});
+		const output = generator.generate(ast);
+		assert.deepStrictEqual(output, "Fallback shown");
 	});
 });

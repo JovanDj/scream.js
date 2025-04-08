@@ -1,3 +1,4 @@
+import type { Evaluator } from "./evaluator.js";
 import type { FileLoader } from "./file-loader.js";
 import type { Generator } from "./generator.js";
 import type { ASTNode, Parser } from "./parser.js";
@@ -9,6 +10,7 @@ export class ScreamTemplateEngine {
 	readonly #tokenizer: Tokenizer;
 	readonly #parser: Parser;
 	readonly #transformer: Transformer;
+	readonly #evaluator: Evaluator;
 	readonly #generator: Generator;
 
 	constructor(
@@ -16,12 +18,14 @@ export class ScreamTemplateEngine {
 		tokenizer: Tokenizer,
 		parser: Parser,
 		transformer: Transformer,
+		evaluator: Evaluator,
 		generator: Generator,
 	) {
 		this.#fileLoader = fileLoader;
 		this.#tokenizer = tokenizer;
 		this.#parser = parser;
 		this.#transformer = transformer;
+		this.#evaluator = evaluator;
 		this.#generator = generator;
 	}
 
@@ -36,7 +40,9 @@ export class ScreamTemplateEngine {
 		const ast = this.#parser.parse(tokens);
 
 		const finalAst = this.#checkExtends(ast);
-		return this.#generator.generate(finalAst, context);
+		const evaluatedAst = this.#evaluator.evaluate(finalAst, { ...context });
+
+		return this.#generator.generate(evaluatedAst);
 	}
 
 	#checkExtends(ast: readonly ASTNode[]): readonly ASTNode[] {

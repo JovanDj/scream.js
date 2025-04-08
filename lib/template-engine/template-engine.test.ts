@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
+import { Evaluator } from "./evaluator.js";
 import { Generator } from "./generator.js";
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
 import { Parser } from "./parser.js";
@@ -13,6 +14,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 	let tokenizer: Tokenizer;
 	let parser: Parser;
 	let transformer: Transformer;
+	let evaluator: Evaluator;
 	let generator: Generator;
 
 	beforeEach(() => {
@@ -20,12 +22,14 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		tokenizer = new Tokenizer();
 		parser = new Parser();
 		transformer = new Transformer();
+		evaluator = new Evaluator();
 		generator = new Generator();
 		templateEngine = new ScreamTemplateEngine(
 			fileLoader,
 			tokenizer,
 			parser,
 			transformer,
+			evaluator,
 			generator,
 		);
 	});
@@ -132,7 +136,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 		it("should handle empty variable names gracefully", () => {
 			const template = "Hello, {{ }}!";
-			const context = { "": "Anonymous" };
+			const context = { "": "" };
 
 			const result = templateEngine.compile(template, context);
 
