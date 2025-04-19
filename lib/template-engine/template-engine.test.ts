@@ -4,6 +4,7 @@ import { Evaluator } from "./evaluator.js";
 import { Generator } from "./generator.js";
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
 import { Parser } from "./parser.js";
+import { Resolver } from "./resolver.js";
 import { ScreamTemplateEngine } from "./template-engine.js";
 import { Tokenizer } from "./tokenizer.js";
 import { Transformer } from "./transformer.js";
@@ -14,6 +15,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 	let tokenizer: Tokenizer;
 	let parser: Parser;
 	let transformer: Transformer;
+	let resolver: Resolver;
 	let evaluator: Evaluator;
 	let generator: Generator;
 
@@ -22,16 +24,10 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		tokenizer = new Tokenizer();
 		parser = new Parser();
 		transformer = new Transformer();
+		resolver = new Resolver(fileLoader, tokenizer, parser, transformer);
 		evaluator = new Evaluator();
 		generator = new Generator();
-		templateEngine = new ScreamTemplateEngine(
-			fileLoader,
-			tokenizer,
-			parser,
-			transformer,
-			evaluator,
-			generator,
-		);
+		templateEngine = new ScreamTemplateEngine(resolver, evaluator, generator);
 	});
 
 	describe("Variable replacement", () => {

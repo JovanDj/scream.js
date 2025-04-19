@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import { Tokenizer } from "./tokenizer.js";
+import { type Token, Tokenizer } from "./tokenizer.js";
 
 describe("Tokenizer", { concurrency: true }, () => {
 	let tokenizer: Tokenizer;
@@ -14,14 +14,16 @@ describe("Tokenizer", { concurrency: true }, () => {
 			const template = "{{ name }}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [{ type: "variable", value: "name" }]);
+			assert.deepStrictEqual<Token[]>(tokens, [
+				{ type: "variable", value: "name" },
+			]);
 		});
 
 		it("should tokenize multiple variables", () => {
 			const template = "{{ firstName }} {{ lastName }}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "variable", value: "firstName" },
 				{ type: "text", value: " " },
 				{ type: "variable", value: "lastName" },
@@ -32,7 +34,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			const template = "Hello, {{ name }}!";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "text", value: "Hello, " },
 				{ type: "variable", value: "name" },
 				{ type: "text", value: "!" },
@@ -43,7 +45,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			const template = "  {{ name }}  ";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "text", value: "  " },
 				{ type: "variable", value: "name" },
 				{ type: "text", value: "  " },
@@ -54,7 +56,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			const template = "{{ firstName }}{{ lastName }}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "variable", value: "firstName" },
 				{ type: "variable", value: "lastName" },
 			]);
@@ -64,7 +66,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			const template = "{{ user.email }} {{ user['first-name'] }}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "variable", value: "user.email" },
 				{ type: "text", value: " " },
 				{ type: "variable", value: "user['first-name']" },
@@ -75,7 +77,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			const template = "Welcome {{ user.profile.name }}!";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "text", value: "Welcome " },
 				{ type: "variable", value: "user.profile.name" },
 				{ type: "text", value: "!" },
@@ -86,7 +88,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			const template = "{{ a }}{{ b }}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "variable", value: "a" },
 				{ type: "variable", value: "b" },
 			]);
@@ -96,7 +98,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			const template = "{{ a.b.c.d.e.f.g.h.i.j.k }}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{
 					type: "variable",
 					value: "a.b.c.d.e.f.g.h.i.j.k",
@@ -110,7 +112,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			const template = "{% if isLoggedIn %} Welcome! {% endif %}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "if", value: "isLoggedIn" },
 				{ type: "text", value: " Welcome! " },
 				{ type: "endif", value: "" },
@@ -122,7 +124,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 				"{% if isLoggedIn %} Welcome! {% else %} Please log in. {% endif %}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "if", value: "isLoggedIn" },
 				{ type: "text", value: " Welcome! " },
 				{ type: "else", value: "" },
@@ -137,7 +139,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "for", value: "letters", iterator: "letter" },
 				{ type: "text", value: " " },
 				{ type: "variable", value: "letter" },
@@ -151,7 +153,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 				"{% for user in users %} {% for task in user.tasks %} {{ task.title }} {% endfor %} {% endfor %}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "for", value: "users", iterator: "user" },
 				{ type: "text", value: " " },
 				{ type: "for", value: "user.tasks", iterator: "task" },
@@ -168,7 +170,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			const template = "{% for item in emptyArray %}{% endfor %}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "for", value: "emptyArray", iterator: "item" },
 				{ type: "endfor", value: "" },
 			]);
@@ -181,7 +183,9 @@ describe("Tokenizer", { concurrency: true }, () => {
 
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [{ type: "extends", value: "layout" }]);
+			assert.deepStrictEqual<Token[]>(tokens, [
+				{ type: "extends", value: "layout" },
+			]);
 		});
 
 		it("should tokenize blocks", () => {
@@ -189,7 +193,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "block", value: "content" },
 				{ type: "endblock", value: "" },
 			]);
@@ -217,7 +221,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 		it("should handle plain text only", () => {
 			const template = "Just plain text.";
 			const tokens = tokenizer.tokenize(template);
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "text", value: "Just plain text." },
 			]);
 		});
@@ -225,7 +229,9 @@ describe("Tokenizer", { concurrency: true }, () => {
 		it("should handle whitespace-only template", () => {
 			const template = "   \n\t  ";
 			const tokens = tokenizer.tokenize(template);
-			assert.deepStrictEqual(tokens, [{ type: "text", value: "   \n\t  " }]);
+			assert.deepStrictEqual<Token[]>(tokens, [
+				{ type: "text", value: "   \n\t  " },
+			]);
 		});
 
 		it("should tokenize a mix of control flow and variables", () => {
@@ -233,7 +239,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 				"{% if user %}Hi, {{ user.name }}!{% else %}Log in.{% endif %}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual(tokens, [
+			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "if", value: "user" },
 				{ type: "text", value: "Hi, " },
 				{ type: "variable", value: "user.name" },

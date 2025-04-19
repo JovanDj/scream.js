@@ -12,7 +12,7 @@ describe("Transformer", { concurrency: true }, () => {
 
 	it("should replace blocks in the parent template with child content", () => {
 		const parentAST: readonly ASTNode[] = [
-			{ type: "text", value: "<main>", children: [], alternate: [] },
+			{ type: "text", value: "<main>", children: [] },
 			{
 				type: "block",
 				value: "content",
@@ -21,43 +21,38 @@ describe("Transformer", { concurrency: true }, () => {
 						type: "text",
 						value: "Default Content",
 						children: [],
-						alternate: [],
 					},
 				],
 			},
-			{ type: "text", value: "</main>", children: [], alternate: [] },
+			{ type: "text", value: "</main>", children: [] },
 		];
 
 		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "content",
-				children: [
-					{ type: "text", value: "Child Content", children: [], alternate: [] },
-				],
+				children: [{ type: "text", value: "Child Content", children: [] }],
 			},
 		];
 
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
 
 		const expectedAST: readonly ASTNode[] = [
-			{ type: "text", value: "<main>", children: [], alternate: [] },
+			{ type: "text", value: "<main>", children: [] },
 			{
 				type: "block",
 				value: "content",
-				children: [
-					{ type: "text", value: "Child Content", children: [], alternate: [] },
-				],
+				children: [{ type: "text", value: "Child Content", children: [] }],
 			},
-			{ type: "text", value: "</main>", children: [], alternate: [] },
+			{ type: "text", value: "</main>", children: [] },
 		];
 
-		assert.deepStrictEqual(transformedAST, expectedAST);
+		assert.deepStrictEqual<readonly ASTNode[]>(transformedAST, expectedAST);
 	});
 
 	it("should retain default block content if no overrides are provided", () => {
 		const parentAST: readonly ASTNode[] = [
-			{ type: "text", value: "<main>", children: [], alternate: [] },
+			{ type: "text", value: "<main>", children: [] },
 			{
 				type: "block",
 				value: "content",
@@ -66,23 +61,22 @@ describe("Transformer", { concurrency: true }, () => {
 						type: "text",
 						value: "Default Content",
 						children: [],
-						alternate: [],
 					},
 				],
 			},
-			{ type: "text", value: "</main>", children: [], alternate: [] },
+			{ type: "text", value: "</main>", children: [] },
 		];
 
 		const childAST: readonly ASTNode[] = [];
 
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
 
-		assert.deepStrictEqual(transformedAST, parentAST);
+		assert.deepStrictEqual<readonly ASTNode[]>(transformedAST, parentAST);
 	});
 
 	it("should preserve non-block nodes and only override matching blocks", () => {
 		const parentAST: readonly ASTNode[] = [
-			{ type: "text", value: "<main>", children: [], alternate: [] },
+			{ type: "text", value: "<main>", children: [] },
 			{
 				type: "block",
 				value: "content",
@@ -91,7 +85,6 @@ describe("Transformer", { concurrency: true }, () => {
 						type: "text",
 						value: "Default Content",
 						children: [],
-						alternate: [],
 					},
 				],
 			},
@@ -103,11 +96,10 @@ describe("Transformer", { concurrency: true }, () => {
 						type: "text",
 						value: "Footer Content",
 						children: [],
-						alternate: [],
 					},
 				],
 			},
-			{ type: "text", value: "</main>", children: [], alternate: [] },
+			{ type: "text", value: "</main>", children: [] },
 		];
 
 		const childAST: readonly ASTNode[] = [
@@ -119,7 +111,6 @@ describe("Transformer", { concurrency: true }, () => {
 						type: "text",
 						value: "Overridden Content",
 						children: [],
-						alternate: [],
 					},
 				],
 			},
@@ -128,7 +119,7 @@ describe("Transformer", { concurrency: true }, () => {
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
 
 		const expectedAST: readonly ASTNode[] = [
-			{ type: "text", value: "<main>", children: [], alternate: [] },
+			{ type: "text", value: "<main>", children: [] },
 			{
 				type: "block",
 				value: "content",
@@ -137,7 +128,6 @@ describe("Transformer", { concurrency: true }, () => {
 						type: "text",
 						value: "Overridden Content",
 						children: [],
-						alternate: [],
 					},
 				],
 			},
@@ -149,24 +139,23 @@ describe("Transformer", { concurrency: true }, () => {
 						type: "text",
 						value: "Footer Content",
 						children: [],
-						alternate: [],
 					},
 				],
 			},
-			{ type: "text", value: "</main>", children: [], alternate: [] },
+			{ type: "text", value: "</main>", children: [] },
 		];
 
-		assert.deepStrictEqual(transformedAST, expectedAST);
+		assert.deepStrictEqual<readonly ASTNode[]>(transformedAST, expectedAST);
 	});
 
 	it("should support nested blocks and override inner block only", () => {
 		const parentAST: readonly ASTNode[] = [
-			{ type: "text", value: "<main>", children: [], alternate: [] },
+			{ type: "text", value: "<main>", children: [] },
 			{
 				type: "block",
 				value: "content",
 				children: [
-					{ type: "text", value: "<section>", children: [], alternate: [] },
+					{ type: "text", value: "<section>", children: [] },
 					{
 						type: "block",
 						value: "inner",
@@ -175,14 +164,13 @@ describe("Transformer", { concurrency: true }, () => {
 								type: "text",
 								value: "Default Inner",
 								children: [],
-								alternate: [],
 							},
 						],
 					},
-					{ type: "text", value: "</section>", children: [], alternate: [] },
+					{ type: "text", value: "</section>", children: [] },
 				],
 			},
-			{ type: "text", value: "</main>", children: [], alternate: [] },
+			{ type: "text", value: "</main>", children: [] },
 		];
 
 		const childAST: readonly ASTNode[] = [
@@ -194,7 +182,6 @@ describe("Transformer", { concurrency: true }, () => {
 						type: "text",
 						value: "Overridden Inner",
 						children: [],
-						alternate: [],
 					},
 				],
 			},
@@ -203,12 +190,12 @@ describe("Transformer", { concurrency: true }, () => {
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
 
 		const expectedAST: readonly ASTNode[] = [
-			{ type: "text", value: "<main>", children: [], alternate: [] },
+			{ type: "text", value: "<main>", children: [] },
 			{
 				type: "block",
 				value: "content",
 				children: [
-					{ type: "text", value: "<section>", children: [], alternate: [] },
+					{ type: "text", value: "<section>", children: [] },
 					{
 						type: "block",
 						value: "inner",
@@ -217,41 +204,39 @@ describe("Transformer", { concurrency: true }, () => {
 								type: "text",
 								value: "Overridden Inner",
 								children: [],
-								alternate: [],
 							},
 						],
 					},
-					{ type: "text", value: "</section>", children: [], alternate: [] },
+					{ type: "text", value: "</section>", children: [] },
 				],
 			},
-			{ type: "text", value: "</main>", children: [], alternate: [] },
+			{ type: "text", value: "</main>", children: [] },
 		];
 
-		assert.deepStrictEqual(transformedAST, expectedAST);
+		assert.deepStrictEqual<readonly ASTNode[]>(transformedAST, expectedAST);
 	});
 
 	it("should leave unmatched child blocks and non-block parent nodes unchanged", () => {
 		const parentAST: readonly ASTNode[] = [
-			{ type: "text", value: "Plain Text", children: [], alternate: [] },
+			{ type: "text", value: "Plain Text", children: [] },
 		];
 
 		const childAST: readonly ASTNode[] = [
 			{
 				type: "block",
 				value: "not-used",
-				children: [
-					{ type: "text", value: "Override", children: [], alternate: [] },
-				],
+
+				children: [{ type: "text", value: "Override", children: [] }],
 			},
 		];
 
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
-		assert.deepStrictEqual(transformedAST, parentAST);
+		assert.deepStrictEqual<readonly ASTNode[]>(transformedAST, parentAST);
 	});
 
 	it("should handle empty children array gracefully", () => {
 		const parentAST: readonly ASTNode[] = [
-			{ type: "block", value: "content", children: [], alternate: [] },
+			{ type: "block", value: "content", children: [] },
 		];
 
 		const childAST: readonly ASTNode[] = [
@@ -265,20 +250,20 @@ describe("Transformer", { concurrency: true }, () => {
 		const transformedAST = transformer.applyBlockOverrides(parentAST, childAST);
 
 		const expectedAST: readonly ASTNode[] = [
-			{ type: "block", value: "content", children: [], alternate: [] },
+			{ type: "block", value: "content", children: [] },
 		];
 
-		assert.deepStrictEqual(transformedAST, expectedAST);
+		assert.deepStrictEqual<readonly ASTNode[]>(transformedAST, expectedAST);
 	});
 
 	it("should override top-level blocks in grandparent layout", () => {
 		const grandParentAST: readonly ASTNode[] = [
-			{ type: "text", value: "<html>", children: [], alternate: [] },
+			{ type: "text", value: "<html>", children: [] },
 			{
 				type: "block",
 				value: "layout",
 				children: [
-					{ type: "text", value: "<body>", children: [], alternate: [] },
+					{ type: "text", value: "<body>", children: [] },
 					{
 						type: "block",
 						value: "content",
@@ -287,14 +272,13 @@ describe("Transformer", { concurrency: true }, () => {
 								type: "text",
 								value: "Default Content",
 								children: [],
-								alternate: [],
 							},
 						],
 					},
-					{ type: "text", value: "</body>", children: [], alternate: [] },
+					{ type: "text", value: "</body>", children: [] },
 				],
 			},
-			{ type: "text", value: "</html>", children: [], alternate: [] },
+			{ type: "text", value: "</html>", children: [] },
 		];
 
 		const parentAST: readonly ASTNode[] = [
@@ -306,7 +290,6 @@ describe("Transformer", { concurrency: true }, () => {
 						type: "text",
 						value: "Parent Override",
 						children: [],
-						alternate: [],
 					},
 				],
 			},
@@ -321,7 +304,6 @@ describe("Transformer", { concurrency: true }, () => {
 						type: "text",
 						value: "Child Override",
 						children: [],
-						alternate: [],
 					},
 				],
 			},
@@ -336,12 +318,12 @@ describe("Transformer", { concurrency: true }, () => {
 		const finalAST = transformer.applyBlockOverrides(intermediateAST, childAST);
 
 		const expectedAST: readonly ASTNode[] = [
-			{ type: "text", value: "<html>", children: [], alternate: [] },
+			{ type: "text", value: "<html>", children: [] },
 			{
 				type: "block",
 				value: "layout",
 				children: [
-					{ type: "text", value: "<body>", children: [], alternate: [] },
+					{ type: "text", value: "<body>", children: [] },
 					{
 						type: "block",
 						value: "content",
@@ -350,17 +332,16 @@ describe("Transformer", { concurrency: true }, () => {
 								type: "text",
 								value: "Child Override",
 								children: [],
-								alternate: [],
 							},
 						],
 					},
-					{ type: "text", value: "</body>", children: [], alternate: [] },
+					{ type: "text", value: "</body>", children: [] },
 				],
 			},
-			{ type: "text", value: "</html>", children: [], alternate: [] },
+			{ type: "text", value: "</html>", children: [] },
 		];
 
-		assert.deepStrictEqual(finalAST, expectedAST);
+		assert.deepStrictEqual<readonly ASTNode[]>(finalAST, expectedAST);
 	});
 
 	it("should preserve nested default content when not overridden in child layout", () => {
@@ -369,7 +350,7 @@ describe("Transformer", { concurrency: true }, () => {
 				type: "block",
 				value: "outer",
 				children: [
-					{ type: "text", value: "Start ", children: [], alternate: [] },
+					{ type: "text", value: "Start ", children: [] },
 					{
 						type: "block",
 						value: "inner",
@@ -378,11 +359,10 @@ describe("Transformer", { concurrency: true }, () => {
 								type: "text",
 								value: "Inner Default",
 								children: [],
-								alternate: [],
 							},
 						],
 					},
-					{ type: "text", value: " End", children: [], alternate: [] },
+					{ type: "text", value: " End", children: [] },
 				],
 			},
 		];
@@ -392,7 +372,7 @@ describe("Transformer", { concurrency: true }, () => {
 				type: "block",
 				value: "outer",
 				children: [
-					{ type: "text", value: "Start ", children: [], alternate: [] },
+					{ type: "text", value: "Start ", children: [] },
 					{
 						type: "block",
 						value: "inner",
@@ -401,11 +381,10 @@ describe("Transformer", { concurrency: true }, () => {
 								type: "text",
 								value: "Inner Parent",
 								children: [],
-								alternate: [],
 							},
 						],
 					},
-					{ type: "text", value: " End", children: [], alternate: [] },
+					{ type: "text", value: " End", children: [] },
 				],
 			},
 		];
@@ -422,7 +401,7 @@ describe("Transformer", { concurrency: true }, () => {
 				type: "block",
 				value: "outer",
 				children: [
-					{ type: "text", value: "Start ", children: [], alternate: [] },
+					{ type: "text", value: "Start ", children: [] },
 					{
 						type: "block",
 						value: "inner",
@@ -431,16 +410,15 @@ describe("Transformer", { concurrency: true }, () => {
 								type: "text",
 								value: "Inner Parent",
 								children: [],
-								alternate: [],
 							},
 						],
 					},
-					{ type: "text", value: " End", children: [], alternate: [] },
+					{ type: "text", value: " End", children: [] },
 				],
 			},
 		];
 
-		assert.deepStrictEqual(finalAST, expectedAST);
+		assert.deepStrictEqual<readonly ASTNode[]>(finalAST, expectedAST);
 	});
 
 	it("should override nested inner block from child even if parent doesn't override outer", () => {
@@ -449,18 +427,18 @@ describe("Transformer", { concurrency: true }, () => {
 				type: "block",
 				value: "outer",
 				children: [
-					{ type: "text", value: "GP Before ", children: [], alternate: [] },
+					{ type: "text", value: "GP Before ", children: [] },
 					{
 						type: "block",
 						value: "inner",
 						children: [{ type: "text", value: "GP Inner", children: [] }],
 					},
-					{ type: "text", value: " GP After", children: [], alternate: [] },
+					{ type: "text", value: " GP After", children: [] },
 				],
 			},
 		];
 
-		const parentAST: readonly ASTNode[] = []; // no overrides
+		const parentAST: readonly ASTNode[] = [];
 
 		const childAST: readonly ASTNode[] = [
 			{
@@ -480,18 +458,18 @@ describe("Transformer", { concurrency: true }, () => {
 				type: "block",
 				value: "outer",
 				children: [
-					{ type: "text", value: "GP Before ", children: [], alternate: [] },
+					{ type: "text", value: "GP Before ", children: [] },
 					{
 						type: "block",
 						value: "inner",
 						children: [{ type: "text", value: "Child Inner", children: [] }],
 					},
-					{ type: "text", value: " GP After", children: [], alternate: [] },
+					{ type: "text", value: " GP After", children: [] },
 				],
 			},
 		];
 
-		assert.deepStrictEqual(finalAST, expectedAST);
+		assert.deepStrictEqual<readonly ASTNode[]>(finalAST, expectedAST);
 	});
 
 	it("should allow overriding parent outer block and child inner block independently", () => {
@@ -557,7 +535,7 @@ describe("Transformer", { concurrency: true }, () => {
 			},
 		];
 
-		assert.deepStrictEqual(finalAST, expectedAST);
+		assert.deepStrictEqual<readonly ASTNode[]>(finalAST, expectedAST);
 	});
 
 	it("should ignore unused block overrides in child layout", () => {
@@ -588,11 +566,12 @@ describe("Transformer", { concurrency: true }, () => {
 			{
 				type: "block",
 				value: "content",
+
 				children: [{ type: "text", value: "GP Content", children: [] }],
 			},
 		];
 
-		assert.deepStrictEqual(finalAST, expectedAST);
+		assert.deepStrictEqual<readonly ASTNode[]>(finalAST, expectedAST);
 	});
 
 	it("should not mutate parent or child ASTs when applying overrides", () => {
@@ -600,6 +579,7 @@ describe("Transformer", { concurrency: true }, () => {
 			{
 				type: "block",
 				value: "main",
+
 				children: [{ type: "text", value: "Base", children: [] }],
 			},
 		];
@@ -608,6 +588,7 @@ describe("Transformer", { concurrency: true }, () => {
 			{
 				type: "block",
 				value: "main",
+
 				children: [{ type: "text", value: "Override", children: [] }],
 			},
 		];
@@ -617,8 +598,8 @@ describe("Transformer", { concurrency: true }, () => {
 
 		transformer.applyBlockOverrides(parentAST, childAST);
 
-		assert.deepStrictEqual(parentAST, parentCopy);
-		assert.deepStrictEqual(childAST, childCopy);
+		assert.deepStrictEqual<ASTNode[]>(parentAST, parentCopy);
+		assert.deepStrictEqual<ASTNode[]>(childAST, childCopy);
 	});
 
 	it("should apply overrides to deeply nested blocks", () => {
@@ -626,16 +607,23 @@ describe("Transformer", { concurrency: true }, () => {
 			{
 				type: "block",
 				value: "outer",
+
 				children: [
 					{
 						type: "block",
 						value: "middle",
+
 						children: [
 							{
 								type: "block",
 								value: "inner",
+
 								children: [
-									{ type: "text", value: "Default Inner", children: [] },
+									{
+										type: "text",
+										value: "Default Inner",
+										children: [],
+									},
 								],
 							},
 						],
@@ -648,13 +636,20 @@ describe("Transformer", { concurrency: true }, () => {
 			{
 				type: "block",
 				value: "inner",
-				children: [{ type: "text", value: "Overridden Inner", children: [] }],
+
+				children: [
+					{
+						type: "text",
+						value: "Overridden Inner",
+						children: [],
+					},
+				],
 			},
 		];
 
 		const result = transformer.applyBlockOverrides(parentAST, childAST);
 
-		assert.deepStrictEqual(
+		assert.deepStrictEqual<string>(
 			result[0]?.children[0]?.children[0]?.children[0]?.value,
 			"Overridden Inner",
 		);
@@ -665,6 +660,7 @@ describe("Transformer", { concurrency: true }, () => {
 			{
 				type: "block",
 				value: "content",
+
 				children: [{ type: "text", value: "Default", children: [] }],
 			},
 		];
@@ -673,16 +669,18 @@ describe("Transformer", { concurrency: true }, () => {
 			{
 				type: "block",
 				value: "content",
+
 				children: [{ type: "text", value: "Override A", children: [] }],
 			},
 			{
 				type: "block",
 				value: "content",
+
 				children: [{ type: "text", value: "Override B", children: [] }],
 			},
 		];
 
 		const result = transformer.applyBlockOverrides(parentAST, childAST);
-		assert.deepStrictEqual(result[0]?.children[0]?.value, "Override A");
+		assert.deepStrictEqual<string>(result[0]?.children[0]?.value, "Override A");
 	});
 });

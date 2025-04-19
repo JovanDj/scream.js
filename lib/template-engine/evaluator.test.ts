@@ -18,7 +18,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { user: { name: "John" } };
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ type: "variable", value: "John", children: [] },
 			]);
 		});
@@ -30,7 +30,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { user: { name: "John" } }; // age is not in the context
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ type: "variable", value: "", children: [] },
 			]);
 		});
@@ -42,7 +42,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { user: { symbol: Symbol("test") } };
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ type: "variable", value: "", children: [] },
 			]);
 		});
@@ -54,7 +54,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { user: { greet: () => "Hello" } }; // function in context
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ type: "variable", value: "", children: [] },
 			]);
 		});
@@ -66,7 +66,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { xss: "<script>alert('x')</script>" };
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{
 					type: "variable",
 					value: "&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;",
@@ -82,7 +82,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { safe: "&lt;div&gt;" }; // Already escaped
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ type: "variable", value: "&lt;div&gt;", children: [] },
 			]);
 		});
@@ -101,7 +101,7 @@ describe("Evaluator", { concurrency: true }, () => {
 
 			const context = { show: true };
 			const result = evaluator.evaluate(ast, context);
-			assert.deepStrictEqual(result[0]?.children[0]?.value, "Visible");
+			assert.deepStrictEqual<string>(result[0]?.children[0]?.value, "Visible");
 		});
 
 		it("should keep alternate if condition is falsy", () => {
@@ -116,9 +116,9 @@ describe("Evaluator", { concurrency: true }, () => {
 
 			const context = { show: false };
 			const result = evaluator.evaluate(ast, context);
-			assert.deepStrictEqual(result[0]?.children.length, 0);
+			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
 			assert.ok(result[0]?.alternate?.[0]);
-			assert.deepStrictEqual(result[0].alternate[0].value, "Hidden");
+			assert.deepStrictEqual<string>(result[0].alternate[0].value, "Hidden");
 		});
 
 		it("should fallback to alternate when condition path is missing", () => {
@@ -133,9 +133,12 @@ describe("Evaluator", { concurrency: true }, () => {
 
 			const context = {};
 			const result = evaluator.evaluate(ast, context);
-			assert.deepStrictEqual(result[0]?.children.length, 0);
+			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
 			assert.ok(result[0]?.alternate?.[0]);
-			assert.deepStrictEqual(result[0].alternate[0].value, "Please login");
+			assert.deepStrictEqual<string>(
+				result[0].alternate[0].value,
+				"Please login",
+			);
 		});
 
 		it("should support nested condition resolution", () => {
@@ -150,7 +153,7 @@ describe("Evaluator", { concurrency: true }, () => {
 
 			const context = { user: { loggedIn: true } };
 			const result = evaluator.evaluate(ast, context);
-			assert.deepStrictEqual(result[0]?.children[0]?.value, "Yes");
+			assert.deepStrictEqual<string>(result[0]?.children[0]?.value, "Yes");
 		});
 
 		it("should treat 0 as falsy", () => {
@@ -164,9 +167,9 @@ describe("Evaluator", { concurrency: true }, () => {
 			];
 			const context = { zero: 0 };
 			const result = evaluator.evaluate(ast, context);
-			assert.deepStrictEqual(result[0]?.children.length, 0);
+			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
 			assert.ok(result[0]?.alternate?.[0]);
-			assert.deepStrictEqual(result[0].alternate[0].value, "Falsy");
+			assert.deepStrictEqual<string>(result[0].alternate[0].value, "Falsy");
 		});
 
 		it("should treat empty string as falsy", () => {
@@ -180,9 +183,9 @@ describe("Evaluator", { concurrency: true }, () => {
 			];
 			const context = { empty: "" };
 			const result = evaluator.evaluate(ast, context);
-			assert.deepStrictEqual(result[0]?.children.length, 0);
+			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
 			assert.ok(result[0]?.alternate?.[0]);
-			assert.deepStrictEqual(result[0].alternate[0].value, "Falsy");
+			assert.deepStrictEqual<string>(result[0].alternate[0].value, "Falsy");
 		});
 
 		it("should treat null as falsy", () => {
@@ -196,10 +199,10 @@ describe("Evaluator", { concurrency: true }, () => {
 			];
 			const context = { nil: null };
 			const result = evaluator.evaluate(ast, context);
-			assert.deepStrictEqual(result[0]?.children.length, 0);
+			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
 			assert.ok(result[0]?.alternate?.[0]);
 
-			assert.deepStrictEqual(result[0].alternate[0].value, "Falsy");
+			assert.deepStrictEqual<string>(result[0].alternate[0].value, "Falsy");
 		});
 
 		it("should treat missing key as falsy", () => {
@@ -213,10 +216,10 @@ describe("Evaluator", { concurrency: true }, () => {
 			];
 			const context = {};
 			const result = evaluator.evaluate(ast, context);
-			assert.deepStrictEqual(result[0]?.children.length, 0);
+			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
 			assert.ok(result[0]?.alternate?.[0]);
 
-			assert.deepStrictEqual(result[0].alternate[0].value, "Falsy");
+			assert.deepStrictEqual<string>(result[0].alternate[0].value, "Falsy");
 		});
 	});
 
@@ -234,7 +237,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { items: ["A", "B"] };
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(
+			assert.deepStrictEqual<[string, string]>(
 				result[0]?.children.map((c) => c.value),
 				["A", "B"],
 			);
@@ -253,7 +256,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { user: { favorites: ["Red", "Blue"] } };
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(
+			assert.deepStrictEqual<[string, string]>(
 				result[0]?.children.map((c) => c.value),
 				["Red", "Blue"],
 			);
@@ -272,7 +275,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { user: { favorites: null } };
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result[0]?.children, []);
+			assert.deepStrictEqual<ASTNode[]>(result[0]?.children, []);
 		});
 
 		it("should return empty children if iterator is missing", () => {
@@ -287,7 +290,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { items: ["X"] };
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result[0]?.children, []);
+			assert.deepStrictEqual<ASTNode[]>(result[0]?.children, []);
 		});
 
 		it("should support variables inside loop using the iterator", () => {
@@ -305,7 +308,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			};
 
 			const result = evaluator.evaluate(ast, context);
-			assert.deepStrictEqual(
+			assert.deepStrictEqual<[string, string]>(
 				result[0]?.children.map((c) => c.value),
 				["Alpha", "Beta"],
 			);
@@ -329,7 +332,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { name: "Alice" };
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(
+			assert.deepStrictEqual<[string, string, string]>(
 				result[0]?.children.map((c) => c.value),
 				["Hello, ", "Alice", "!"],
 			);
@@ -345,7 +348,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			];
 
 			const result = evaluator.evaluate(ast, {});
-			assert.deepStrictEqual(result[0]?.children, []);
+			assert.deepStrictEqual<ASTNode[]>(result[0]?.children, []);
 		});
 
 		it("should preserve block value", () => {
@@ -374,7 +377,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { emptyStr: "" }; // Empty string
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ type: "variable", value: "", children: [] },
 			]);
 		});
@@ -386,7 +389,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { user: { null: null } }; // null value
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ type: "variable", value: "", children: [] },
 			]);
 		});
@@ -398,7 +401,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = {}; // Missing key
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ type: "variable", value: "", children: [] },
 			]);
 		});
@@ -409,7 +412,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			];
 			const result = evaluator.evaluate(ast, {});
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ type: "variable", value: "", children: [] },
 			]);
 		});

@@ -65,14 +65,17 @@ export class Parser {
 						type: token.type,
 						value: token.value,
 						children: [],
-						alternate: [],
 					},
 					nextIndex: index + 1,
 				};
 
 			case "extends":
 				return {
-					node: { type: "extends", value: token.value, children: [] },
+					node: {
+						type: "extends",
+						value: token.value,
+						children: [],
+					},
 					nextIndex: index + 1,
 				};
 
@@ -146,7 +149,6 @@ export class Parser {
 					type: "if",
 					value: startToken.value,
 					children: ifChildren,
-					alternate: [],
 				},
 				nextIndex: afterIf + 1,
 			};
@@ -172,7 +174,6 @@ export class Parser {
 				value: startToken.value,
 				iterator: startToken.iterator,
 				children,
-				alternate: [],
 			},
 			nextIndex: nextIndex + 1,
 		};

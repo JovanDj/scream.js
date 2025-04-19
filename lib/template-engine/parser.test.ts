@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import { Parser } from "./parser.js";
+import { type ASTNode, Parser } from "./parser.js";
 import type { Token } from "./tokenizer.js";
 
 describe("Parser", { concurrency: true }, () => {
@@ -15,8 +15,8 @@ describe("Parser", { concurrency: true }, () => {
 			const tokens: Token[] = [{ type: "variable", value: "name" }];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
-				{ type: "variable", value: "name", children: [], alternate: [] },
+			assert.deepStrictEqual<ASTNode[]>(ast, [
+				{ type: "variable", value: "name", children: [] },
 			]);
 		});
 
@@ -28,10 +28,10 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
-				{ type: "variable", value: "firstName", children: [], alternate: [] },
-				{ type: "text", value: " ", children: [], alternate: [] },
-				{ type: "variable", value: "lastName", children: [], alternate: [] },
+			assert.deepStrictEqual<ASTNode[]>(ast, [
+				{ type: "variable", value: "firstName", children: [] },
+				{ type: "text", value: " ", children: [] },
+				{ type: "variable", value: "lastName", children: [] },
 			]);
 		});
 	});
@@ -45,14 +45,12 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
+			assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					type: "if",
 					value: "isLoggedIn",
-					children: [
-						{ type: "text", value: "Welcome!", children: [], alternate: [] },
-					],
-					alternate: [],
+
+					children: [{ type: "text", value: "Welcome!", children: [] }],
 				},
 			]);
 		});
@@ -67,16 +65,12 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
+			assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					type: "if",
 					value: "isAdmin",
-					children: [
-						{ type: "text", value: "Admin Panel", children: [], alternate: [] },
-					],
-					alternate: [
-						{ type: "text", value: "User Panel", children: [], alternate: [] },
-					],
+					children: [{ type: "text", value: "Admin Panel", children: [] }],
+					alternate: [{ type: "text", value: "User Panel", children: [] }],
 				},
 			]);
 		});
@@ -91,15 +85,13 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
+			assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					type: "for",
 					value: "letters",
 					iterator: "letter",
-					children: [
-						{ type: "variable", value: "letter", children: [], alternate: [] },
-					],
-					alternate: [],
+
+					children: [{ type: "variable", value: "letter", children: [] }],
 				},
 			]);
 		});
@@ -114,28 +106,27 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
+			assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					type: "for",
 					value: "users",
 					iterator: "user",
+
 					children: [
 						{
 							type: "for",
 							value: "user.tasks",
 							iterator: "task",
+
 							children: [
 								{
 									type: "variable",
 									value: "task.title",
 									children: [],
-									alternate: [],
 								},
 							],
-							alternate: [],
 						},
 					],
-					alternate: [],
 				},
 			]);
 		});
@@ -146,7 +137,7 @@ describe("Parser", { concurrency: true }, () => {
 			const tokens: Token[] = [{ type: "extends", value: "layout" }];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
+			assert.deepStrictEqual<ASTNode[]>(ast, [
 				{ type: "extends", value: "layout", children: [] },
 			]);
 		});
@@ -159,13 +150,12 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
+			assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					type: "block",
 					value: "content",
-					children: [
-						{ type: "text", value: "Hello", children: [], alternate: [] },
-					],
+
+					children: [{ type: "text", value: "Hello", children: [] }],
 				},
 			]);
 		});
@@ -182,10 +172,11 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
+			assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					type: "block",
 					value: "content",
+
 					children: [
 						{
 							type: "if",
@@ -195,7 +186,6 @@ describe("Parser", { concurrency: true }, () => {
 									type: "text",
 									value: "Welcome Admin",
 									children: [],
-									alternate: [],
 								},
 							],
 							alternate: [
@@ -203,7 +193,6 @@ describe("Parser", { concurrency: true }, () => {
 									type: "text",
 									value: "Welcome User",
 									children: [],
-									alternate: [],
 								},
 							],
 						},
@@ -223,28 +212,28 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
+			assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					type: "block",
 					value: "header",
+
 					children: [
 						{
 							type: "text",
 							value: "Header Content",
 							children: [],
-							alternate: [],
 						},
 					],
 				},
 				{
 					type: "block",
 					value: "footer",
+
 					children: [
 						{
 							type: "text",
 							value: "Footer Content",
 							children: [],
-							alternate: [],
 						},
 					],
 				},
@@ -261,17 +250,17 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
+			assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					type: "block",
 					value: "content",
+
 					children: [
 						{
 							type: "for",
 							value: "items",
 							iterator: "item",
 							children: [],
-							alternate: [],
 						},
 					],
 				},
@@ -286,16 +275,16 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
+			assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					type: "block",
 					value: "content",
+
 					children: [
 						{
 							type: "text",
 							value: "Inside block",
 							children: [],
-							alternate: [],
 						},
 					],
 				},
@@ -313,20 +302,21 @@ describe("Parser", { concurrency: true }, () => {
 
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
+			assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					type: "block",
 					value: "outer",
+
 					children: [
 						{
 							type: "block",
 							value: "inner",
+
 							children: [
 								{
 									type: "text",
 									value: "Hello",
 									children: [],
-									alternate: [],
 								},
 							],
 						},
@@ -356,7 +346,7 @@ describe("Parser", { concurrency: true }, () => {
 		it("should handle empty input", () => {
 			const tokens: Token[] = [];
 			const ast = parser.parse(tokens);
-			assert.deepStrictEqual(ast, []);
+			assert.deepStrictEqual<ASTNode[]>(ast, []);
 		});
 
 		it.todo("should handle template with only whitespace text");
@@ -376,22 +366,22 @@ describe("Parser", { concurrency: true }, () => {
 
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual(ast, [
+			assert.deepStrictEqual<ASTNode[]>(ast, [
 				{ type: "extends", value: "layout", children: [] },
 				{
 					type: "block",
 					value: "content",
+
 					children: [
 						{
 							type: "if",
 							value: "user",
 							children: [
-								{ type: "text", value: "Hello, ", children: [], alternate: [] },
+								{ type: "text", value: "Hello, ", children: [] },
 								{
 									type: "variable",
 									value: "user.name",
 									children: [],
-									alternate: [],
 								},
 							],
 							alternate: [
@@ -399,7 +389,6 @@ describe("Parser", { concurrency: true }, () => {
 									type: "text",
 									value: "Please log in.",
 									children: [],
-									alternate: [],
 								},
 							],
 						},
