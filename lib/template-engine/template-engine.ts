@@ -39,24 +39,37 @@ export class ScreamTemplateEngine {
 		const tokens = this.#tokenizer.tokenize(template);
 		const ast = this.#parser.parse(tokens);
 
-		const finalAst = this.#checkExtends(ast);
+		const finalAst = this.#resolveTemplateInheritance(ast, []);
 		const evaluatedAst = this.#evaluator.evaluate(finalAst, { ...context });
 
 		return this.#generator.generate(evaluatedAst);
 	}
 
-	#checkExtends(ast: readonly ASTNode[]): readonly ASTNode[] {
-		const extendsNode = ast.find((node) => node.type === "extends");
+	#resolveTemplateInheritance(
+		childAst: readonly ASTNode[],
+		parentChain: readonly string[],
+	): readonly ASTNode[] {
+		const extendsNode = childAst.find((node) => node.type === "extends");
 		if (!extendsNode) {
-			return ast;
+			return childAst;
 		}
 
-		const parentTemplate = this.#fileLoader.loadFile(extendsNode.value);
+		const parentTemplateName = extendsNode.value;
+
+		if (parentChain.includes(parentTemplateName)) {
+			throw new Error(
+				`Cyclic extends detected: ${[...parentChain, parentTemplateName].join(" → ")}`,
+			);
+		}
+
+		const parentTemplate = this.#fileLoader.loadFile(parentTemplateName);
 		const parentTokens = this.#tokenizer.tokenize(parentTemplate);
-		const parentAST = this.#parser.parse(parentTokens);
+		const parentAst = this.#parser.parse(parentTokens);
+		const resolvedParentAst = this.#resolveTemplateInheritance(parentAst, [
+			...parentChain,
+			parentTemplateName,
+		]);
 
-		const mergedParent = this.#checkExtends(parentAST);
-
-		return this.#transformer.applyBlockOverrides(mergedParent, ast);
+		return this.#transformer.applyBlockOverrides(resolvedParentAst, childAst);
 	}
 }

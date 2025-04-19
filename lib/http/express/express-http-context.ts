@@ -60,13 +60,13 @@ export class ExpressHttpContext implements HttpContext {
 
 	render(template: string, locals = {}) {
 		return new Promise<void>((resolve, reject) => {
-			try {
-				return resolve(this.#response.render(template, locals));
-			} catch (error) {
-				if (error instanceof Error) {
-					return reject(error);
+			this.#response.render(template, locals, (err, html) => {
+				if (err) {
+					return reject(err);
 				}
-			}
+				this.#response.send(html);
+				resolve();
+			});
 		});
 	}
 

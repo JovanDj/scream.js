@@ -731,5 +731,49 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				"<header>Parent Header</header> <main>Child Content</main>",
 			);
 		});
+
+		it("should combine parent and child block overrides correctly with compile()", () => {
+			fileLoader.setTemplate(
+				"base.html",
+				`
+<header>{% block header %}Base Header{% endblock header %}</header>
+<main>{% block content %}Base Content{% endblock content %}</main>
+`,
+			);
+
+			fileLoader.setTemplate(
+				"parent.html",
+				`{% extends "base.html" %}{% block header %}Parent Header{% endblock header %}`,
+			);
+
+			const childTemplate = `{% extends "parent.html" %}{% block content %}Child Content{% endblock content %}`;
+
+			const result = templateEngine.compile(childTemplate, {});
+
+			assert.deepStrictEqual(
+				result.trim().replace(/\s+/g, " "),
+				"<header>Parent Header</header> <main>Child Content</main>",
+			);
+		});
+
+		it("should throw on cyclic layout extends", () => {
+			fileLoader.setTemplate(
+				"a.html",
+				`{% extends "b.html" %}{% block content %}A{% endblock %}`,
+			);
+			fileLoader.setTemplate(
+				"b.html",
+				`{% extends "a.html" %}{% block content %}B{% endblock %}`,
+			);
+
+			assert.throws(
+				() =>
+					templateEngine.compile(
+						`{% extends "a.html" %}{% block content %}Root{% endblock %}`,
+						{},
+					),
+				/ cyclic extends /i,
+			);
+		});
 	});
 });

@@ -24,25 +24,20 @@ export class Evaluator {
 	}
 
 	#evaluateVariable(node: ASTNode, context: Record<string, unknown>) {
-		const pathParts = node.value.split(".");
+		const isRecord = (x: unknown): x is Record<string, unknown> =>
+			x !== null && typeof x === "object";
 
-		let value: unknown = context;
-
-		for (const part of pathParts) {
-			if (value && typeof value === "object" && part in value) {
-				value = (value as Record<string, unknown>)[part];
-			} else {
-				value = undefined;
-				break;
+		const raw = node.value.split(".").reduce<unknown>((acc, key) => {
+			if (isRecord(acc) && key in acc) {
+				return acc[key];
 			}
-		}
+			return undefined;
+		}, context);
 
-		const ast: ASTNode = {
+		return {
 			...node,
-			value: this.#evaluateVariableValue(value),
+			value: this.#evaluateVariableValue(raw),
 		};
-
-		return ast;
 	}
 
 	#evaluateVariableValue(value: unknown) {
@@ -59,7 +54,7 @@ export class Evaluator {
 		return this.#escape(String(value));
 	}
 
-	#escape(value: string): string {
+	#escape(value: string) {
 		if (/&(?:amp|lt|gt|quot|#39);/.test(value)) {
 			return value;
 		}
@@ -101,7 +96,7 @@ export class Evaluator {
 		return ast;
 	}
 
-	#evaluateFor(node: ASTNode, context: Record<string, unknown>): ASTNode {
+	#evaluateFor(node: ASTNode, context: Record<string, unknown>) {
 		const path = node.value;
 		const keys = path.split(".");
 		let collection: unknown = context;
@@ -139,7 +134,7 @@ export class Evaluator {
 		};
 	}
 
-	#evaluateBlock(node: ASTNode, context: Record<string, unknown>): ASTNode {
+	#evaluateBlock(node: ASTNode, context: Record<string, unknown>) {
 		return {
 			...node,
 			children: node.children.map((child) =>
