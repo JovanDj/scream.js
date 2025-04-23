@@ -12,19 +12,17 @@ describe("Generator", { concurrency: true }, () => {
 
 	it("renders a flat sequence of text nodes", () => {
 		const ast: readonly ASTNode[] = [
-			{ type: "text", value: "Hello", children: [] },
-			{ type: "text", value: " ", children: [] },
-			{ type: "text", value: "World", children: [] },
-			{ type: "text", value: "!", children: [] },
+			{ type: "text", value: "Hello" },
+			{ type: "text", value: " " },
+			{ type: "text", value: "World" },
+			{ type: "text", value: "!" },
 		];
 		const output = generator.generate(ast);
 		assert.strictEqual(output, "Hello World!");
 	});
 
 	it("renders a single variable node", () => {
-		const ast: readonly ASTNode[] = [
-			{ type: "variable", value: "Evaluated", children: [] },
-		];
+		const ast: readonly ASTNode[] = [{ type: "variable", value: "Evaluated" }];
 		const output = generator.generate(ast);
 		assert.strictEqual(output, "Evaluated");
 	});
@@ -35,16 +33,16 @@ describe("Generator", { concurrency: true }, () => {
 				type: "block",
 				value: "outer",
 				children: [
-					{ type: "text", value: "Start ", children: [] },
+					{ type: "text", value: "Start " },
 					{
 						type: "block",
 						value: "inner",
 						children: [
-							{ type: "text", value: "Middle", children: [] },
-							{ type: "variable", value: "!", children: [] },
+							{ type: "text", value: "Middle" },
+							{ type: "variable", value: "!" },
 						],
 					},
-					{ type: "text", value: " End", children: [] },
+					{ type: "text", value: " End" },
 				],
 			},
 		];
@@ -65,8 +63,8 @@ describe("Generator", { concurrency: true }, () => {
 			{
 				type: "if",
 				value: "unused",
-				children: [],
-				alternate: [{ type: "text", value: "Fallback shown", children: [] }],
+
+				alternate: [{ type: "text", value: "Fallback shown" }],
 			},
 		];
 

@@ -12,7 +12,7 @@ export type ASTNode = {
 		| "block"
 		| "endblock";
 	readonly value: string;
-	readonly children: readonly ASTNode[];
+	readonly children?: readonly ASTNode[];
 	readonly alternate?: readonly ASTNode[];
 	readonly iterator?: string;
 };
@@ -64,7 +64,6 @@ export class Parser {
 					node: {
 						type: token.type,
 						value: token.value,
-						children: [],
 					},
 					nextIndex: index + 1,
 				};
@@ -74,7 +73,6 @@ export class Parser {
 					node: {
 						type: "extends",
 						value: token.value,
-						children: [],
 					},
 					nextIndex: index + 1,
 				};

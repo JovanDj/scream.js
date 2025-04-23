@@ -1,7 +1,6 @@
 import type { ASTNode } from "./parser.js";
 
 export class Evaluator {
-	// Now accepts context for variable resolution
 	evaluate(ast: readonly ASTNode[], context: Record<string, unknown>) {
 		return ast.map((node) => this.#evaluateNode(node, context));
 	}
@@ -34,10 +33,12 @@ export class Evaluator {
 			return undefined;
 		}, context);
 
-		return {
+		const ast: ASTNode = {
 			...node,
 			value: this.#evaluateVariableValue(raw),
 		};
+
+		return ast;
 	}
 
 	#evaluateVariableValue(value: unknown) {
@@ -68,27 +69,26 @@ export class Evaluator {
 	}
 
 	#evaluateIf(node: ASTNode, context: Record<string, unknown>) {
-		const keys = node.value.split(".");
-		let value: unknown = context;
+		const isRecord = (value: unknown): value is Record<string, unknown> => {
+			return typeof value === "object" && value !== null;
+		};
 
-		for (const key of keys) {
-			if (typeof value === "object" && value !== null && key in value) {
-				value = (value as Record<string, unknown>)[key];
-			} else {
-				value = undefined;
-				break;
+		const value = node.value.split(".").reduce((acc: unknown, key: string) => {
+			if (isRecord(acc) && key in acc) {
+				return acc[key];
 			}
-		}
-
-		const isTruthy = !!value;
+			return undefined;
+		}, context);
 
 		const ast: ASTNode = {
 			...node,
-			children: isTruthy
-				? node.children.map((child) => this.#evaluateNode(child, context))
+			children: value
+				? (node.children ?? []).map((child) =>
+						this.#evaluateNode(child, context),
+					)
 				: [],
 			alternate:
-				!isTruthy && node.alternate
+				!value && node.alternate
 					? node.alternate.map((child) => this.#evaluateNode(child, context))
 					: [],
 		};
@@ -97,49 +97,39 @@ export class Evaluator {
 	}
 
 	#evaluateFor(node: ASTNode, context: Record<string, unknown>) {
-		const path = node.value;
-		const keys = path.split(".");
-		let collection: unknown = context;
+		const isRecord = (v: unknown): v is Record<string, unknown> =>
+			typeof v === "object" && v !== null;
 
-		for (const key of keys) {
-			if (
-				typeof collection === "object" &&
-				collection !== null &&
-				key in collection
-			) {
-				collection = (collection as Record<string, unknown>)[key];
-			} else {
-				collection = undefined;
-				break;
-			}
-		}
+		const collection = node.value
+			.split(".")
+			.reduce<unknown>(
+				(acc, key) => (isRecord(acc) && key in acc ? acc[key] : undefined),
+				context,
+			);
 
 		if (!Array.isArray(collection) || !node.iterator) {
 			return { ...node, children: [] };
 		}
 
-		const expandedChildren: ASTNode[] = [];
-
-		for (const item of collection) {
-			const localContext = { ...context, [node.iterator]: item };
-			const evaluated = node.children.map((child) =>
-				this.#evaluateNode(child, localContext),
-			);
-			expandedChildren.push(...evaluated);
-		}
+		const iteratorKey = node.iterator;
 
 		return {
 			...node,
-			children: expandedChildren,
+			children: collection.flatMap((item) =>
+				(node.children ?? []).map((child) =>
+					this.#evaluateNode(child, { ...context, [iteratorKey]: item }),
+				),
+			),
 		};
 	}
 
 	#evaluateBlock(node: ASTNode, context: Record<string, unknown>) {
-		return {
+		const ast: ASTNode = {
 			...node,
-			children: node.children.map((child) =>
+			children: (node.children ?? []).map((child) =>
 				this.#evaluateNode(child, context),
 			),
 		};
+		return ast;
 	}
 }

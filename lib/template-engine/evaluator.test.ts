@@ -13,56 +13,52 @@ describe("Evaluator", { concurrency: true }, () => {
 	describe("Evaluator – Variable Resolution", () => {
 		it("should resolve a variable from context", () => {
 			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "user.name", children: [] },
+				{ type: "variable", value: "user.name" },
 			];
 			const context = { user: { name: "John" } };
 			const result = evaluator.evaluate(ast, context);
 
 			assert.deepStrictEqual<ASTNode[]>(result, [
-				{ type: "variable", value: "John", children: [] },
+				{ type: "variable", value: "John" },
 			]);
 		});
 
 		it("should return an empty string for undefined variables", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "user.age", children: [] },
-			];
+			const ast: readonly ASTNode[] = [{ type: "variable", value: "user.age" }];
 			const context = { user: { name: "John" } }; // age is not in the context
 			const result = evaluator.evaluate(ast, context);
 
 			assert.deepStrictEqual<ASTNode[]>(result, [
-				{ type: "variable", value: "", children: [] },
+				{ type: "variable", value: "" },
 			]);
 		});
 
 		it("should return an empty string for non-serializable or symbolic values", () => {
 			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "user.symbol", children: [] },
+				{ type: "variable", value: "user.symbol" },
 			];
 			const context = { user: { symbol: Symbol("test") } };
 			const result = evaluator.evaluate(ast, context);
 
 			assert.deepStrictEqual<ASTNode[]>(result, [
-				{ type: "variable", value: "", children: [] },
+				{ type: "variable", value: "" },
 			]);
 		});
 
 		it("should return an empty string for function values", () => {
 			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "user.greet", children: [] },
+				{ type: "variable", value: "user.greet" },
 			];
 			const context = { user: { greet: () => "Hello" } }; // function in context
 			const result = evaluator.evaluate(ast, context);
 
 			assert.deepStrictEqual<ASTNode[]>(result, [
-				{ type: "variable", value: "", children: [] },
+				{ type: "variable", value: "" },
 			]);
 		});
 
 		it("should escape HTML special characters in variable values", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "xss", children: [] },
-			];
+			const ast: readonly ASTNode[] = [{ type: "variable", value: "xss" }];
 			const context = { xss: "<script>alert('x')</script>" };
 			const result = evaluator.evaluate(ast, context);
 
@@ -70,20 +66,17 @@ describe("Evaluator", { concurrency: true }, () => {
 				{
 					type: "variable",
 					value: "&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;",
-					children: [],
 				},
 			]);
 		});
 
 		it("should not escape already escaped values", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "safe", children: [] },
-			];
+			const ast: readonly ASTNode[] = [{ type: "variable", value: "safe" }];
 			const context = { safe: "&lt;div&gt;" }; // Already escaped
 			const result = evaluator.evaluate(ast, context);
 
 			assert.deepStrictEqual<ASTNode[]>(result, [
-				{ type: "variable", value: "&lt;div&gt;", children: [] },
+				{ type: "variable", value: "&lt;div&gt;" },
 			]);
 		});
 	});
@@ -94,13 +87,14 @@ describe("Evaluator", { concurrency: true }, () => {
 				{
 					type: "if",
 					value: "show",
-					children: [{ type: "text", value: "Visible", children: [] }],
-					alternate: [{ type: "text", value: "Hidden", children: [] }],
+					children: [{ type: "text", value: "Visible" }],
+					alternate: [{ type: "text", value: "Hidden" }],
 				},
 			];
 
 			const context = { show: true };
 			const result = evaluator.evaluate(ast, context);
+			assert.ok(result[0]?.children);
 			assert.deepStrictEqual<string>(result[0]?.children[0]?.value, "Visible");
 		});
 
@@ -109,14 +103,14 @@ describe("Evaluator", { concurrency: true }, () => {
 				{
 					type: "if",
 					value: "show",
-					children: [{ type: "text", value: "Visible", children: [] }],
-					alternate: [{ type: "text", value: "Hidden", children: [] }],
+					children: [{ type: "text", value: "Visible" }],
+					alternate: [{ type: "text", value: "Hidden" }],
 				},
 			];
 
 			const context = { show: false };
 			const result = evaluator.evaluate(ast, context);
-			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
+			assert.deepStrictEqual<number>(result[0]?.children?.length, 0);
 			assert.ok(result[0]?.alternate?.[0]);
 			assert.deepStrictEqual<string>(result[0].alternate[0].value, "Hidden");
 		});
@@ -126,17 +120,20 @@ describe("Evaluator", { concurrency: true }, () => {
 				{
 					type: "if",
 					value: "user.loggedIn",
-					children: [{ type: "text", value: "Welcome", children: [] }],
-					alternate: [{ type: "text", value: "Please login", children: [] }],
+					children: [{ type: "text", value: "Welcome" }],
+					alternate: [{ type: "text", value: "Please login" }],
 				},
 			];
 
 			const context = {};
 			const result = evaluator.evaluate(ast, context);
+
+			assert.ok(result[0]?.children);
 			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
-			assert.ok(result[0]?.alternate?.[0]);
+
+			assert.ok(result[0]?.alternate);
 			assert.deepStrictEqual<string>(
-				result[0].alternate[0].value,
+				result[0]?.alternate[0]?.value,
 				"Please login",
 			);
 		});
@@ -146,13 +143,14 @@ describe("Evaluator", { concurrency: true }, () => {
 				{
 					type: "if",
 					value: "user.loggedIn",
-					children: [{ type: "text", value: "Yes", children: [] }],
-					alternate: [{ type: "text", value: "No", children: [] }],
+					children: [{ type: "text", value: "Yes" }],
+					alternate: [{ type: "text", value: "No" }],
 				},
 			];
 
 			const context = { user: { loggedIn: true } };
 			const result = evaluator.evaluate(ast, context);
+			assert.ok(result[0]?.children);
 			assert.deepStrictEqual<string>(result[0]?.children[0]?.value, "Yes");
 		});
 
@@ -161,13 +159,16 @@ describe("Evaluator", { concurrency: true }, () => {
 				{
 					type: "if",
 					value: "zero",
-					children: [{ type: "text", value: "Truthy", children: [] }],
-					alternate: [{ type: "text", value: "Falsy", children: [] }],
+					children: [{ type: "text", value: "Truthy" }],
+					alternate: [{ type: "text", value: "Falsy" }],
 				},
 			];
 			const context = { zero: 0 };
 			const result = evaluator.evaluate(ast, context);
+
+			assert.ok(result[0]?.children);
 			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
+
 			assert.ok(result[0]?.alternate?.[0]);
 			assert.deepStrictEqual<string>(result[0].alternate[0].value, "Falsy");
 		});
@@ -177,13 +178,16 @@ describe("Evaluator", { concurrency: true }, () => {
 				{
 					type: "if",
 					value: "empty",
-					children: [{ type: "text", value: "Truthy", children: [] }],
-					alternate: [{ type: "text", value: "Falsy", children: [] }],
+					children: [{ type: "text", value: "Truthy" }],
+					alternate: [{ type: "text", value: "Falsy" }],
 				},
 			];
 			const context = { empty: "" };
 			const result = evaluator.evaluate(ast, context);
+
+			assert.ok(result[0]?.children);
 			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
+
 			assert.ok(result[0]?.alternate?.[0]);
 			assert.deepStrictEqual<string>(result[0].alternate[0].value, "Falsy");
 		});
@@ -193,15 +197,17 @@ describe("Evaluator", { concurrency: true }, () => {
 				{
 					type: "if",
 					value: "nil",
-					children: [{ type: "text", value: "Truthy", children: [] }],
-					alternate: [{ type: "text", value: "Falsy", children: [] }],
+					children: [{ type: "text", value: "Truthy" }],
+					alternate: [{ type: "text", value: "Falsy" }],
 				},
 			];
 			const context = { nil: null };
 			const result = evaluator.evaluate(ast, context);
-			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
-			assert.ok(result[0]?.alternate?.[0]);
 
+			assert.ok(result[0]?.children);
+			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
+
+			assert.ok(result[0]?.alternate?.[0]);
 			assert.deepStrictEqual<string>(result[0].alternate[0].value, "Falsy");
 		});
 
@@ -210,15 +216,17 @@ describe("Evaluator", { concurrency: true }, () => {
 				{
 					type: "if",
 					value: "missing",
-					children: [{ type: "text", value: "Truthy", children: [] }],
-					alternate: [{ type: "text", value: "Falsy", children: [] }],
+					children: [{ type: "text", value: "Truthy" }],
+					alternate: [{ type: "text", value: "Falsy" }],
 				},
 			];
 			const context = {};
 			const result = evaluator.evaluate(ast, context);
-			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
-			assert.ok(result[0]?.alternate?.[0]);
 
+			assert.ok(result[0]?.children);
+			assert.deepStrictEqual<number>(result[0]?.children.length, 0);
+
+			assert.ok(result[0]?.alternate?.[0]);
 			assert.deepStrictEqual<string>(result[0].alternate[0].value, "Falsy");
 		});
 	});
@@ -230,13 +238,14 @@ describe("Evaluator", { concurrency: true }, () => {
 					type: "for",
 					value: "items",
 					iterator: "item",
-					children: [{ type: "variable", value: "item", children: [] }],
+					children: [{ type: "variable", value: "item" }],
 				},
 			];
 
 			const context = { items: ["A", "B"] };
 			const result = evaluator.evaluate(ast, context);
 
+			assert.ok(result[0]?.children);
 			assert.deepStrictEqual<[string, string]>(
 				result[0]?.children.map((c) => c.value),
 				["A", "B"],
@@ -249,15 +258,16 @@ describe("Evaluator", { concurrency: true }, () => {
 					type: "for",
 					value: "user.favorites",
 					iterator: "fav",
-					children: [{ type: "variable", value: "fav", children: [] }],
+					children: [{ type: "variable", value: "fav" }],
 				},
 			];
 
 			const context = { user: { favorites: ["Red", "Blue"] } };
 			const result = evaluator.evaluate(ast, context);
 
+			assert.ok(result[0]?.children);
 			assert.deepStrictEqual<[string, string]>(
-				result[0]?.children.map((c) => c.value),
+				result[0].children.map((c) => c.value),
 				["Red", "Blue"],
 			);
 		});
@@ -268,7 +278,7 @@ describe("Evaluator", { concurrency: true }, () => {
 					type: "for",
 					value: "user.favorites",
 					iterator: "fav",
-					children: [{ type: "variable", value: "fav", children: [] }],
+					children: [{ type: "variable", value: "fav" }],
 				},
 			];
 
@@ -283,7 +293,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				{
 					type: "for",
 					value: "items",
-					children: [{ type: "variable", value: "item", children: [] }],
+					children: [{ type: "variable", value: "item" }],
 				},
 			];
 
@@ -299,7 +309,7 @@ describe("Evaluator", { concurrency: true }, () => {
 					type: "for",
 					value: "items",
 					iterator: "item",
-					children: [{ type: "variable", value: "item.name", children: [] }],
+					children: [{ type: "variable", value: "item.name" }],
 				},
 			];
 
@@ -308,6 +318,8 @@ describe("Evaluator", { concurrency: true }, () => {
 			};
 
 			const result = evaluator.evaluate(ast, context);
+
+			assert.ok(result[0]?.children);
 			assert.deepStrictEqual<[string, string]>(
 				result[0]?.children.map((c) => c.value),
 				["Alpha", "Beta"],
@@ -322,9 +334,9 @@ describe("Evaluator", { concurrency: true }, () => {
 					type: "block",
 					value: "content",
 					children: [
-						{ type: "text", value: "Hello, ", children: [] },
-						{ type: "variable", value: "name", children: [] },
-						{ type: "text", value: "!", children: [] },
+						{ type: "text", value: "Hello, " },
+						{ type: "variable", value: "name" },
+						{ type: "text", value: "!" },
 					],
 				},
 			];
@@ -332,6 +344,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { name: "Alice" };
 			const result = evaluator.evaluate(ast, context);
 
+			assert.ok(result[0]?.children);
 			assert.deepStrictEqual<[string, string, string]>(
 				result[0]?.children.map((c) => c.value),
 				["Hello, ", "Alice", "!"],
@@ -343,7 +356,6 @@ describe("Evaluator", { concurrency: true }, () => {
 				{
 					type: "block",
 					value: "empty",
-					children: [],
 				},
 			];
 
@@ -356,64 +368,64 @@ describe("Evaluator", { concurrency: true }, () => {
 				{
 					type: "block",
 					value: "header",
-					children: [{ type: "variable", value: "siteName", children: [] }],
+					children: [{ type: "variable", value: "siteName" }],
 				},
 			];
 
 			const context = { siteName: "test" };
 			const result = evaluator.evaluate(ast, context);
 
-			assert.strictEqual(result[0]?.type, "block");
-			assert.strictEqual(result[0]?.value, "header");
-			assert.strictEqual(result[0]?.children[0]?.value, "test");
+			assert.deepStrictEqual<string>(result[0]?.type, "block");
+			assert.deepStrictEqual<string>(result[0]?.value, "header");
+
+			assert.ok(result[0]?.children);
+			assert.deepStrictEqual<string>(result[0]?.children[0]?.value, "test");
 		});
 	});
 
 	describe("Negative and Edge Cases", () => {
 		it("should return an empty string for empty string values in context", () => {
-			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "emptyStr", children: [] },
-			];
+			const ast: readonly ASTNode[] = [{ type: "variable", value: "emptyStr" }];
 			const context = { emptyStr: "" }; // Empty string
 			const result = evaluator.evaluate(ast, context);
 
 			assert.deepStrictEqual<ASTNode[]>(result, [
-				{ type: "variable", value: "", children: [] },
+				{ type: "variable", value: "" },
 			]);
 		});
 
 		it("should return an empty string for null values in context", () => {
 			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "user.null", children: [] },
+				{ type: "variable", value: "user.null" },
 			];
 			const context = { user: { null: null } }; // null value
 			const result = evaluator.evaluate(ast, context);
 
 			assert.deepStrictEqual<ASTNode[]>(result, [
-				{ type: "variable", value: "", children: [] },
+				{ type: "variable", value: "" },
 			]);
 		});
 
 		it("should handle missing context without throwing an error", () => {
 			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "missingKey", children: [] },
+				{ type: "variable", value: "missingKey" },
 			];
 			const context = {}; // Missing key
 			const result = evaluator.evaluate(ast, context);
 
 			assert.deepStrictEqual<ASTNode[]>(result, [
-				{ type: "variable", value: "", children: [] },
+				{ type: "variable", value: "" },
 			]);
 		});
 
 		it("should handle undefined context gracefully", () => {
 			const ast: readonly ASTNode[] = [
-				{ type: "variable", value: "undefinedKey", children: [] },
+				{ type: "variable", value: "undefinedKey" },
 			];
 			const result = evaluator.evaluate(ast, {});
 
 			assert.deepStrictEqual<ASTNode[]>(result, [
-				{ type: "variable", value: "", children: [] },
+				{ type: "variable", value: "" },
 			]);
 		});
 	});

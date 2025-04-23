@@ -27,7 +27,7 @@ describe("Resolver", () => {
 		const ast = resolver.resolve(template);
 
 		assert.deepStrictEqual<ASTNode[]>(ast, [
-			{ type: "text", value: "<h1>Hello</h1>", children: [] },
+			{ type: "text", value: "<h1>Hello</h1>" },
 		]);
 	});
 
@@ -49,7 +49,6 @@ describe("Resolver", () => {
 			{
 				type: "text",
 				value: "\n        <header>",
-				children: [],
 			},
 			{
 				type: "block",
@@ -58,14 +57,12 @@ describe("Resolver", () => {
 					{
 						type: "text",
 						value: "Custom Header",
-						children: [],
 					},
 				],
 			},
 			{
 				type: "text",
 				value: "</header>\n        <main>",
-				children: [],
 			},
 			{
 				type: "block",
@@ -74,14 +71,12 @@ describe("Resolver", () => {
 					{
 						type: "text",
 						value: "Custom Content",
-						children: [],
 					},
 				],
 			},
 			{
 				type: "text",
 				value: "</main>",
-				children: [],
 			},
 		]);
 	});
@@ -109,24 +104,22 @@ describe("Resolver", () => {
 			{
 				type: "text",
 				value: "\n        <header>",
-				children: [],
 			},
 			{
 				type: "block",
 				value: "header",
-				children: [{ type: "text", value: "Mid Header", children: [] }],
+				children: [{ type: "text", value: "Mid Header" }],
 			},
 			{
 				type: "text",
 				value: "</header>\n        <main>",
-				children: [],
 			},
 			{
 				type: "block",
 				value: "content",
-				children: [{ type: "text", value: "Leaf Content", children: [] }],
+				children: [{ type: "text", value: "Leaf Content" }],
 			},
-			{ type: "text", value: "</main>", children: [] },
+			{ type: "text", value: "</main>" },
 		]);
 	});
 
@@ -142,13 +135,13 @@ describe("Resolver", () => {
 		const ast = resolver.resolve(template);
 
 		assert.deepStrictEqual<ASTNode[]>(ast, [
-			{ type: "text", value: "\n        <nav>", children: [] },
+			{ type: "text", value: "\n        <nav>" },
 			{
 				type: "block",
 				value: "nav",
-				children: [{ type: "text", value: "Default Nav", children: [] }],
+				children: [{ type: "text", value: "Default Nav" }],
 			},
-			{ type: "text", value: "</nav>", children: [] },
+			{ type: "text", value: "</nav>" },
 		]);
 	});
 

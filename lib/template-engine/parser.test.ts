@@ -16,7 +16,7 @@ describe("Parser", { concurrency: true }, () => {
 			const ast = parser.parse(tokens);
 
 			assert.deepStrictEqual<ASTNode[]>(ast, [
-				{ type: "variable", value: "name", children: [] },
+				{ type: "variable", value: "name" },
 			]);
 		});
 
@@ -29,9 +29,9 @@ describe("Parser", { concurrency: true }, () => {
 			const ast = parser.parse(tokens);
 
 			assert.deepStrictEqual<ASTNode[]>(ast, [
-				{ type: "variable", value: "firstName", children: [] },
-				{ type: "text", value: " ", children: [] },
-				{ type: "variable", value: "lastName", children: [] },
+				{ type: "variable", value: "firstName" },
+				{ type: "text", value: " " },
+				{ type: "variable", value: "lastName" },
 			]);
 		});
 	});
@@ -50,7 +50,7 @@ describe("Parser", { concurrency: true }, () => {
 					type: "if",
 					value: "isLoggedIn",
 
-					children: [{ type: "text", value: "Welcome!", children: [] }],
+					children: [{ type: "text", value: "Welcome!" }],
 				},
 			]);
 		});
@@ -69,8 +69,8 @@ describe("Parser", { concurrency: true }, () => {
 				{
 					type: "if",
 					value: "isAdmin",
-					children: [{ type: "text", value: "Admin Panel", children: [] }],
-					alternate: [{ type: "text", value: "User Panel", children: [] }],
+					children: [{ type: "text", value: "Admin Panel" }],
+					alternate: [{ type: "text", value: "User Panel" }],
 				},
 			]);
 		});
@@ -91,7 +91,7 @@ describe("Parser", { concurrency: true }, () => {
 					value: "letters",
 					iterator: "letter",
 
-					children: [{ type: "variable", value: "letter", children: [] }],
+					children: [{ type: "variable", value: "letter" }],
 				},
 			]);
 		});
@@ -122,7 +122,6 @@ describe("Parser", { concurrency: true }, () => {
 								{
 									type: "variable",
 									value: "task.title",
-									children: [],
 								},
 							],
 						},
@@ -138,7 +137,7 @@ describe("Parser", { concurrency: true }, () => {
 			const ast = parser.parse(tokens);
 
 			assert.deepStrictEqual<ASTNode[]>(ast, [
-				{ type: "extends", value: "layout", children: [] },
+				{ type: "extends", value: "layout" },
 			]);
 		});
 
@@ -155,7 +154,7 @@ describe("Parser", { concurrency: true }, () => {
 					type: "block",
 					value: "content",
 
-					children: [{ type: "text", value: "Hello", children: [] }],
+					children: [{ type: "text", value: "Hello" }],
 				},
 			]);
 		});
@@ -185,14 +184,12 @@ describe("Parser", { concurrency: true }, () => {
 								{
 									type: "text",
 									value: "Welcome Admin",
-									children: [],
 								},
 							],
 							alternate: [
 								{
 									type: "text",
 									value: "Welcome User",
-									children: [],
 								},
 							],
 						},
@@ -221,7 +218,6 @@ describe("Parser", { concurrency: true }, () => {
 						{
 							type: "text",
 							value: "Header Content",
-							children: [],
 						},
 					],
 				},
@@ -233,7 +229,6 @@ describe("Parser", { concurrency: true }, () => {
 						{
 							type: "text",
 							value: "Footer Content",
-							children: [],
 						},
 					],
 				},
@@ -284,7 +279,6 @@ describe("Parser", { concurrency: true }, () => {
 						{
 							type: "text",
 							value: "Inside block",
-							children: [],
 						},
 					],
 				},
@@ -316,7 +310,6 @@ describe("Parser", { concurrency: true }, () => {
 								{
 									type: "text",
 									value: "Hello",
-									children: [],
 								},
 							],
 						},
@@ -367,7 +360,7 @@ describe("Parser", { concurrency: true }, () => {
 			const ast = parser.parse(tokens);
 
 			assert.deepStrictEqual<ASTNode[]>(ast, [
-				{ type: "extends", value: "layout", children: [] },
+				{ type: "extends", value: "layout" },
 				{
 					type: "block",
 					value: "content",
@@ -377,18 +370,16 @@ describe("Parser", { concurrency: true }, () => {
 							type: "if",
 							value: "user",
 							children: [
-								{ type: "text", value: "Hello, ", children: [] },
+								{ type: "text", value: "Hello, " },
 								{
 									type: "variable",
 									value: "user.name",
-									children: [],
 								},
 							],
 							alternate: [
 								{
 									type: "text",
 									value: "Please log in.",
-									children: [],
 								},
 							],
 						},

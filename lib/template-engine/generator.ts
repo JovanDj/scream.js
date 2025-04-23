@@ -11,12 +11,14 @@ export class Generator {
 		}
 
 		if (node.type === "block" || node.type === "for") {
-			return this.generate(node.children);
+			return this.generate(node.children ?? []);
 		}
 
 		if (node.type === "if") {
-			const hasTruthyBranch = node.children.length > 0;
-			const branch = hasTruthyBranch ? node.children : (node.alternate ?? []);
+			const hasTruthyBranch = (node.children ?? []).length > 0;
+			const branch = hasTruthyBranch
+				? (node.children ?? [])
+				: (node.alternate ?? []);
 			return this.generate(branch).trim();
 		}
 
