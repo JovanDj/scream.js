@@ -18,13 +18,13 @@ describe("Generator", { concurrency: true }, () => {
 			{ type: "text", value: "!" },
 		];
 		const output = generator.generate(ast);
-		assert.strictEqual(output, "Hello World!");
+		assert.deepStrictEqual<string>(output, "Hello World!");
 	});
 
 	it("renders a single variable node", () => {
 		const ast: readonly ASTNode[] = [{ type: "variable", value: "Evaluated" }];
 		const output = generator.generate(ast);
-		assert.strictEqual(output, "Evaluated");
+		assert.deepStrictEqual<string>(output, "Evaluated");
 	});
 
 	it("renders nested blocks with text content", () => {
@@ -47,13 +47,13 @@ describe("Generator", { concurrency: true }, () => {
 			},
 		];
 		const output = generator.generate(ast);
-		assert.strictEqual(output, "Start Middle! End");
+		assert.deepStrictEqual<string>(output, "Start Middle! End");
 	});
 
 	it("renders empty result when given empty AST", () => {
 		const ast: readonly ASTNode[] = [];
 		const output = generator.generate(ast);
-		assert.strictEqual(output, "");
+		assert.deepStrictEqual<string>(output, "");
 	});
 
 	it("renders alternate branch when children are empty", () => {

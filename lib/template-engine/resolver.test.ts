@@ -7,7 +7,7 @@ import { Resolver } from "./resolver.js";
 import { Tokenizer } from "./tokenizer.js";
 import { Transformer } from "./transformer.js";
 
-describe("Resolver", () => {
+describe("Resolver", { concurrency: true }, () => {
 	let fileLoader: InMemoryFileLoader;
 	let tokenizer: Tokenizer;
 	let parser: Parser;
