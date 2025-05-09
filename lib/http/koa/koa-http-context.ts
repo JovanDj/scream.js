@@ -1,30 +1,30 @@
 import type Koa from "koa";
 import type { HttpContext } from "../http-context.js";
 
-export class KoaHttpContext<Body = object> implements HttpContext<Body> {
+export class KoaHttpContext implements HttpContext {
 	readonly #ctx: Koa.Context;
 
 	constructor(ctx: Koa.Context) {
 		this.#ctx = ctx;
 	}
 
-	get params() {
-		return this.#ctx["params"];
+	params(param: string) {
+		return this.#ctx[param];
 	}
 
-	get body() {
-		return this.#ctx.body as Body;
+	body() {
+		return this.#ctx.body;
 	}
 
-	get method() {
+	method() {
 		return this.#ctx.method;
 	}
 
-	get headers() {
+	headers() {
 		return this.#ctx.headers;
 	}
 
-	get url() {
+	url() {
 		return this.#ctx.url;
 	}
 
@@ -75,8 +75,8 @@ export class KoaHttpContext<Body = object> implements HttpContext<Body> {
 		this.#ctx.type = "text/plain";
 	}
 
-	get id() {
-		const idParam = this.params["id"];
+	id() {
+		const idParam = this.params("id");
 		return idParam ? Number.parseInt(idParam, 10) : undefined;
 	}
 

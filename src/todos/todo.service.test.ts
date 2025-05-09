@@ -32,20 +32,20 @@ describe("TodoService", () => {
 	it("fetches todos", async () => {
 		const todos = await todoService.findAll();
 
-		assert.deepStrictEqual(todos, []);
+		assert.deepStrictEqual<TodoSchema[]>(todos, []);
 	});
 
 	it("inserts a todo", async () => {
 		const todo = await todoService.create({ title: "Test Todo", userId: 1 });
 		assert.ok(todo.id);
-		assert.deepStrictEqual(todo.title, "Test Todo");
-		assert.deepStrictEqual(todo.userId, 1);
+		assert.deepStrictEqual<TodoSchema["title"]>(todo.title, "Test Todo");
+		assert.deepStrictEqual<TodoSchema["userId"]>(todo.userId, 1);
 	});
 
 	it("finds a todo by ID", async () => {
 		const created = await todoService.create({ title: "Find Me", userId: 1 });
 		const found = await todoService.findById(created.id);
-		assert.deepStrictEqual(found, created);
+		assert.deepStrictEqual<TodoSchema>(found, created);
 	});
 
 	it("updates a todo", async () => {
@@ -53,8 +53,8 @@ describe("TodoService", () => {
 		const updated = await todoService.update(created.id, {
 			title: "New Title",
 		});
-		assert.deepStrictEqual(updated.title, "New Title");
-		assert.deepStrictEqual(updated.userId, 1);
+		assert.deepStrictEqual<TodoSchema["title"]>(updated.title, "New Title");
+		assert.deepStrictEqual<TodoSchema["userId"]>(updated.userId, 1);
 	});
 
 	it("deletes a todo", async () => {
@@ -63,13 +63,14 @@ describe("TodoService", () => {
 			userId: 1,
 		});
 		const result = await todoService.delete(created.id);
-		assert.deepStrictEqual(result, 1);
 		const todos = await todoService.findAll();
-		assert.deepStrictEqual(todos, []);
+
+		assert.deepStrictEqual<TodoSchema["userId"]>(result, 1);
+		assert.deepStrictEqual<TodoSchema[]>(todos, []);
 	});
 
 	it("returns 0 when deleting non-existent todo", async () => {
 		const result = await todoService.delete(9999);
-		assert.deepStrictEqual(result, 0);
+		assert.deepStrictEqual<number>(result, 0);
 	});
 });
