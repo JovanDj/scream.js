@@ -11,11 +11,11 @@ import { parse } from "node:url";
 
 import nunjucks from "nunjucks";
 
-export class ScreamHttpContext<Body = object> implements HttpContext<Body> {
+export class ScreamHttpContext implements HttpContext {
 	readonly #req: Readonly<IncomingMessage>;
 	readonly #res: ServerResponse;
 	readonly #parsedUrl: ReturnType<typeof parse>;
-	#bodyData: Body | undefined = undefined;
+	#bodyData: unknown | undefined = undefined;
 
 	readonly #nunjucks = new nunjucks.Environment(
 		new nunjucks.FileSystemLoader(path.join(process.cwd(), "views"), {
@@ -43,7 +43,7 @@ export class ScreamHttpContext<Body = object> implements HttpContext<Body> {
 	}
 
 	// Parse URL parameters
-	get params() {
+	params() {
 		const path = this.#parsedUrl.pathname || "";
 		const paramRegex = /\/(?<id>\d+)/;
 		const match = paramRegex.exec(path);
@@ -51,22 +51,22 @@ export class ScreamHttpContext<Body = object> implements HttpContext<Body> {
 	}
 
 	// Get parsed request body (this could be parsed JSON, form data, etc.)
-	get body() {
-		return this.#bodyData as Body;
+	body() {
+		return this.#bodyData;
 	}
 
 	// Get HTTP method
-	get method() {
+	method() {
 		return this.#req.method || "";
 	}
 
 	// Get request headers
-	get headers() {
+	headers() {
 		return this.#req.headers;
 	}
 
 	// Get the request URL
-	get url() {
+	url() {
 		return this.#req.url || "";
 	}
 
@@ -84,7 +84,10 @@ export class ScreamHttpContext<Body = object> implements HttpContext<Body> {
 	acceptsLanguages(languages: readonly string[]) {
 		const acceptLang = this.#req.headers["accept-language"];
 
-		if (!acceptLang) return "en"; // Default to "en" or another fallback language
+		// Default to "en" or another fallback language
+		if (!acceptLang) {
+			return "en";
+		}
 
 		for (const lang of languages) {
 			if (acceptLang.includes(lang)) return lang;
@@ -167,9 +170,9 @@ export class ScreamHttpContext<Body = object> implements HttpContext<Body> {
 	// Utility method to read request body (for POST/PUT requests)
 	async readBody() {
 		if (
-			this.method !== "POST" &&
-			this.method !== "PUT" &&
-			this.method !== "PATCH"
+			this.method() !== "POST" &&
+			this.method() !== "PUT" &&
+			this.method() !== "PATCH"
 		) {
 			return "";
 		}
@@ -186,7 +189,7 @@ export class ScreamHttpContext<Body = object> implements HttpContext<Body> {
 		try {
 			this.#bodyData = JSON.parse(body);
 		} catch (e) {
-			this.#bodyData = body as Body;
+			this.#bodyData = body;
 		}
 
 		return;

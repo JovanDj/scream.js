@@ -1,7 +1,9 @@
 import { callbackify } from "node:util";
-import type { Resource } from "@scream.js/resource.js";
+
 import type Express from "express";
 import { Router } from "express";
+
+import type { Resource } from "@scream.js/resource.js";
 import type { Application } from "../application.interface.js";
 import type { Handler } from "../handler.js";
 import type { Middleware } from "../middleware.js";

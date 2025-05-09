@@ -3,13 +3,13 @@ import type express from "express";
 import type { NextFunction } from "express";
 import type { HttpContext } from "../http-context.js";
 
-export class ExpressHttpContext<Body = object> implements HttpContext<Body> {
-	readonly #request: express.Request<object, object, Body>;
+export class ExpressHttpContext implements HttpContext {
+	readonly #request: express.Request;
 	readonly #response: express.Response;
 	readonly #next: NextFunction;
 
 	constructor(
-		request: express.Request<object, object, Body>,
+		request: express.Request,
 		response: express.Response,
 		next: NextFunction,
 	) {
@@ -18,23 +18,23 @@ export class ExpressHttpContext<Body = object> implements HttpContext<Body> {
 		this.#next = next;
 	}
 
-	get body() {
+	body() {
 		return { ...this.#request.body };
 	}
 
-	get params() {
+	params() {
 		return { ...this.#request.params };
 	}
 
-	get method() {
+	method() {
 		return this.#request.method;
 	}
 
-	get headers() {
+	headers() {
 		return this.#request.headers;
 	}
 
-	get url() {
+	url() {
 		return this.#request.url;
 	}
 

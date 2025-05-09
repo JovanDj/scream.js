@@ -18,12 +18,12 @@ export class TodosController implements Resource {
 	}
 
 	async show(ctx: HttpContext) {
-		if (!ctx.params["id"]) {
+		if (!ctx.params("id")) {
 			return ctx.notFound();
 		}
 
 		try {
-			const todo = await this.#todoService.findById(+ctx.params["id"]);
+			const todo = await this.#todoService.findById(+ctx.params("id"));
 
 			if (!todo) {
 				return ctx.notFound();
@@ -49,10 +49,21 @@ export class TodosController implements Resource {
 		return ctx.render("create");
 	}
 
-	async store(ctx: HttpContext<{ title: string }>) {
+	async store(ctx: HttpContext) {
+		const body = ctx.body();
+
+		if (
+			typeof body !== "object" ||
+			body === null ||
+			!("title" in body) ||
+			typeof body["title"] !== "string"
+		) {
+			return ctx.status(400).json({ error: "Invalid title" });
+		}
+
 		try {
 			const todo = await this.#todoService.create({
-				title: ctx.body.title,
+				title: body.title,
 				userId: 1,
 			});
 
@@ -70,13 +81,13 @@ export class TodosController implements Resource {
 		return ctx.render("");
 	}
 
-	async update(ctx: HttpContext<{ title: string }>) {
-		if (!ctx.params["id"]) {
+	async update(ctx: HttpContext) {
+		if (!ctx.params("id")) {
 			return ctx.notFound();
 		}
 
 		try {
-			const todo = await this.#todoService.update(+ctx.params["id"], {});
+			const todo = await this.#todoService.update(+ctx.params("id"), {});
 			return ctx.redirect(`http://localhost:3000/todos/${todo.id}`);
 		} catch (error) {
 			if (error instanceof Error) {
@@ -88,11 +99,11 @@ export class TodosController implements Resource {
 	}
 
 	async delete(ctx: HttpContext) {
-		if (!ctx.params["id"]) {
+		if (!ctx.params("id")) {
 			return ctx.notFound();
 		}
 
-		const changed = await this.#todoService.delete(+ctx.params["id"]);
+		const changed = await this.#todoService.delete(+ctx.params("id"));
 
 		return ctx.status(200).end(changed);
 	}
