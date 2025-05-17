@@ -5,7 +5,6 @@ import knex, { type Knex } from "knex";
 import config from "knexfile.js";
 
 import type { Repository } from "@scream.js/database/repository.js";
-
 import { TodoRepository } from "./todo.repository.js";
 import type { TodoSchema } from "./todo.schema.js";
 import { TodoService } from "./todo.service.js";
