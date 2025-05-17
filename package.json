@@ -21,7 +21,7 @@
 	"devDependencies": {
 		"@babel/register": "^7.27.1",
 		"@biomejs/biome": "^1.9.4",
-		"@faker-js/faker": "^9.7.0",
+		"@faker-js/faker": "^9.8.0",
 		"@playwright/test": "^1.52.0",
 		"@swc/core": "^1.11.24",
 		"@swc/register": "^0.1.10",
@@ -32,11 +32,11 @@
 		"@types/cors": "^2.8.18",
 		"@types/csurf": "^1.11.5",
 		"@types/ejs": "^3.1.5",
-		"@types/express": "^4.17.21",
+		"@types/express": "^4.17.22",
 		"@types/express-session": "^1.18.1",
 		"@types/koa": "^2.15.0",
 		"@types/koa__router": "^12.0.4",
-		"@types/node": "^22.15.16",
+		"@types/node": "^22.15.18",
 		"@types/nunjucks": "^3.2.6",
 		"@types/sqlite3": "^3.1.11",
 		"commitizen": "^4.3.1",
@@ -48,7 +48,7 @@
 		"knex": "^3.1.0",
 		"lint-staged": "^15.5.2",
 		"playwright": "^1.44.1",
-		"sass": "^1.87.0",
+		"sass": "^1.89.0",
 		"sucrase": "^3.35.0",
 		"ts-mockito": "^2.6.1",
 		"ts-node": "^10.9.2",
@@ -77,7 +77,7 @@
 		"@ladjs/koa-views": "^9.0.0",
 		"@popperjs/core": "^2.11.8",
 		"@tsconfig/node22": "^22.0.1",
-		"@types/pg": "^8.15.0",
+		"@types/pg": "^8.15.2",
 		"better-sqlite3": "^11.10.0",
 		"bootstrap": "^5.3.6",
 		"cheerio": "^1.0.0",
@@ -91,7 +91,7 @@
 		"koa": "^2.16.1",
 		"koa-body": "^6.0.1",
 		"nunjucks": "^3.2.4",
-		"pg": "^8.15.6",
+		"pg": "^8.16.0",
 		"sqlite": "^5.1.1",
 		"sqlite3": "^5.1.7",
 		"superagent": "^10.2.1",
@@ -100,7 +100,7 @@
 		"vite-plugin-nunjucks": "^0.2.0"
 	},
 	"volta": {
-		"node": "22.15.0"
+		"node": "22.15.1"
 	},
 	"config": {
 		"commitizen": {
