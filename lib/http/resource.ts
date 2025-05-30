@@ -1,4 +1,4 @@
-import type { HttpContext } from "./http/http-context.js";
+import type { HttpContext } from "./http-context.js";
 
 export interface Index {
 	index(ctx: Readonly<HttpContext>): Promise<void>;
@@ -28,11 +28,6 @@ export interface Delete {
 	delete(ctx: Readonly<HttpContext>): Promise<void>;
 }
 
-export interface Resource
-	extends Index,
-		Show,
-		Create,
-		Store,
-		Edit,
-		Update,
-		Delete {}
+export interface Readable extends Index, Show {}
+export interface Writable extends Create, Store, Edit, Update, Delete {}
+export interface Resource extends Readable, Writable {}

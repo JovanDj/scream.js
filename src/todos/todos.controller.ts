@@ -1,6 +1,6 @@
 import type { FlatObject } from "@scream.js/flat-object.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
-import type { Resource } from "@scream.js/resource.js";
+import type { Resource } from "@scream.js/http/resource.js";
 
 import type { TodoService } from "./todo.service.js";
 

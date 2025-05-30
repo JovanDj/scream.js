@@ -1,4 +1,4 @@
-import type { Application } from "@scream.js/http/application.interface.js";
+import type { Application } from "@scream.js/http/application.js";
 import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
 
 import { todoController } from "src/todos/index.js";

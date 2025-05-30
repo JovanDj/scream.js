@@ -3,7 +3,7 @@ import path from "node:path";
 import express from "express";
 import nunjucks from "nunjucks";
 
-import type { Application } from "../application.interface.js";
+import type { Application } from "../application.js";
 import { ExpressApp } from "./express-application.js";
 
 export const createExpressApp: () => Application = () => {

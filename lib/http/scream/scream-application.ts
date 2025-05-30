@@ -6,11 +6,11 @@ import {
 } from "node:http";
 import { parse } from "node:url";
 
-import type { Resource } from "../../resource.js";
-import type { Application } from "../application.interface.js";
+import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
 import type { HttpContext } from "../http-context.js";
 import type { Middleware } from "../middleware.js";
+import type { Resource } from "../resource.js";
 import { ScreamHttpContext } from "./scream-http-context.js";
 
 export class ScreamApp implements Application {
