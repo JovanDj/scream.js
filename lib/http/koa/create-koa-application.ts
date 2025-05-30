@@ -1,7 +1,7 @@
 import Router from "@koa/router";
 import { logger } from "config/logger.js";
 import Koa from "koa";
-import type { Application } from "../application.interface.js";
+import type { Application } from "../application.js";
 import { KoaApp } from "./koa-application.js";
 
 export const createKoaApp: () => Application = () => {

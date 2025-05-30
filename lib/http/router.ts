@@ -1,4 +1,4 @@
-import type { Resource } from "@scream.js/resource.js";
+import type { Resource } from "@scream.js/http/resource.js";
 import type { Handler } from "./handler.js";
 
 export interface Router {

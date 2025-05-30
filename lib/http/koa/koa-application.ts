@@ -1,12 +1,14 @@
 import path from "node:path";
+
 import Router from "@koa/router";
 import views from "@ladjs/koa-views";
-import type { Resource } from "@scream.js/resource.js";
 import type Koa from "koa";
 import nunjucks from "nunjucks";
-import type { Application } from "../application.interface.js";
+
+import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
 import type { Middleware } from "../middleware.js";
+import type { Resource } from "../resource.js";
 import { KoaHttpContext } from "./koa-http-context.js";
 
 const viewsPath = path.join(process.cwd(), "views");
