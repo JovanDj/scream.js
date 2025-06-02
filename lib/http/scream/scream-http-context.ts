@@ -1,3 +1,4 @@
+import type { Validator } from "@scream.js/validator/validator.js";
 import type { HttpContext } from "../http-context.js";
 
 import {
@@ -48,6 +49,10 @@ export class ScreamHttpContext implements HttpContext {
 		const paramRegex = /\/(?<id>\d+)/;
 		const match = paramRegex.exec(path);
 		return match?.groups || {};
+	}
+
+	param(key: string): string {
+		return this.params()[key] ?? "";
 	}
 
 	// Get parsed request body (this could be parsed JSON, form data, etc.)
@@ -193,5 +198,9 @@ export class ScreamHttpContext implements HttpContext {
 		}
 
 		return;
+	}
+
+	validate<T>(validator: Validator<T>) {
+		return validator.validate(this.body());
 	}
 }

@@ -1,7 +1,8 @@
 import type { IncomingHttpHeaders } from "node:http";
 
 export interface Request {
-	params(param: string): Record<string, string>;
+	params(): Record<string, string>;
+	param(key: string): string;
 	body(): unknown;
 	method(): string;
 	headers(): IncomingHttpHeaders;

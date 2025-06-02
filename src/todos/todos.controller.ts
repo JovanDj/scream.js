@@ -2,6 +2,7 @@ import type { FlatObject } from "@scream.js/flat-object.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Resource } from "@scream.js/http/resource.js";
 
+import { createTodoValidator } from "./todo.schema.js";
 import type { TodoService } from "./todo.service.js";
 
 export class TodosController implements Resource {
@@ -18,12 +19,14 @@ export class TodosController implements Resource {
 	}
 
 	async show(ctx: HttpContext) {
-		if (!ctx.params("id")) {
+		const { id } = ctx.params();
+
+		if (!id) {
 			return ctx.notFound();
 		}
 
 		try {
-			const todo = await this.#todoService.findById(+ctx.params("id"));
+			const todo = await this.#todoService.findById(+id);
 
 			if (!todo) {
 				return ctx.notFound();
@@ -50,20 +53,17 @@ export class TodosController implements Resource {
 	}
 
 	async store(ctx: HttpContext) {
-		const body = ctx.body();
+		const { value, errors } = ctx.validate(createTodoValidator);
 
-		if (
-			typeof body !== "object" ||
-			body === null ||
-			!("title" in body) ||
-			typeof body["title"] !== "string"
-		) {
-			return ctx.status(400).json({ error: "Invalid title" });
+		console.log({ value, errors });
+
+		if (!value) {
+			return ctx.render("create", { errors });
 		}
 
 		try {
 			const todo = await this.#todoService.create({
-				title: body.title,
+				title: value.title,
 				userId: 1,
 			});
 
@@ -82,12 +82,12 @@ export class TodosController implements Resource {
 	}
 
 	async update(ctx: HttpContext) {
-		if (!ctx.params("id")) {
+		if (!ctx.param("id")) {
 			return ctx.notFound();
 		}
 
 		try {
-			const todo = await this.#todoService.update(+ctx.params("id"), {});
+			const todo = await this.#todoService.update(+ctx.param("id"), {});
 			return ctx.redirect(`http://localhost:3000/todos/${todo.id}`);
 		} catch (error) {
 			if (error instanceof Error) {
@@ -99,11 +99,11 @@ export class TodosController implements Resource {
 	}
 
 	async delete(ctx: HttpContext) {
-		if (!ctx.params("id")) {
+		if (!ctx.param("id")) {
 			return ctx.notFound();
 		}
 
-		const changed = await this.#todoService.delete(+ctx.params("id"));
+		const changed = await this.#todoService.delete(+ctx.param("id"));
 
 		return ctx.status(200).end(changed);
 	}
