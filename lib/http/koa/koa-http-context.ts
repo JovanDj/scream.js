@@ -1,3 +1,7 @@
+import type {
+	ValidationResult,
+	Validator,
+} from "@scream.js/validator/validator.js";
 import type Koa from "koa";
 import type { HttpContext } from "../http-context.js";
 
@@ -8,8 +12,12 @@ export class KoaHttpContext implements HttpContext {
 		this.#ctx = ctx;
 	}
 
-	params(param: string) {
-		return this.#ctx[param];
+	param(key: string) {
+		return this.params()[key] ?? "";
+	}
+
+	params() {
+		return {} as Record<string, string>;
 	}
 
 	body() {
@@ -75,11 +83,6 @@ export class KoaHttpContext implements HttpContext {
 		this.#ctx.type = "text/plain";
 	}
 
-	id() {
-		const idParam = this.params("id");
-		return idParam ? Number.parseInt(idParam, 10) : undefined;
-	}
-
 	notFound() {
 		this.status(404).end();
 	}
@@ -90,5 +93,9 @@ export class KoaHttpContext implements HttpContext {
 
 	internalServerError(message: string) {
 		this.status(500).end(message);
+	}
+
+	validate<T>(validator: Validator<T>): ValidationResult<T> {
+		return validator.validate(this.body());
 	}
 }

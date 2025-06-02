@@ -3,6 +3,7 @@ import { STATUS_CODES } from "node:http";
 import type express from "express";
 import type { NextFunction } from "express";
 
+import type { Validator } from "@scream.js/validator/validator.js";
 import type { HttpContext } from "../http-context.js";
 
 export class ExpressHttpContext implements HttpContext {
@@ -26,6 +27,10 @@ export class ExpressHttpContext implements HttpContext {
 
 	params() {
 		return { ...this.#request.params };
+	}
+
+	param(key: string) {
+		return this.params()[key] ?? "";
 	}
 
 	method() {
@@ -108,5 +113,9 @@ export class ExpressHttpContext implements HttpContext {
 
 	handleError(error: unknown) {
 		this.#next(error);
+	}
+
+	validate<T>(validator: Validator<T>) {
+		return validator.validate(this.body());
 	}
 }
