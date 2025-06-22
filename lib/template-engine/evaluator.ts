@@ -23,10 +23,27 @@ export class Evaluator {
 	}
 
 	#evaluateVariable(node: ASTNode, context: Record<string, unknown>) {
-		const isRecord = (x: unknown): x is Record<string, unknown> =>
-			x !== null && typeof x === "object";
+		const isRecord = (x: unknown): x is Record<string, unknown> => {
+			return x !== null && typeof x === "object";
+		};
 
-		const raw = node.value.split(".").reduce<unknown>((acc, key) => {
+		const path =
+			"path" in node && Array.isArray(node.path)
+				? node.path
+				: Array.from(
+						node.value.matchAll(/([a-zA-Z0-9_]+)|\[(\d+)\]/g),
+						(match) => match[1] ?? Number(match[2]),
+					);
+
+		const raw = path.reduce<unknown>((acc, key) => {
+			if (acc === null || acc === undefined) {
+				return undefined;
+			}
+
+			if (Array.isArray(acc) && typeof key === "number") {
+				return acc[key];
+			}
+
 			if (isRecord(acc) && key in acc) {
 				return acc[key];
 			}

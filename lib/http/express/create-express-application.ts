@@ -1,9 +1,18 @@
+import fs from "node:fs";
 import path from "node:path";
 
 import express from "express";
-import nunjucks from "nunjucks";
-
 import { createProxyMiddleware } from "http-proxy-middleware";
+
+import { Evaluator } from "@scream.js/template-engine/evaluator.js";
+import { Generator } from "@scream.js/template-engine/generator.js";
+import { Parser } from "@scream.js/template-engine/parser.js";
+import { Resolver } from "@scream.js/template-engine/resolver.js";
+import { SystemFileLoader } from "@scream.js/template-engine/system-file-loader.js";
+import { ScreamTemplateEngine } from "@scream.js/template-engine/template-engine.js";
+import { Tokenizer } from "@scream.js/template-engine/tokenizer.js";
+import { Transformer } from "@scream.js/template-engine/transformer.js";
+
 import type { Application } from "../application.js";
 import { ExpressApp } from "./express-application.js";
 
@@ -11,6 +20,28 @@ export const createExpressApp: () => Application = () => {
 	const app = express();
 
 	const viewsPath = path.join(process.cwd(), "views");
+
+	const templateEngine = new ScreamTemplateEngine(
+		new Resolver(
+			new SystemFileLoader(),
+			new Tokenizer(),
+			new Parser(),
+			new Transformer(),
+		),
+		new Evaluator(),
+		new Generator(),
+	);
+
+	app.engine("njk", (filePath, options, callback) => {
+		fs.readFile(filePath, { encoding: "utf-8" }, (err, content) => {
+			if (err) {
+				return callback(err);
+			}
+
+			const rendered = templateEngine.compile(content, { ...options });
+			return callback(null, rendered);
+		});
+	});
 
 	app.set("views", viewsPath);
 	app.set("view engine", "njk");
@@ -25,20 +56,6 @@ export const createExpressApp: () => Application = () => {
 			changeOrigin: true,
 		}),
 	);
-
-	nunjucks
-		.configure(viewsPath, {
-			autoescape: true,
-			express: app,
-			watch: process.env["NODE_ENV"] === "development",
-			noCache: true,
-		})
-		.addGlobal("viteScripts", () => {
-			return `
-			<script defer async type="module" src="http://localhost:5173/@vite/client"></script>
-			<script defer async type="module" src="http://localhost:5173/resources/main.js"></script>
-		`;
-		});
 
 	return new ExpressApp(app);
 };

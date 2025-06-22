@@ -72,11 +72,47 @@ describe("Evaluator", { concurrency: true }, () => {
 
 		it("should not escape already escaped values", () => {
 			const ast: readonly ASTNode[] = [{ type: "variable", value: "safe" }];
-			const context = { safe: "&lt;div&gt;" }; // Already escaped
+			const context = { safe: "&lt;div&gt;" };
 			const result = evaluator.evaluate(ast, context);
 
 			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ type: "variable", value: "&lt;div&gt;" },
+			]);
+		});
+
+		it("should resolve array elements using bracket notation", () => {
+			const ast: readonly ASTNode[] = [
+				{ type: "variable", value: "errors.title[0]" },
+			];
+			const context = { errors: { title: ["First error", "Second error"] } };
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual<ASTNode[]>(result, [
+				{ type: "variable", value: "First error" },
+			]);
+		});
+
+		it("should return an empty string for out-of-bounds array index with bracket notation", () => {
+			const ast: readonly ASTNode[] = [
+				{ type: "variable", value: "errors.title[99]" },
+			];
+			const context = { errors: { title: ["Only error"] } };
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual<ASTNode[]>(result, [
+				{ type: "variable", value: "" },
+			]);
+		});
+
+		it("should return an empty string for non-array bracket access", () => {
+			const ast: readonly ASTNode[] = [
+				{ type: "variable", value: "errors.title[0]" },
+			];
+			const context = { errors: { title: "Not an array" } };
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual<ASTNode[]>(result, [
+				{ type: "variable", value: "" },
 			]);
 		});
 	});

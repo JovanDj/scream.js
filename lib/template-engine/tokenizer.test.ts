@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
+
 import { type Token, Tokenizer } from "./tokenizer.js";
 
 describe("Tokenizer", { concurrency: true }, () => {
@@ -16,6 +17,24 @@ describe("Tokenizer", { concurrency: true }, () => {
 
 			assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "variable", value: "name" },
+			]);
+		});
+
+		it("should tokenize empty variable", () => {
+			const template = "{{}}";
+			const tokens = tokenizer.tokenize(template);
+
+			assert.deepStrictEqual<Token[]>(tokens, [
+				{ type: "variable", value: "" },
+			]);
+		});
+
+		it("should tokenize trailing brace as text after variable", () => {
+			const tokens = tokenizer.tokenize("{{}}}");
+
+			assert.deepStrictEqual<Token[]>(tokens, [
+				{ type: "variable", value: "" },
+				{ type: "text", value: "}" },
 			]);
 		});
 

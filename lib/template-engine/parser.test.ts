@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
+
 import { type ASTNode, Parser } from "./parser.js";
 import type { Token } from "./tokenizer.js";
 
@@ -16,7 +17,7 @@ describe("Parser", { concurrency: true }, () => {
 			const ast = parser.parse(tokens);
 
 			assert.deepStrictEqual<ASTNode[]>(ast, [
-				{ type: "variable", value: "name" },
+				{ type: "variable", value: "name", path: ["name"] },
 			]);
 		});
 
@@ -29,9 +30,48 @@ describe("Parser", { concurrency: true }, () => {
 			const ast = parser.parse(tokens);
 
 			assert.deepStrictEqual<ASTNode[]>(ast, [
-				{ type: "variable", value: "firstName" },
+				{ type: "variable", value: "firstName", path: ["firstName"] },
 				{ type: "text", value: " " },
-				{ type: "variable", value: "lastName" },
+				{ type: "variable", value: "lastName", path: ["lastName"] },
+			]);
+		});
+
+		it("should parse variable with dot notation path", () => {
+			const tokens: Token[] = [{ type: "variable", value: "user.name" }];
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual(ast, [
+				{
+					type: "variable",
+					value: "user.name",
+					path: ["user", "name"],
+				},
+			]);
+		});
+
+		it("should parse variable with bracket notation path", () => {
+			const tokens: Token[] = [{ type: "variable", value: "errors.title[0]" }];
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual(ast, [
+				{
+					type: "variable",
+					value: "errors.title[0]",
+					path: ["errors", "title", 0],
+				},
+			]);
+		});
+
+		it("should parse variable with mixed dot and bracket notation", () => {
+			const tokens: Token[] = [{ type: "variable", value: "foo.bar[12].baz" }];
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual(ast, [
+				{
+					type: "variable",
+					value: "foo.bar[12].baz",
+					path: ["foo", "bar", 12, "baz"],
+				},
 			]);
 		});
 	});
@@ -91,7 +131,7 @@ describe("Parser", { concurrency: true }, () => {
 					value: "letters",
 					iterator: "letter",
 
-					children: [{ type: "variable", value: "letter" }],
+					children: [{ type: "variable", value: "letter", path: ["letter"] }],
 				},
 			]);
 		});
@@ -122,6 +162,7 @@ describe("Parser", { concurrency: true }, () => {
 								{
 									type: "variable",
 									value: "task.title",
+									path: ["task", "title"],
 								},
 							],
 						},
@@ -374,6 +415,7 @@ describe("Parser", { concurrency: true }, () => {
 								{
 									type: "variable",
 									value: "user.name",
+									path: ["user", "name"],
 								},
 							],
 							alternate: [

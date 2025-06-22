@@ -159,7 +159,7 @@ export class Tokenizer {
 		}
 
 		const variable = template.slice(startIndex + 2, endIndex).trim();
-		const token: Token = { type: "variable", value: variable || "" };
+		const token: Token = { type: "variable", value: variable };
 
 		return { token, nextIndex: endIndex + 2 };
 	}

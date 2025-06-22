@@ -15,6 +15,7 @@ export type ASTNode = {
 	readonly children?: readonly ASTNode[];
 	readonly alternate?: readonly ASTNode[];
 	readonly iterator?: string;
+	readonly path?: (string | number)[] | undefined;
 };
 
 type ParseResult = {
@@ -58,8 +59,7 @@ export class Parser {
 		}
 
 		switch (token.type) {
-			case "text":
-			case "variable":
+			case "text": {
 				return {
 					node: {
 						type: token.type,
@@ -67,6 +67,17 @@ export class Parser {
 					},
 					nextIndex: index + 1,
 				};
+			}
+			case "variable": {
+				return {
+					node: {
+						type: token.type,
+						value: token.value,
+						path: this.#parsePath(token.value),
+					},
+					nextIndex: index + 1,
+				};
+			}
 
 			case "extends":
 				return {
@@ -201,5 +212,12 @@ export class Parser {
 		};
 
 		return walk(index, []);
+	}
+
+	#parsePath(path: string) {
+		return Array.from(
+			path.matchAll(/([a-zA-Z0-9_]+)|\[(\d+)\]/g),
+			(match) => match[1] ?? Number(match[2]),
+		);
 	}
 }
