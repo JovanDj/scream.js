@@ -5,16 +5,18 @@
     <div class="container py-4 px-3 mx-auto">
         <h1>New Todo</h1>
 
-        <form up-confirm="JESI LI SIGURAN????" up-submit up-method="POST" method="POST" action="/todos" up-watch-disable>
+        <form action="/todos" method="POST">
             <input hidden required value="1" type="number" name="userId" class="form-control" id="userId" aria-describedby="userId">
 
            
             <div class="mb-3" up-form-group>
                 <label for="title" class="form-label">Title</label>
-                <input type="text" name="title" class="form-control" id="title" aria-describedby="title">
+                <input type="text" name="title" class="form-control {% if errors.title %} is-invalid {% endif %}" id="title" aria-describedby="title">
 
                 {% if errors.title %}
-                    <p class="text-danger">{{errors.title}}</p>
+                    <div class="invalid-feedback">
+                        {{errors.title}}
+                    </div>
                 {% endif %}
 
             </div>

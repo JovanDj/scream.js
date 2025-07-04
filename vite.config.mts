@@ -1,31 +1,35 @@
+import { resolve } from "node:path";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { defaultExclude, defineConfig } from "vitest/config";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+	root: resolve(__dirname, "resources"),
+
 	build: {
-		// generate .vite/manifest.json in outDir
 		manifest: true,
 		outDir: "public",
-
-		rollupOptions: {
-			// overwrite default .html entry
-			input: "resources/main.js",
+	},
+	css: {
+		preprocessorOptions: {
+			scss: {
+				silenceDeprecations: [
+					"import",
+					"mixed-decls",
+					"color-functions",
+					"global-builtin",
+					"legacy-js-api",
+				],
+			},
 		},
 	},
-
 	plugins: [tsconfigPaths()],
 	appType: "mpa",
 	test: {
-		exclude: [...defaultExclude, "e2e"],
-		environment: "node",
 		bail: 1,
 		sequence: { shuffle: true, concurrent: true },
 		typecheck: {
 			checker: "tsc",
 			tsconfig: "tsconfig.json",
-		},
-		coverage: {
-			exclude: ["lib/http/koa"],
 		},
 		reporters: ["verbose"],
 	},
