@@ -164,4 +164,15 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 			params: [],
 		});
 	});
+
+	it("should preserve params across join", () => {
+		const query = builder
+			.select("*")
+			.from("users")
+			.where("id", "=", "123")
+			.join("orders", "users.id = orders.user_id")
+			.build();
+
+		assert.deepStrictEqual(query.params, ["123"]);
+	});
 });
