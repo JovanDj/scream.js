@@ -297,3 +297,6 @@ $RECYCLE.BIN/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# stryker temp files
+.stryker-tmp

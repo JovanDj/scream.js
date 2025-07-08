@@ -7,7 +7,7 @@ import { SqlBuilder } from "./sql-builder.js";
 import type { SqlExpression } from "./sql-expression.js";
 
 export class ScreamQueryBuilder extends SqlBuilder {
-	private createQueryBuilder(expression: SqlExpression) {
+	#createQueryBuilder(expression: SqlExpression) {
 		return new ScreamQueryBuilder([...this.expressions, expression]);
 	}
 
@@ -16,14 +16,14 @@ export class ScreamQueryBuilder extends SqlBuilder {
 	}
 
 	insert(table: string, values: Record<string, number | string>) {
-		return this.createQueryBuilder(new InsertExpression(table, values));
+		return this.#createQueryBuilder(new InsertExpression(table, values));
 	}
 
 	update(table: string, values: Record<string, number | string>) {
-		return this.createQueryBuilder(new UpdateExpression(table, values));
+		return this.#createQueryBuilder(new UpdateExpression(table, values));
 	}
 
 	delete(table: string) {
-		return this.createQueryBuilder(new DeleteExpression(table));
+		return this.#createQueryBuilder(new DeleteExpression(table));
 	}
 }

@@ -7,7 +7,7 @@ export type TodoSchema = {
 	userId: number;
 };
 
-const createTodoSchema = z.object({
+export const createTodoSchema = z.object({
 	title: z.string().nonempty(),
 	userId: z.coerce.number(),
 });
