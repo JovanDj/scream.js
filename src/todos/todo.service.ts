@@ -1,4 +1,4 @@
-import type { Repository } from "@scream.js/database/repository.js";
+import type { TodoRepository } from "./todo.repository.js";
 import type {
 	CreateTodoInput,
 	TodoSchema,
@@ -6,9 +6,9 @@ import type {
 } from "./todo.schema.js";
 
 export class TodoService {
-	readonly #todoRepository: Repository<TodoSchema>;
+	readonly #todoRepository: TodoRepository;
 
-	constructor(todoRepository: Repository<TodoSchema>) {
+	constructor(todoRepository: TodoRepository) {
 		this.#todoRepository = todoRepository;
 	}
 
