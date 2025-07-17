@@ -4,20 +4,28 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import knex, { type Knex } from "knex";
 import config from "knexfile.js";
 
-import type { Repository } from "@scream.js/database/repository.js";
-import { TodoRepository } from "./todo.repository.js";
+import { createLogger } from "@scream.js/logger/logger-factory.js";
+import { KnexTodoRepository } from "./knex-todo.repository.js";
+import { TodoInMemoryCache } from "./todo-in-memory-cache.repository.ts";
+import type { TodoRepository } from "./todo.repository.js";
 import type { TodoSchema } from "./todo.schema.js";
 import { TodoService } from "./todo.service.js";
 
 describe("TodoService", () => {
 	let db: Knex;
-	let todoRepository: Repository<TodoSchema>;
+	let todoRepository: TodoRepository;
+	let todoCache: TodoRepository;
 	let todoService: TodoService;
 
 	beforeEach(async () => {
 		db = knex(config["test"] ?? "test");
-		todoRepository = new TodoRepository(db);
-		todoService = new TodoService(todoRepository);
+		todoRepository = new KnexTodoRepository(db);
+		todoCache = new TodoInMemoryCache(
+			todoRepository,
+			new Map(),
+			createLogger(),
+		);
+		todoService = new TodoService(todoCache);
 
 		await db.migrate.latest();
 		await db("users").insert({ username: "test user" });

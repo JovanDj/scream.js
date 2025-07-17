@@ -23,7 +23,9 @@ export class ZodValidator<S extends z.ZodType>
 		return {
 			errors: parsed.error.issues.reduce<ValidationError>((acc, e) => {
 				const key = e.path.join(".");
-				if (!acc[key]) acc[key] = [];
+				if (!acc[key]) {
+					acc[key] = [];
+				}
 				acc[key].push(e.message);
 				return acc;
 			}, {}),

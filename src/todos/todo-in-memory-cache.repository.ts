@@ -1,14 +1,14 @@
-import type { Repository } from "@scream.js/database/repository.js";
 import type { Logger } from "@scream.js/logger/logger.interface.js";
-import type { TodoSchema } from "./todo.schema.js";
+import type { TodoRepository } from "./todo.repository.ts";
+import type { TodoSchema } from "./todo.schema.ts";
 
-export class TodoIdentityMap implements Repository<TodoSchema> {
-	readonly #repository: Repository<TodoSchema>;
+export class TodoInMemoryCache implements TodoRepository {
+	readonly #repository: TodoRepository;
 	readonly #identityMap: Map<TodoSchema["id"], TodoSchema>;
 	readonly #logger: Logger;
 
 	constructor(
-		repository: Repository<TodoSchema>,
+		repository: TodoRepository,
 		identityMap: Map<TodoSchema["id"], TodoSchema>,
 		logger: Logger,
 	) {

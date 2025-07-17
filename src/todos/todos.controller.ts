@@ -64,7 +64,7 @@ export class TodosController implements Resource {
 		try {
 			const todo = await this.#todoService.create({
 				title: value.title,
-				userId: 1,
+				userId: value.userId,
 			});
 
 			return ctx.status(201).redirect(`http://localhost:3000/todos/${todo.id}`);
