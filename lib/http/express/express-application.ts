@@ -1,5 +1,3 @@
-import { callbackify } from "node:util";
-
 import type Express from "express";
 import { Router } from "express";
 
@@ -53,11 +51,9 @@ export class ExpressApp implements Application {
 	}
 
 	use(middleware: Middleware) {
-		this.#express.use((req, res, next) => {
-			const context = new ExpressHttpContext(req, res, next);
-
-			callbackify(middleware)(context, next);
-		});
+		this.#express.use((req, res, next) =>
+			middleware(new ExpressHttpContext(req, res, next)),
+		);
 
 		return this;
 	}
@@ -67,37 +63,37 @@ export class ExpressApp implements Application {
 
 		router.get("/", (req, res, next) => {
 			const context = new ExpressHttpContext(req, res, next);
-			callbackify(resource.index.bind(resource))(context, next);
+			resource.index(context);
 		});
 
 		router.get("/create", (req, res, next) => {
 			const context = new ExpressHttpContext(req, res, next);
-			callbackify(resource.create.bind(resource))(context, next);
+			resource.create(context);
 		});
 
 		router.get("/:id/edit", (req, res, next) => {
 			const context = new ExpressHttpContext(req, res, next);
-			callbackify(resource.edit.bind(resource))(context, next);
+			resource.edit(context);
 		});
 
 		router.get("/:id", (req, res, next) => {
 			const context = new ExpressHttpContext(req, res, next);
-			callbackify(resource.show.bind(resource))(context, next);
+			resource.show(context);
 		});
 
 		router.post("/", (req, res, next) => {
 			const context = new ExpressHttpContext(req, res, next);
-			callbackify(resource.store.bind(resource))(context, next);
+			resource.store(context);
 		});
 
 		router.patch("/:id", (req, res, next) => {
 			const context = new ExpressHttpContext(req, res, next);
-			callbackify(resource.update.bind(resource))(context, next);
+			resource.update(context);
 		});
 
 		router.delete("/:id", (req, res, next) => {
 			const context = new ExpressHttpContext(req, res, next);
-			callbackify(resource.delete.bind(resource))(context, next);
+			resource.delete(context);
 		});
 
 		this.#express.use(path, router);

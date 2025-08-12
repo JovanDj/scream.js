@@ -1,7 +1,6 @@
 import { STATUS_CODES } from "node:http";
 
 import type express from "express";
-import type { NextFunction } from "express";
 
 import type { Validator } from "@scream.js/validator/validator.js";
 import type { HttpContext } from "../http-context.js";
@@ -9,12 +8,12 @@ import type { HttpContext } from "../http-context.js";
 export class ExpressHttpContext implements HttpContext {
 	readonly #request: express.Request;
 	readonly #response: express.Response;
-	readonly #next: NextFunction;
+	readonly #next: express.NextFunction;
 
 	constructor(
 		request: express.Request,
 		response: express.Response,
-		next: NextFunction,
+		next: express.NextFunction,
 	) {
 		this.#request = request;
 		this.#response = response;
@@ -79,7 +78,7 @@ export class ExpressHttpContext implements HttpContext {
 	}
 
 	back() {
-		this.#response.redirect("back");
+		this.#response.redirect(this.#request.get("Referrer") ?? "/");
 	}
 
 	text(message: string) {

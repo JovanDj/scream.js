@@ -4,7 +4,7 @@
     <div class="container py-4 px-3 mx-auto">
         <h1>Todos</h1>
         <p>
-            <a up-follow up-preload href="/todos/create">Create todo</a>
+            <a href="/todos/create">Create todo</a>
         </p>
 
         {% if todos.length %}
@@ -19,7 +19,7 @@
                     {% for todo in todos %}
                         <tr>
                             <td>
-                                <a up-follow up-preload up-layer="new popup" up-size="full" href="/todos/{{ todo.id }}">{{todo.title}}</a>
+                                <a href="/todos/{{ todo.id }}">{{todo.title}}</a>
                             </td>
 
                         </tr>

@@ -1,6 +1,6 @@
 import type { Logger } from "@scream.js/logger/logger.interface.js";
-import type { TodoRepository } from "./todo.repository.ts";
-import type { TodoSchema } from "./todo.schema.ts";
+import type { TodoRepository } from "./todo.repository.js";
+import type { TodoSchema } from "./todo.schema.js";
 
 export class TodoInMemoryCache implements TodoRepository {
 	readonly #repository: TodoRepository;
