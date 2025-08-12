@@ -6,7 +6,7 @@ import config from "knexfile.js";
 
 import { createLogger } from "@scream.js/logger/logger-factory.js";
 import { KnexTodoRepository } from "./knex-todo.repository.js";
-import { TodoInMemoryCache } from "./todo-in-memory-cache.repository.ts";
+import { TodoInMemoryCache } from "./todo-in-memory-cache.repository.js";
 import type { TodoRepository } from "./todo.repository.js";
 import type { TodoSchema } from "./todo.schema.js";
 import { TodoService } from "./todo.service.js";

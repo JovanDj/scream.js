@@ -1,9 +1,9 @@
 import path from "node:path";
 
 import express from "express";
+import { createProxyMiddleware } from "http-proxy-middleware";
 import nunjucks from "nunjucks";
 
-import { createProxyMiddleware } from "http-proxy-middleware";
 import type { Application } from "../application.js";
 import { ExpressApp } from "./express-application.js";
 
@@ -31,13 +31,15 @@ export const createExpressApp: () => Application = () => {
 			autoescape: true,
 			express: app,
 			watch: process.env["NODE_ENV"] === "development",
-			noCache: true,
+			noCache: process.env["NODE_ENV"] === "development",
 		})
 		.addGlobal("viteScripts", () => {
 			return `
-			<script defer async type="module" src="http://localhost:5173/@vite/client"></script>
-			<script defer async type="module" src="http://localhost:5173/resources/main.js"></script>
-		`;
+				<link rel="stylesheet" href="http://localhost:5173/styles.scss">
+				<script type="module" src="http://localhost:5173/main.ts"></script>
+				<script type="module" src="http://localhost:5173/@vite/client"></script>
+
+			`;
 		});
 
 	return new ExpressApp(app);
