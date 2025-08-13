@@ -5,7 +5,7 @@ export default defineConfig({
 	fullyParallel: true,
 	forbidOnly: !!process.env["CI"],
 	retries: process.env["CI"] ? 2 : 0,
-	workers: process.env["CI"] ? 1 : 1, // Default to a number to avoid undefined type
+	workers: process.env["CI"] ? 1 : "50%", // Default to a number to avoid undefined type
 	reporter: "html",
 	use: {
 		trace: "on-first-retry",
