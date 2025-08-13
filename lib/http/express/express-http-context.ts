@@ -57,16 +57,8 @@ export class ExpressHttpContext implements HttpContext {
 		return this;
 	}
 
-	render(template: string, locals = {}) {
-		return new Promise<void>((resolve, reject) => {
-			try {
-				return resolve(this.#response.render(template, locals));
-			} catch (error) {
-				if (error instanceof Error) {
-					return reject(error);
-				}
-			}
-		});
+	async render(template: string, locals = {}) {
+		return this.#response.render(template, locals);
 	}
 
 	location(url: string) {
