@@ -1,34 +1,34 @@
-import type { Validator } from "@scream.js/validator/validator.js";
-import type { HttpContext } from "../http-context.js";
-
 import {
 	type IncomingMessage,
 	STATUS_CODES,
 	type ServerResponse,
 } from "node:http";
-import path from "node:path";
-import { StringDecoder } from "node:string_decoder";
 import { parse } from "node:url";
 
-import nunjucks from "nunjucks";
+import type nunjucks from "nunjucks";
+
+import type { Validator } from "@scream.js/validator/validator.js";
+import type { HttpContext } from "../http-context.js";
 
 export class ScreamHttpContext implements HttpContext {
 	readonly #req: Readonly<IncomingMessage>;
 	readonly #res: ServerResponse;
 	readonly #parsedUrl: ReturnType<typeof parse>;
-	#bodyData: unknown | undefined = undefined;
+	readonly #body: Record<string, unknown>;
+	readonly #nunjucks: nunjucks.Environment;
 
-	readonly #nunjucks = new nunjucks.Environment(
-		new nunjucks.FileSystemLoader(path.join(process.cwd(), "views"), {
-			noCache: true,
-			watch: true,
-		}),
-	);
-
-	constructor(req: Readonly<IncomingMessage>, res: ServerResponse) {
+	constructor(
+		req: Readonly<IncomingMessage>,
+		res: ServerResponse,
+		body: Record<string, unknown>,
+		nunjucks: nunjucks.Environment,
+	) {
 		this.#req = req;
 		this.#res = res;
-		this.#parsedUrl = parse(req.url || "", true);
+		this.#body = body;
+		this.#nunjucks = nunjucks;
+
+		this.#parsedUrl = parse(req.url ?? "", true);
 	}
 
 	internalServerError(message: string): void {
@@ -43,69 +43,61 @@ export class ScreamHttpContext implements HttpContext {
 			.end(STATUS_CODES[404]);
 	}
 
-	// Parse URL parameters
 	params() {
-		const path = this.#parsedUrl.pathname || "";
+		const path = this.#parsedUrl.pathname ?? "";
 		const paramRegex = /\/(?<id>\d+)/;
 		const match = paramRegex.exec(path);
-		return match?.groups || {};
+		return match?.groups ?? {};
 	}
 
 	param(key: string): string {
 		return this.params()[key] ?? "";
 	}
 
-	// Get parsed request body (this could be parsed JSON, form data, etc.)
 	body() {
-		return this.#bodyData;
+		return this.#body;
 	}
 
-	// Get HTTP method
 	method() {
-		return this.#req.method || "";
+		return this.#req.method ?? "";
 	}
 
-	// Get request headers
 	headers() {
 		return this.#req.headers;
 	}
 
-	// Get the request URL
 	url() {
-		return this.#req.url || "";
+		return this.#req.url ?? "";
 	}
 
-	// Handle the "close" event on the response
 	onClose(cb: () => void) {
 		this.#res.on("close", cb);
 	}
 
-	// Check if a specific header exists
 	hasHeader(header: string) {
 		return !!this.#req.headers[header.toLowerCase()];
 	}
 
-	// Handle language preferences (simplified for this example)
 	acceptsLanguages(languages: readonly string[]) {
 		const acceptLang = this.#req.headers["accept-language"];
 
-		// Default to "en" or another fallback language
 		if (!acceptLang) {
 			return "en";
 		}
 
 		for (const lang of languages) {
-			if (acceptLang.includes(lang)) return lang;
+			if (acceptLang.includes(lang)) {
+				return lang;
+			}
 		}
 
-		return "en"; // Return a default language if no match is found
+		return "en";
 	}
 
-	// Send JSON response
 	json(data: object) {
 		const body = JSON.stringify(data);
 
-		this.#res
+		return this.#res
 			.writeHead(200, {
 				"Content-Type": "application/json",
 				"Content-Length": Buffer.byteLength(body),
@@ -113,9 +105,8 @@ export class ScreamHttpContext implements HttpContext {
 			.end(body);
 	}
 
-	// Send plain text response
 	text(message: string) {
-		this.#res
+		return this.#res
 			.writeHead(200, STATUS_CODES[200], {
 				"Content-Type": "text/plain",
 				"Content-Length": Buffer.byteLength(STATUS_CODES[200] ?? ""),
@@ -123,81 +114,44 @@ export class ScreamHttpContext implements HttpContext {
 			.end(message);
 	}
 
-	// Handle redirects
-	redirect(url: string): void {
-		this.#res.writeHead(302, { Location: url });
-		this.#res.end();
+	redirect(url: string) {
+		return this.#res.writeHead(302, { Location: url }).end();
 	}
 
-	// Set HTTP status code
-	status(code: number): this {
+	status(code: number) {
 		this.#res.statusCode = code;
 		return this;
 	}
 
-	// Render a template using Nunjucks
 	async render(template: string, locals?: Record<string, unknown>) {
 		return new Promise<void>((resolve, reject) => {
-			this.#nunjucks.render(`${template}.njk`, locals || {}, (err, result) => {
+			this.#nunjucks.render(`${template}.njk`, locals ?? {}, (err, result) => {
 				if (err) {
 					return reject(err);
 				}
 
-				// Set HTML content type and send the rendered HTML
 				this.#res.setHeader("Content-Type", "text/html").end(result);
 				resolve();
 			});
 		});
 	}
 
-	// Set the "Location" header for redirect or resource location
-	location(url: string): void {
+	location(url: string) {
 		this.#res.setHeader("Location", url);
 	}
 
-	// Redirect back to the referrer or default to "/"
-	back(): void {
-		const referrer = this.#req.headers.referer || "/";
+	back() {
+		const referrer = this.#req.headers.referer ?? "/";
 		this.redirect(referrer);
 	}
 
-	// Error handling
-	handleError(error: unknown): void {
+	handleError(error: unknown) {
 		console.error("Error:", error);
 		this.status(500).text("Internal Server Error");
 	}
 
-	// End the response manually (optional chunk data)
-	end(chunk?: unknown): void {
+	end(chunk?: unknown) {
 		this.#res.end(chunk);
-	}
-
-	// Utility method to read request body (for POST/PUT requests)
-	async readBody() {
-		if (
-			this.method() !== "POST" &&
-			this.method() !== "PUT" &&
-			this.method() !== "PATCH"
-		) {
-			return "";
-		}
-
-		const decoder = new StringDecoder("utf-8");
-		let body = "";
-
-		for await (const chunk of this.#req) {
-			body += decoder.write(chunk);
-		}
-
-		body += decoder.end();
-
-		try {
-			this.#bodyData = JSON.parse(body);
-		} catch (e) {
-			this.#bodyData = body;
-		}
-
-		return;
 	}
 
 	validate<T>(validator: Validator<T>) {

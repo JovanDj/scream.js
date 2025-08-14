@@ -55,8 +55,6 @@ export class TodosController implements Resource {
 	async store(ctx: HttpContext) {
 		const { value, errors } = ctx.validate(createTodoValidator);
 
-		console.log({ value, errors });
-
 		if (!value) {
 			return ctx.render("create", { errors });
 		}

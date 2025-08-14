@@ -4,7 +4,12 @@ import {
 	type ServerResponse,
 	createServer,
 } from "node:http";
+import path from "node:path";
 import { parse } from "node:url";
+
+import nunjucks from "nunjucks";
+import queryString from "query-string";
+import getRawBody from "raw-body";
 
 import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
@@ -13,19 +18,31 @@ import type { Middleware } from "../middleware.js";
 import type { Resource } from "../resource.js";
 import { ScreamHttpContext } from "./scream-http-context.js";
 
-export class ScreamApp implements Application {
-	readonly #routes = new Map<string, Map<string, Handler>>(); // Method -> Path -> Handler
+export class ScreamApplication implements Application {
+	readonly #routes = new Map<string, Map<string, Handler>>();
+
+	readonly #nunjucks = new nunjucks.Environment(
+		new nunjucks.FileSystemLoader(path.join(process.cwd(), "views"), {
+			noCache: process.env["NODE_ENV"] !== "production",
+			watch: process.env["NODE_ENV"] !== "production",
+		}),
+	).addGlobal("viteScripts", () => {
+		return `
+				<link rel="stylesheet" href="http://localhost:5173/styles.scss">
+				<script type="module" src="http://localhost:5173/main.ts"></script>
+				<script type="module" src="http://localhost:5173/@vite/client"></script>
+
+			`;
+	});
 
 	#middleware: readonly Middleware[] = [];
 
-	// Middleware registration
 	use(middleware: Middleware) {
 		this.#middleware = [...this.#middleware, middleware];
 		return this;
 	}
 
-	// Register routes based on HTTP method
-	private registerRoute(method: string, path: string, handler: Handler) {
+	#registerRoute(method: string, path: string, handler: Handler) {
 		if (!this.#routes.has(method)) {
 			this.#routes.set(method, new Map());
 		}
@@ -34,61 +51,73 @@ export class ScreamApp implements Application {
 	}
 
 	get(path: string, handler: Handler) {
-		return this.registerRoute("GET", path, handler);
+		return this.#registerRoute("GET", path, handler);
 	}
 
 	post(path: string, handler: Handler) {
-		return this.registerRoute("POST", path, handler);
+		return this.#registerRoute("POST", path, handler);
 	}
 
 	patch(path: string, handler: Handler) {
-		return this.registerRoute("PATCH", path, handler);
+		return this.#registerRoute("PATCH", path, handler);
 	}
 
 	delete(path: string, handler: Handler) {
-		return this.registerRoute("DELETE", path, handler);
+		return this.#registerRoute("DELETE", path, handler);
 	}
 
-	// Resource method for CRUD-like routes
 	resource(path: string, resource: Resource) {
 		this.get(`${path}`, resource.index.bind(resource));
-		this.get(`${path}/create`, resource.create.bind(resource));
-		this.post(`${path}`, resource.store.bind(resource));
 		this.get(`${path}/:id`, resource.show.bind(resource));
+		this.get(`${path}/create`, resource.create.bind(resource));
 		this.get(`${path}/:id/edit`, resource.edit.bind(resource));
+
+		this.post(`${path}`, resource.store.bind(resource));
 		this.patch(`${path}/:id`, resource.update.bind(resource));
 		this.delete(`${path}/:id`, resource.delete.bind(resource));
 		return this;
 	}
 
-	// Handle incoming requests, run middleware and route to correct handler
-	private async handleRequest(req: IncomingMessage, res: ServerResponse) {
-		const context: HttpContext = new ScreamHttpContext(req, res); // Our HttpContext implementation
-		const parsedUrl = parse(req.url || "", true);
-		const path = parsedUrl.pathname || "/";
-		const method = req.method || "GET";
+	async #handleRequest(req: IncomingMessage, res: ServerResponse) {
+		const parsedUrl = parse(req.url ?? "", true);
+		const path = parsedUrl.pathname ?? "/";
+		const method = req.method ?? "GET";
 
-		// Run middleware stack
+		const buffer = await getRawBody(req, {
+			encoding: "utf-8",
+			limit: "1mb",
+		});
+
+		const body: Record<string, unknown> = queryString.parse(buffer, {
+			parseBooleans: true,
+			parseNumbers: true,
+		});
+
+		const context: HttpContext = new ScreamHttpContext(
+			req,
+			res,
+			body,
+			this.#nunjucks,
+		);
+
 		for (const mw of this.#middleware) {
 			await mw(context);
 		}
 
-		// Match route and run the handler
 		const methodRoutes = this.#routes.get(method);
-		const handler = methodRoutes ? methodRoutes.get(path) : undefined;
+		const handler = methodRoutes?.get(path);
 
-		if (handler) {
-			await handler(context);
-		} else {
-			context.notFound();
+		if (!handler) {
+			return context.notFound();
 		}
+
+		return handler(context);
 	}
 
-	// Start the HTTP server and listen on a port
 	listen(port: number, cb?: () => void) {
 		const server = createServer(async (req, res) => {
 			try {
-				await this.handleRequest(req, res);
+				await this.#handleRequest(req, res);
 			} catch (err) {
 				console.error("Error handling request:", err);
 
