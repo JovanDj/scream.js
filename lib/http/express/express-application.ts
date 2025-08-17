@@ -71,6 +71,11 @@ export class ExpressApp implements Application {
 			resource.create(context);
 		});
 
+		router.post("/create", (req, res, next) => {
+			const context = new ExpressHttpContext(req, res, next);
+			resource.store(context);
+		});
+
 		router.get("/:id/edit", (req, res, next) => {
 			const context = new ExpressHttpContext(req, res, next);
 			resource.edit(context);
@@ -79,11 +84,6 @@ export class ExpressApp implements Application {
 		router.get("/:id", (req, res, next) => {
 			const context = new ExpressHttpContext(req, res, next);
 			resource.show(context);
-		});
-
-		router.post("/", (req, res, next) => {
-			const context = new ExpressHttpContext(req, res, next);
-			resource.store(context);
 		});
 
 		router.patch("/:id", (req, res, next) => {
