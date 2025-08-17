@@ -1,4 +1,1 @@
-export type FlatObject = Record<
-	string,
-	(boolean | number | string)[] | boolean | number | string
->;
+export type FlatObject = Record<PropertyKey, PropertyKey[] | PropertyKey>;
