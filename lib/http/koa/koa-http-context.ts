@@ -1,7 +1,4 @@
-import type {
-	ValidationResult,
-	Validator,
-} from "@scream.js/validator/validator.js";
+import type { Validator } from "@scream.js/validator/validator.js";
 import type Koa from "koa";
 import type { HttpContext } from "../http-context.js";
 
@@ -17,11 +14,11 @@ export class KoaHttpContext implements HttpContext {
 	}
 
 	params() {
-		return {} as Record<string, string>;
+		return this.#ctx["params"];
 	}
 
 	body() {
-		return this.#ctx.body;
+		return this.#ctx.request.body;
 	}
 
 	method() {
@@ -74,11 +71,11 @@ export class KoaHttpContext implements HttpContext {
 	}
 
 	back() {
-		const referrer = this.#ctx.headers.referer || "/";
+		const referrer = this.#ctx.headers.referer ?? "/";
 		this.#ctx.redirect(referrer);
 	}
 
-	text(message: string): void {
+	text(message: string) {
 		this.#ctx.body = message;
 		this.#ctx.type = "text/plain";
 	}
@@ -95,7 +92,7 @@ export class KoaHttpContext implements HttpContext {
 		this.status(500).end(message);
 	}
 
-	validate<T>(validator: Validator<T>): ValidationResult<T> {
+	validate<T>(validator: Validator<T>) {
 		return validator.validate(this.body());
 	}
 }
