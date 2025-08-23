@@ -13,7 +13,8 @@
 			"@scream.js/*": ["./lib/*"]
 		},
 		"inlineSourceMap": true,
-		"inlineSources": true
-	},
-	"include": ["**/*.ts", "e2e"]
+		"inlineSources": true,
+		"experimentalDecorators": false,
+		"emitDecoratorMetadata": false
+	}
 }

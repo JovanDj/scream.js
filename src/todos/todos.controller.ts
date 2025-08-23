@@ -25,30 +25,22 @@ export class TodosController implements Resource {
 			return ctx.notFound();
 		}
 
-		try {
-			const todo = await this.#todoService.findById(+id);
+		const todo = await this.#todoService.findById(+id);
 
-			if (!todo) {
-				return ctx.notFound();
-			}
-
-			const dto: FlatObject = {
-				todoTitle: todo.title,
-				lang: ctx.acceptsLanguages(["en-US", "sr-Latn-RS"]),
-				pageTitle: `Todo | ${todo.id}`,
-			};
-
-			return ctx.render("show", dto);
-		} catch (error) {
-			if (error instanceof Error) {
-				return ctx.internalServerError(error.message);
-			}
-
-			return ctx.internalServerError("Unknown error");
+		if (!todo) {
+			return ctx.notFound();
 		}
+
+		const dto: FlatObject = {
+			todoTitle: todo.title,
+			lang: ctx.acceptsLanguages(["en-US", "sr-Latn-RS"]),
+			pageTitle: `Todo | ${todo.id}`,
+		};
+
+		return ctx.render("show", dto);
 	}
 
-	create(ctx: HttpContext) {
+	async create(ctx: HttpContext) {
 		return ctx.render("create");
 	}
 
@@ -61,23 +53,15 @@ export class TodosController implements Resource {
 			return ctx.render("create", { errors });
 		}
 
-		try {
-			const todo = await this.#todoService.create({
-				title: value.title,
-				userId: value.userId,
-			});
+		const todo = await this.#todoService.create({
+			title: value.title,
+			userId: value.userId,
+		});
 
-			return ctx.status(201).redirect(`http://localhost:3000/todos/${todo.id}`);
-		} catch (error) {
-			if (error instanceof Error) {
-				return ctx.internalServerError(error.message);
-			}
-
-			return ctx.internalServerError("Unknown error");
-		}
+		return ctx.status(201).redirect(`http://localhost:3000/todos/${todo.id}`);
 	}
 
-	edit(ctx: HttpContext) {
+	async edit(ctx: HttpContext) {
 		return ctx.render("");
 	}
 
@@ -86,16 +70,8 @@ export class TodosController implements Resource {
 			return ctx.notFound();
 		}
 
-		try {
-			const todo = await this.#todoService.update(+ctx.param("id"), {});
-			return ctx.redirect(`http://localhost:3000/todos/${todo.id}`);
-		} catch (error) {
-			if (error instanceof Error) {
-				return ctx.internalServerError(error.message);
-			}
-
-			return ctx.internalServerError("Unknown error");
-		}
+		const todo = await this.#todoService.update(+ctx.param("id"), {});
+		return ctx.redirect(`http://localhost:3000/todos/${todo.id}`);
 	}
 
 	async delete(ctx: HttpContext) {
