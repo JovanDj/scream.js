@@ -1,5 +1,6 @@
 import type { Knex } from "knex";
-import type { TodoRow } from "knex/types/tables.js";
+import { z } from "zod/v4";
+
 import type { TodoRepository } from "./todo.repository.js";
 import type {
 	CreateTodoInput,
@@ -15,19 +16,41 @@ export class KnexTodoRepository implements TodoRepository {
 	}
 
 	async findById(id: TodoSchema["id"]) {
-		const row = await this.#db<TodoRow>("todos").where("id", id).first();
+		const row = await this.#db("todos").where("id", id).first();
 
 		if (!row) {
-			return undefined;
+			return;
 		}
 
-		return { id: row.id, userId: row.user_id, title: row.title };
+		const validator = z
+			.object({
+				title: z.string().nonempty(),
+				user_id: z.coerce.number(),
+				id: z.coerce.number(),
+			})
+			.parse(row);
+
+		return {
+			id: validator.id,
+			userId: validator.user_id,
+			title: validator.title,
+		} satisfies TodoSchema;
 	}
 
 	async findAll() {
-		const rows = await this.#db<TodoRow>("todos").select();
+		const rows = await this.#db("todos").select();
 
-		return rows.map((row) => ({
+		const validator = z
+			.array(
+				z.object({
+					id: z.coerce.number(),
+					title: z.string().nonempty(),
+					user_id: z.coerce.number(),
+				}),
+			)
+			.parse(rows);
+
+		return validator.map((row) => ({
 			id: row.id,
 			userId: row.user_id,
 			title: row.title,
@@ -35,9 +58,9 @@ export class KnexTodoRepository implements TodoRepository {
 	}
 
 	async insert(input: CreateTodoInput) {
-		const [id] = await this.#db<TodoRow>("todos").insert({
-			title: input.title ?? "",
-			user_id: input.userId ?? 1,
+		const [id] = await this.#db("todos").insert({
+			title: input.title,
+			user_id: input.userId,
 		});
 
 		if (!id) {
@@ -54,11 +77,9 @@ export class KnexTodoRepository implements TodoRepository {
 	}
 
 	async update(id: TodoSchema["id"], input: UpdateTodoInput) {
-		await this.#db("todos")
-			.where({ id })
-			.update({
-				title: input.title ?? "",
-			});
+		await this.#db("todos").where({ id }).update({
+			title: input.title,
+		});
 
 		const todo = await this.findById(id);
 
