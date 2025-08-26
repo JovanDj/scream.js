@@ -21,8 +21,8 @@ export const createExpressApp: () => Application = () => {
 	app.use(
 		"/assets",
 		createProxyMiddleware({
-			target: "http://localhost:5173",
 			changeOrigin: true,
+			target: "http://localhost:5173",
 		}),
 	);
 
@@ -30,8 +30,8 @@ export const createExpressApp: () => Application = () => {
 		.configure(viewsPath, {
 			autoescape: true,
 			express: app,
-			watch: process.env["NODE_ENV"] === "development",
 			noCache: process.env["NODE_ENV"] === "development",
+			watch: process.env["NODE_ENV"] === "development",
 		})
 		.addGlobal("viteScripts", () => {
 			return `

@@ -6,13 +6,13 @@ const config: Record<string, Knex.Config> = {
 		connection: {
 			filename: "db.sqlite",
 		},
-		useNullAsDefault: true,
 		debug: true,
 		migrations: {
-			tableName: "knex_migrations",
 			directory: "./migrations",
 			extension: "ts",
+			tableName: "knex_migrations",
 		},
+		useNullAsDefault: true,
 	},
 
 	test: {
@@ -20,12 +20,12 @@ const config: Record<string, Knex.Config> = {
 		connection: {
 			filename: ":memory:",
 		},
-		useNullAsDefault: true,
 		migrations: {
-			tableName: "knex_migrations",
 			directory: "./migrations",
 			extension: "ts",
+			tableName: "knex_migrations",
 		},
+		useNullAsDefault: true,
 	},
 
 	// staging: {

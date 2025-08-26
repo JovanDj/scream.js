@@ -1,16 +1,14 @@
-import type { Validator } from "@scream.js/validator/validator.js";
-import type { HttpContext } from "../http-context.js";
-
 import {
 	type IncomingMessage,
-	STATUS_CODES,
 	type ServerResponse,
+	STATUS_CODES,
 } from "node:http";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import { parse } from "node:url";
-
+import type { Validator } from "@scream.js/validator/validator.js";
 import nunjucks from "nunjucks";
+import type { HttpContext } from "../http-context.js";
 
 export class ScreamHttpContext implements HttpContext {
 	readonly #req: Readonly<IncomingMessage>;
@@ -107,8 +105,8 @@ export class ScreamHttpContext implements HttpContext {
 
 		this.#res
 			.writeHead(200, {
-				"Content-Type": "application/json",
 				"Content-Length": Buffer.byteLength(body),
+				"Content-Type": "application/json",
 			})
 			.end(body);
 	}
@@ -117,8 +115,8 @@ export class ScreamHttpContext implements HttpContext {
 	text(message: string) {
 		this.#res
 			.writeHead(200, STATUS_CODES[200], {
+				"Content-Length": Buffer.byteLength(message),
 				"Content-Type": "text/plain",
-				"Content-Length": Buffer.byteLength(STATUS_CODES[200] ?? ""),
 			})
 			.end(message);
 	}
@@ -193,7 +191,7 @@ export class ScreamHttpContext implements HttpContext {
 
 		try {
 			this.#bodyData = JSON.parse(body);
-		} catch (e) {
+		} catch (_e) {
 			this.#bodyData = body;
 		}
 

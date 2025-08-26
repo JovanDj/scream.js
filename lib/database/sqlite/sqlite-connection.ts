@@ -1,9 +1,9 @@
 import type sqlite from "sqlite";
 import { open } from "sqlite";
-
 import sqlite3 from "sqlite3";
-import type { ConnectionOptions } from "../connection-options.js";
+
 import type { Connection } from "../connection.js";
+import type { ConnectionOptions } from "../connection-options.js";
 import { InsertResult } from "../insert-result.js";
 import type { SqlQuery } from "../query-builder/sql-query.js";
 
@@ -49,14 +49,14 @@ export class SqliteConnection implements Connection, AsyncDisposable {
 
 	async transaction<T>(callback: (trx: Connection) => Promise<T>) {
 		try {
-			await this.run({ sql: "BEGIN TRANSACTION;", params: [] });
+			await this.run({ params: [], sql: "BEGIN TRANSACTION;" });
 
 			const result = await callback(this);
 
-			await this.run({ sql: "COMMIT;", params: [] });
+			await this.run({ params: [], sql: "COMMIT;" });
 			return result;
 		} catch (error) {
-			await this.run({ sql: "ROLLBACK;", params: [] });
+			await this.run({ params: [], sql: "ROLLBACK;" });
 			throw error;
 		}
 	}

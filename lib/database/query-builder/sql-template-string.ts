@@ -14,30 +14,30 @@ export const sql = (
 		(acc, str, i) => {
 			const value = values[i];
 			if (value === undefined) {
-				return { sql: acc.sql + str, params: acc.params };
+				return { params: acc.params, sql: acc.sql + str };
 			}
 			if (isSqlQuery(value)) {
 				return {
-					sql: acc.sql + str + value.sql,
 					params: [...acc.params, ...(value.params || [])],
+					sql: acc.sql + str + value.sql,
 				};
 			}
 			if (!Array.isArray(value)) {
-				return { sql: `${acc.sql + str}?`, params: [...acc.params, value] };
+				return { params: [...acc.params, value], sql: `${acc.sql + str}?` };
 			}
 			if (value.length === 0) {
 				return {
-					sql: `${acc.sql + str}?`,
 					params: [...acc.params, null],
+					sql: `${acc.sql + str}?`,
 				};
 			}
 			const placeholders = value.map(() => "?").join(", ");
 			return {
-				sql: acc.sql + str + placeholders,
 				params: [...acc.params, ...value],
+				sql: acc.sql + str + placeholders,
 			};
 		},
-		{ sql: "", params: [] },
+		{ params: [], sql: "" },
 	);
-	return { sql: result.sql, params: result.params };
+	return { params: result.params, sql: result.sql };
 };

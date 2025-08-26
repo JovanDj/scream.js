@@ -1,8 +1,6 @@
 import { STATUS_CODES } from "node:http";
-
-import type express from "express";
-
 import type { Validator } from "@scream.js/validator/validator.js";
+import type express from "express";
 import type { HttpContext } from "../http-context.js";
 
 export class ExpressHttpContext implements HttpContext {

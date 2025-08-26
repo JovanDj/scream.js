@@ -1,20 +1,19 @@
 {
+	"compilerOptions": {
+		"baseUrl": ".",
+		"emitDecoratorMetadata": false,
+		"experimentalDecorators": false,
+		"inlineSourceMap": true,
+		"inlineSources": true,
+		"outDir": "dist",
+		"paths": {
+			"@scream.js/*": ["./lib/*"]
+		}
+	},
 	"extends": [
 		"@tsconfig/recommended/tsconfig.json",
 		"@tsconfig/node22/tsconfig.json",
 		"@tsconfig/node-ts/tsconfig.json",
 		"@tsconfig/strictest/tsconfig.json"
-	],
-
-	"compilerOptions": {
-		"outDir": "dist",
-		"baseUrl": ".",
-		"paths": {
-			"@scream.js/*": ["./lib/*"]
-		},
-		"inlineSourceMap": true,
-		"inlineSources": true,
-		"experimentalDecorators": false,
-		"emitDecoratorMetadata": false
-	}
+	]
 }

@@ -1,10 +1,11 @@
 import type Express from "express";
 import { Router } from "express";
 
-import type { Resource } from "@scream.js/http/resource.js";
 import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
 import type { Middleware } from "../middleware.js";
+import type { Resource } from "../resource.ts";
+
 import { ExpressHttpContext } from "./express-http-context.js";
 
 export class ExpressApp implements Application {

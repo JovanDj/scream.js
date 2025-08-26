@@ -38,9 +38,9 @@ describe("server", () => {
 
 	it("POST /todos with missing title should show errors", async () => {
 		const res = await fetch("http://localhost:3000/todos", {
-			method: "POST",
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
 			body: "title=&userId=1",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			method: "POST",
 		});
 		const html = await res.text();
 		assert.match(
@@ -51,9 +51,9 @@ describe("server", () => {
 
 	it("PUT /todos/:id with missing or invalid id returns 500", async () => {
 		const res = await fetch("http://localhost:3000/todos/99999", {
-			method: "PUT",
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
 			body: "title=SomeTitle",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			method: "PUT",
 		});
 		assert.equal(res.status, 404);
 
@@ -63,9 +63,9 @@ describe("server", () => {
 
 	it("renders todo details with actual data", async () => {
 		const createRes = await fetch("http://localhost:3000/todos", {
-			method: "POST",
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
 			body: "title=ScreamJS+Test+Todo&userId=123",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			method: "POST",
 		});
 		const location = createRes.headers.get("location");
 		assert.ok(location, "Location header should be present");

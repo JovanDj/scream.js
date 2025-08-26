@@ -17,7 +17,7 @@ export class ZodValidator<S extends z.ZodType>
 		const parsed = this.#schema.safeParse(input);
 
 		if (parsed.success) {
-			return { value: parsed.data, errors: {} };
+			return { errors: {}, value: parsed.data };
 		}
 
 		return {

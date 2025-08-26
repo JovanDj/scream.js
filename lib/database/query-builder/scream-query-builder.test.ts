@@ -11,12 +11,12 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should build a SELECT query", () => {
 		const query = builder.select("1 + 1").build();
-		assert.deepStrictEqual(query, { sql: "SELECT 1 + 1", params: [] });
+		assert.deepStrictEqual(query, { params: [], sql: "SELECT 1 + 1" });
 	});
 
 	it("should build a SELECT query with FROM clause", () => {
 		const query = builder.select("*").from("users").build();
-		assert.deepStrictEqual(query, { sql: "SELECT * FROM users", params: [] });
+		assert.deepStrictEqual(query, { params: [], sql: "SELECT * FROM users" });
 	});
 
 	it("should build a SELECT query with WHERE clause", () => {
@@ -27,8 +27,8 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 			.build();
 
 		assert.deepStrictEqual(query, {
-			sql: "SELECT * FROM users WHERE id = ?",
 			params: ["1"],
+			sql: "SELECT * FROM users WHERE id = ?",
 		});
 	});
 
@@ -40,8 +40,8 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 			.build();
 
 		assert.deepStrictEqual(query, {
-			sql: "SELECT * FROM users ORDER BY name DESC",
 			params: [],
+			sql: "SELECT * FROM users ORDER BY name DESC",
 		});
 	});
 
@@ -49,8 +49,8 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 		const query = builder.select("*").from("users").groupBy("age").build();
 
 		assert.deepStrictEqual(query, {
-			sql: "SELECT * FROM users GROUP BY age",
 			params: [],
+			sql: "SELECT * FROM users GROUP BY age",
 		});
 	});
 
@@ -63,8 +63,8 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 			.build();
 
 		assert.deepStrictEqual(query, {
-			sql: "SELECT * FROM users GROUP BY age HAVING COUNT(*) > ?",
 			params: ["1"],
+			sql: "SELECT * FROM users GROUP BY age HAVING COUNT(*) > ?",
 		});
 	});
 
@@ -72,8 +72,8 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 		const query = builder.select("*").from("users").limit(10).build();
 
 		assert.deepStrictEqual(query, {
-			sql: "SELECT * FROM users LIMIT 10",
 			params: [],
+			sql: "SELECT * FROM users LIMIT 10",
 		});
 	});
 
@@ -81,8 +81,8 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 		const query = builder.select("*").from("users").limit(10).offset(5).build();
 
 		assert.deepStrictEqual(query, {
-			sql: "SELECT * FROM users LIMIT 10 OFFSET 5",
 			params: [],
+			sql: "SELECT * FROM users LIMIT 10 OFFSET 5",
 		});
 	});
 
@@ -94,8 +94,8 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 			.build();
 
 		assert.deepStrictEqual(query, {
-			sql: "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id",
 			params: [],
+			sql: "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id",
 		});
 	});
 
@@ -103,24 +103,24 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 		const query = builder.insert("users", { id: 1, name: "Alice" }).build();
 
 		assert.deepStrictEqual(query, {
-			sql: "INSERT INTO users (id, name) VALUES ('1', 'Alice')",
 			params: [],
+			sql: "INSERT INTO users (id, name) VALUES ('1', 'Alice')",
 		});
 	});
 
 	it("should build an UPDATE query", () => {
-		const query = builder.update("users", { name: "Alice", age: 30 }).build();
+		const query = builder.update("users", { age: 30, name: "Alice" }).build();
 
 		assert.deepStrictEqual(query, {
-			sql: "UPDATE users SET name='Alice', age='30'",
 			params: [],
+			sql: "UPDATE users SET age='30', name='Alice'",
 		});
 	});
 
 	it("should build a DELETE query", () => {
 		const query = builder.delete("users").build();
 
-		assert.deepStrictEqual(query, { sql: "DELETE FROM users", params: [] });
+		assert.deepStrictEqual(query, { params: [], sql: "DELETE FROM users" });
 	});
 
 	it("should build a complex query with multiple clauses", () => {
@@ -137,22 +137,22 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 			.build();
 
 		assert.deepStrictEqual(query, {
-			sql: "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id WHERE users.age > ? GROUP BY users.age HAVING COUNT(orders.id) > ? ORDER BY users.name ASC LIMIT 10 OFFSET 20",
 			params: ["21", "5"],
+			sql: "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id WHERE users.age > ? GROUP BY users.age HAVING COUNT(orders.id) > ? ORDER BY users.name ASC LIMIT 10 OFFSET 20",
 		});
 	});
 
 	it("should handle empty string in SELECT fields", () => {
 		const query = builder.select("").from("users").build();
-		assert.deepStrictEqual(query, { sql: "SELECT  FROM users", params: [] });
+		assert.deepStrictEqual(query, { params: [], sql: "SELECT  FROM users" });
 	});
 
 	it("should handle special characters in table and column names", () => {
 		const query = builder.select("name, age").from("user's_data").build();
 
 		assert.deepStrictEqual(query, {
-			sql: "SELECT name, age FROM user's_data",
 			params: [],
+			sql: "SELECT name, age FROM user's_data",
 		});
 	});
 
@@ -160,8 +160,8 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 		const query = builder.select("select, from").from("table").build();
 
 		assert.deepStrictEqual(query, {
-			sql: "SELECT select, from FROM table",
 			params: [],
+			sql: "SELECT select, from FROM table",
 		});
 	});
 

@@ -1,21 +1,29 @@
 {
-	"$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
-	"organizeImports": {
-		"enabled": true
+	"$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on",
+				"recommended": true,
+				"useSortedAttributes": "on",
+				"useSortedKeys": "on",
+				"useSortedProperties": "on"
+			}
+		}
 	},
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true,
 			"complexity": {
 				"useLiteralKeys": "off"
-			}
+			},
+			"recommended": true
 		}
 	},
 	"vcs": {
-		"enabled": true,
 		"clientKind": "git",
-		"useIgnoreFile": true,
-		"defaultBranch": "master"
+		"defaultBranch": "master",
+		"enabled": true,
+		"useIgnoreFile": true
 	}
 }

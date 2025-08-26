@@ -115,7 +115,7 @@ describe("SqliteDatabase", () => {
 					);
 					throw new Error("Forced error to rollback transaction");
 				});
-			} catch (error) {
+			} catch (_error) {
 				// error expected
 			}
 
