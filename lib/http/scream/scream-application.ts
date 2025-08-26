@@ -1,8 +1,8 @@
 import {
-	type IncomingMessage,
-	STATUS_CODES,
-	type ServerResponse,
 	createServer,
+	type IncomingMessage,
+	type ServerResponse,
+	STATUS_CODES,
 } from "node:http";
 import { parse } from "node:url";
 

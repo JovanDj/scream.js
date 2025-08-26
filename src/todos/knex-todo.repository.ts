@@ -24,16 +24,16 @@ export class KnexTodoRepository implements TodoRepository {
 
 		const validator = z
 			.object({
+				id: z.coerce.number(),
 				title: z.string().nonempty(),
 				user_id: z.coerce.number(),
-				id: z.coerce.number(),
 			})
 			.parse(row);
 
 		return {
 			id: validator.id,
-			userId: validator.user_id,
 			title: validator.title,
+			userId: validator.user_id,
 		} satisfies TodoSchema;
 	}
 
@@ -52,8 +52,8 @@ export class KnexTodoRepository implements TodoRepository {
 
 		return validator.map((row) => ({
 			id: row.id,
-			userId: row.user_id,
 			title: row.title,
+			userId: row.user_id,
 		}));
 	}
 

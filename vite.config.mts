@@ -3,7 +3,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-	root: resolve(__dirname, "resources"),
+	appType: "mpa",
 
 	build: {
 		manifest: true,
@@ -23,14 +23,14 @@ export default defineConfig({
 		},
 	},
 	plugins: [tsconfigPaths()],
-	appType: "mpa",
+	root: resolve(__dirname, "resources"),
 	test: {
 		bail: 1,
-		sequence: { shuffle: true, concurrent: true },
+		reporters: ["verbose"],
+		sequence: { concurrent: true, shuffle: true },
 		typecheck: {
 			checker: "tsc",
 			tsconfig: "tsconfig.json",
 		},
-		reporters: ["verbose"],
 	},
 });

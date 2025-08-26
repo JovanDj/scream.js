@@ -1,15 +1,14 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-
-import knex, { type Knex } from "knex";
-import config from "knexfile.js";
-
 import { createLogger } from "@scream.js/logger/logger-factory.js";
+import knex, { type Knex } from "knex";
+
+import config from "knexfile.js";
 import { KnexTodoRepository } from "./knex-todo.repository.js";
-import { TodoInMemoryCache } from "./todo-in-memory-cache.repository.js";
 import type { TodoRepository } from "./todo.repository.js";
 import type { TodoSchema } from "./todo.schema.js";
 import { TodoService } from "./todo.service.js";
+import { TodoInMemoryCache } from "./todo-in-memory-cache.repository.js";
 
 describe("TodoService", () => {
 	let db: Knex;

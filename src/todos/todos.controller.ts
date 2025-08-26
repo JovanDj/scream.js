@@ -32,9 +32,9 @@ export class TodosController implements Resource {
 		}
 
 		const dto: FlatObject = {
-			todoTitle: todo.title,
 			lang: ctx.acceptsLanguages(["en-US", "sr-Latn-RS"]),
 			pageTitle: `Todo | ${todo.id}`,
+			todoTitle: todo.title,
 		};
 
 		return ctx.render("show", dto);
@@ -47,7 +47,7 @@ export class TodosController implements Resource {
 	async store(ctx: HttpContext) {
 		const { value, errors } = ctx.validate(createTodoValidator);
 
-		console.log({ value, errors });
+		console.log({ errors, value });
 
 		if (!value) {
 			return ctx.render("create", { errors });

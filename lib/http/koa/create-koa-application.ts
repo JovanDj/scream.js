@@ -1,10 +1,8 @@
 import path from "node:path";
-
+import { bodyParser } from "@koa/bodyparser";
 import Router from "@koa/router";
 import Koa from "koa";
 import nunjucks from "nunjucks";
-
-import { bodyParser } from "@koa/bodyparser";
 import type { Application } from "../application.js";
 import { KoaApp } from "./koa-application.js";
 

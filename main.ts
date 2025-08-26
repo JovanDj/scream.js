@@ -7,8 +7,8 @@ export const app: Application = createExpressApp();
 
 app.get("/", (ctx) =>
 	ctx.render("index", {
-		name: "Jovan",
 		message: "Rendered with nunjucks",
+		name: "Jovan",
 	}),
 );
 
