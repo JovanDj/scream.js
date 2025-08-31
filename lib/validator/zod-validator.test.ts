@@ -8,7 +8,7 @@ import { ZodValidator } from "./zod-validator.js";
 
 describe("ZodValidator", { concurrency: true }, () => {
 	const schema = z.object({ title: z.string(), userId: z.coerce.number() });
-	let validator: Validator<z.infer<typeof schema>>;
+	let validator: Validator<z.output<typeof schema>>;
 
 	beforeEach(() => {
 		validator = new ZodValidator(schema);
@@ -20,7 +20,7 @@ describe("ZodValidator", { concurrency: true }, () => {
 		const { value, errors } = validator.validate(input);
 
 		assert.deepStrictEqual<ValidationError>(errors, {});
-		assert.deepStrictEqual<z.infer<typeof schema>>(value, {
+		assert.deepStrictEqual<z.output<typeof schema>>(value, {
 			title: "Buy milk",
 			userId: 7,
 		});
@@ -58,7 +58,7 @@ describe("ZodValidator", { concurrency: true }, () => {
 			}),
 		});
 
-		const nestedValidator: Validator<z.infer<typeof nestedSchema>> =
+		const nestedValidator: Validator<z.output<typeof nestedSchema>> =
 			new ZodValidator(nestedSchema);
 
 		const input = { user: { id: "not a number", name: 123 } };
@@ -85,7 +85,7 @@ describe("ZodValidator", { concurrency: true }, () => {
 			}),
 		});
 
-		const nestedValidator: Validator<z.infer<typeof nestedSchema>> =
+		const nestedValidator: Validator<z.output<typeof nestedSchema>> =
 			new ZodValidator(nestedSchema);
 
 		const input = { user: { id: "not a number", name: 123 } };
@@ -106,7 +106,7 @@ describe("ZodValidator", { concurrency: true }, () => {
 			tags: z.array(z.string().min(2)),
 		});
 
-		const arrayValidator: Validator<z.infer<typeof arraySchema>> =
+		const arrayValidator: Validator<z.output<typeof arraySchema>> =
 			new ZodValidator(arraySchema);
 
 		const input = { tags: ["ok", 1, "x"] };
@@ -125,9 +125,8 @@ describe("ZodValidator", { concurrency: true }, () => {
 			title: z.string(),
 			userId: z.number().optional(),
 		});
-		const optValidator: Validator<z.infer<typeof optSchema>> = new ZodValidator(
-			optSchema,
-		);
+		const optValidator: Validator<z.output<typeof optSchema>> =
+			new ZodValidator(optSchema);
 
 		const input = { title: "Has only required" };
 
