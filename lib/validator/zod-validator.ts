@@ -1,8 +1,9 @@
-import type { z } from "zod/v4";
+import z from "zod/v4";
+
 import type { ValidationError, Validator } from "./validator.js";
 
-export class ZodValidator<S extends z.ZodType>
-	implements Validator<z.infer<S>>
+export class ZodValidator<S extends z.core.$ZodType>
+	implements Validator<z.output<S>>
 {
 	readonly #schema: S;
 
@@ -10,11 +11,8 @@ export class ZodValidator<S extends z.ZodType>
 		this.#schema = schema;
 	}
 
-	validate(input: unknown): {
-		value?: z.infer<S>;
-		errors: ValidationError;
-	} {
-		const parsed = this.#schema.safeParse(input);
+	validate(input: unknown) {
+		const parsed = z.safeParse(this.#schema, input);
 
 		if (parsed.success) {
 			return { errors: {}, value: parsed.data };
