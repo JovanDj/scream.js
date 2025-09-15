@@ -3,6 +3,8 @@ import { defineConfig, devices } from "playwright/test";
 export default defineConfig({
 	forbidOnly: !!process.env["CI"],
 	fullyParallel: true,
+	globalSetup: "./e2e/global.setup.ts",
+	globalTeardown: "./e2e/global.teardown.ts",
 	projects: [
 		{
 			name: "chromium",
@@ -28,7 +30,7 @@ export default defineConfig({
 		trace: "on-first-retry",
 	},
 	webServer: {
-		command: "npm run dev",
+		command: "cross-env NODE_ENV=e2e npm run dev",
 		port: 3000,
 		reuseExistingServer: !process.env["CI"],
 	},

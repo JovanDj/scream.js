@@ -17,7 +17,7 @@ describe("TodoService", () => {
 	let todoService: TodoService;
 
 	beforeEach(async () => {
-		db = knex(config["test"] ?? "test");
+		db = knex(config["integration"] ?? "integration");
 		todoRepository = new KnexTodoRepository(db);
 		todoCache = new TodoInMemoryCache(
 			todoRepository,

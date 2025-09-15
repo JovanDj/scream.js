@@ -2,4 +2,5 @@ import knex from "knex";
 
 import config from "knexfile.js";
 
-export const db = knex(config["development"] ?? "");
+const env = process.env["NODE_ENV"] ?? "development";
+export const db = knex(config[env] ?? "");
