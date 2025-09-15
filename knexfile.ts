@@ -15,7 +15,20 @@ const config: Record<string, Knex.Config> = {
 		useNullAsDefault: true,
 	},
 
-	test: {
+	e2e: {
+		client: "better-sqlite3",
+		connection: {
+			filename: "tmp/e2e.sqlite",
+		},
+		migrations: {
+			directory: "./migrations",
+			extension: "ts",
+			tableName: "knex_migrations",
+		},
+		useNullAsDefault: true,
+	},
+
+	integration: {
 		client: "better-sqlite3",
 		connection: {
 			filename: ":memory:",

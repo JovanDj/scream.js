@@ -109,9 +109,9 @@
 		"lint:fix": "biome check --write",
 		"prepare": "husky",
 		"start": "tsx --watch server.ts",
-		"test": "cross-env NODE_ENV=test run-s test:integration test:e2e",
-		"test:e2e": "playwright test",
-		"test:integration": "tsx --test",
+		"test": "cross-env NODE_ENV=test run-p test:integration test:e2e",
+		"test:e2e": "cross-env NODE_ENV=e2e playwright test",
+		"test:integration": "cross-env NODE_ENV=integration tsx --test",
 		"typecheck": "tsc --noEmit",
 		"vite": "vite"
 	},

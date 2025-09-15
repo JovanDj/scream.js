@@ -58,7 +58,7 @@ export class TodosController implements Resource {
 			userId: value.userId,
 		});
 
-		return ctx.status(201).redirect(`http://localhost:3000/todos/${todo.id}`);
+		return ctx.redirect(`/todos/${todo.id}`);
 	}
 
 	async edit(ctx: HttpContext) {
