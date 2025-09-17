@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
+import config from "@scream.js/database/knexfile.js";
 import { createLogger } from "@scream.js/logger/logger-factory.js";
 import knex, { type Knex } from "knex";
-
-import config from "knexfile.js";
 import { KnexTodoRepository } from "./knex-todo.repository.js";
 import type { TodoRepository } from "./todo.repository.js";
 import type { TodoSchema } from "./todo.schema.js";
@@ -31,7 +30,7 @@ describe("TodoService", () => {
 	});
 
 	afterEach(async () => {
-		await db.migrate.rollback();
+		await db.migrate.rollback(undefined, true);
 		await db.destroy();
 	});
 

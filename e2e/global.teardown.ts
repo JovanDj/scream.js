@@ -1,6 +1,5 @@
-import { db } from "config/database.js";
+import { teardownDb } from "@scream.js/database/db.js";
 
 export default async function globalTeardown() {
-	await db.migrate.rollback(undefined, true);
-	await db.destroy();
+	await teardownDb();
 }

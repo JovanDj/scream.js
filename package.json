@@ -102,8 +102,8 @@
 	"scripts": {
 		"build": "tsc && tsc-alias",
 		"check": "run-p typecheck lint:fix test",
-		"db:migrate": "knex migrate:latest",
-		"db:seed": "knex seed:run",
+		"db:migrate": "knex migrate:latest --knexfile lib/database/knexfile.ts",
+		"db:seed": "knex seed:run --knexfile lib/database/knexfile.ts",
 		"dev": "run-p start vite",
 		"lint": "biome check",
 		"lint:fix": "biome check --write",

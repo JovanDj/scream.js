@@ -1,17 +1,23 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Knex } from "knex";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(__dirname, "../../");
 
 const config: Record<string, Knex.Config> = {
 	development: {
 		client: "better-sqlite3",
 		connection: {
-			filename: "db.sqlite",
+			filename: path.join(root, "db.sqlite"),
 		},
 		debug: true,
 		migrations: {
-			directory: "./migrations",
+			directory: path.join(root, "migrations"),
 			extension: "ts",
 			tableName: "knex_migrations",
 		},
+		seeds: { directory: path.join(root, "seeds") },
 		useNullAsDefault: true,
 	},
 
@@ -21,10 +27,12 @@ const config: Record<string, Knex.Config> = {
 			filename: "tmp/e2e.sqlite",
 		},
 		migrations: {
-			directory: "./migrations",
+			directory: path.join(root, "migrations"),
 			extension: "ts",
 			tableName: "knex_migrations",
 		},
+		seeds: { directory: path.join(root, "seeds") },
+
 		useNullAsDefault: true,
 	},
 
@@ -34,10 +42,12 @@ const config: Record<string, Knex.Config> = {
 			filename: ":memory:",
 		},
 		migrations: {
-			directory: "./migrations",
+			directory: path.join(root, "migrations"),
 			extension: "ts",
 			tableName: "knex_migrations",
 		},
+		seeds: { directory: path.join(root, "seeds") },
+
 		useNullAsDefault: true,
 	},
 
