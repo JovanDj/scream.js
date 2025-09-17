@@ -1,7 +1,5 @@
+import { db } from "@scream.js/database/db.js";
 import { createLogger } from "@scream.js/logger/logger-factory.js";
-
-import { db } from "config/database.js";
-
 import { KnexTodoRepository } from "./knex-todo.repository.js";
 import type { TodoRepository } from "./todo.repository.js";
 import type { TodoSchema } from "./todo.schema.js";
