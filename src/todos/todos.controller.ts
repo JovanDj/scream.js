@@ -15,7 +15,7 @@ export class TodosController implements Resource {
 	async index(ctx: HttpContext) {
 		const todos = await this.#todoService.findAll();
 
-		return ctx.render("index", { todos });
+		return ctx.render("index", { pageTitle: "Todos", todos });
 	}
 
 	async show(ctx: HttpContext) {

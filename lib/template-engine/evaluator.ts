@@ -5,7 +5,7 @@ export class Evaluator {
 		return ast.map((node) => this.#evaluateNode(node, context));
 	}
 
-	#evaluateNode(node: ASTNode, context: Record<string, unknown>): ASTNode {
+	#evaluateNode(node: ASTNode, context: Record<string, unknown>) {
 		switch (node.type) {
 			case "text":
 			case "extends":
@@ -28,23 +28,27 @@ export class Evaluator {
 		}
 	}
 
-	#isRecord = (x: unknown): x is Record<string, unknown> =>
-		x !== null && typeof x === "object";
+	#isRecord(x: unknown): x is Record<string, unknown> {
+		return !!x && typeof x === "object";
+	}
 
-	#getPathFromNode(node: ASTNode): (string | number)[] {
-		if (Array.isArray(node.path)) return node.path;
+	#getPathFromNode(node: ASTNode) {
+		if (Array.isArray(node.path)) {
+			return node.path;
+		}
 
 		const raw = node.value ?? "";
-		// Matches identifiers and bracketed numeric indices: foo, bar, [0]
 		return Array.from(
 			raw.matchAll(/([a-zA-Z0-9_]+)|\[(\d+)\]/g),
 			(m) => m[1] ?? Number(m[2]),
 		);
 	}
 
-	#resolvePath(root: unknown, path: readonly (string | number)[]): unknown {
+	#resolvePath(root: unknown, path: readonly (string | number)[]) {
 		return path.reduce<unknown>((acc, key) => {
-			if (acc === null || acc === undefined) return undefined;
+			if (!acc) {
+				return undefined;
+			}
 
 			if (Array.isArray(acc) && typeof key === "number") {
 				return acc[key];
@@ -56,7 +60,7 @@ export class Evaluator {
 		}, root);
 	}
 
-	#evaluateVariable(node: ASTNode, context: Record<string, unknown>): ASTNode {
+	#evaluateVariable(node: ASTNode, context: Record<string, unknown>) {
 		const path = this.#getPathFromNode(node);
 		const raw = this.#resolvePath(context, path);
 
@@ -66,7 +70,11 @@ export class Evaluator {
 		};
 	}
 
-	#evaluateVariableValue(value: unknown): string {
+	#evaluateVariableValue(value: unknown) {
+		if (Array.isArray(value)) {
+			return value.map((v) => this.#escape(String(v))).join(", ");
+		}
+
 		if (
 			value === null ||
 			value === undefined ||
@@ -76,12 +84,14 @@ export class Evaluator {
 		) {
 			return "";
 		}
+
 		return this.#escape(String(value));
 	}
 
-	#escape(value: string): string {
-		// Fast path: already escaped from our set
-		if (/&(?:amp|lt|gt|quot|#39);/.test(value)) return value;
+	#escape(value: string) {
+		if (/&(?:amp|lt|gt|quot|#39);/.test(value)) {
+			return value;
+		}
 
 		return value
 			.replace(/&/g, "&amp;")
@@ -92,7 +102,6 @@ export class Evaluator {
 	}
 
 	#evaluateIf(node: ASTNode, context: Record<string, unknown>): ASTNode {
-		// Support dotted paths in `value`, defaulting to empty string if absent.
 		const path = (node.value ?? "")
 			.split(".")
 			.map((s) => s.trim())
@@ -118,7 +127,6 @@ export class Evaluator {
 	}
 
 	#evaluateFor(node: ASTNode, context: Record<string, unknown>): ASTNode {
-		// Resolve collection from optional dotted value.
 		const path = (node.value ?? "")
 			.split(".")
 			.map((s) => s.trim())
