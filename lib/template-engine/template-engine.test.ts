@@ -155,7 +155,10 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Array: , Object: , Function: .");
+			assert.deepStrictEqual<string>(
+				result,
+				"Array: 1, 2, Object: , Function: .",
+			);
 		});
 
 		it("should ignore malformed placeholders", () => {

@@ -10,7 +10,7 @@ describe("Evaluator", { concurrency: true }, () => {
 		evaluator = new Evaluator();
 	});
 
-	describe("Evaluator – Variable Resolution", () => {
+	describe("Variable Resolution", () => {
 		it("should resolve a variable from context", () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "user.name" },
@@ -120,9 +120,21 @@ describe("Evaluator", { concurrency: true }, () => {
 				{ type: "variable", value: "" },
 			]);
 		});
+
+		it("should render arrays by joining values", () => {
+			const ast: readonly ASTNode[] = [
+				{ type: "variable", value: "errors.title" },
+			];
+			const context = { errors: { title: ["First", "Second"] } };
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual(result, [
+				{ type: "variable", value: "First, Second" },
+			]);
+		});
 	});
 
-	describe("Evaluator – if node evaluation", () => {
+	describe("if node evaluation", () => {
 		it("should keep children if condition is truthy", () => {
 			const ast: readonly ASTNode[] = [
 				{

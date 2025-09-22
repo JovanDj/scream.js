@@ -13,13 +13,8 @@ export class ScreamTemplateEngine {
 		this.#generator = generator;
 	}
 
-	compileFile(path: string, context: Record<string, unknown>) {
-		const ast = this.#resolver.resolveFile(path);
-		const evaluatedAst = this.#evaluator.evaluate(ast, { ...context });
-		return this.#generator.generate(evaluatedAst);
-	}
-
 	compile(template: string, context: Record<string, unknown>) {
+		console.log({ context });
 		const ast = this.#resolver.resolve(template);
 		const evaluatedAst = this.#evaluator.evaluate(ast, { ...context });
 		return this.#generator.generate(evaluatedAst);

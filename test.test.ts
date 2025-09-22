@@ -32,7 +32,7 @@ describe("server", { concurrency: true }, () => {
 	it("should respond with 200", async (t: TestContext) => {
 		t.plan(1);
 		const res = await fetch(`http://localhost:${port}/`, { signal: t.signal });
-		t.assert.deepStrictEqual(res.status, 200);
+		t.assert.deepStrictEqual<number>(res.status, 200);
 	});
 
 	it("should respond with 200", async (t: TestContext) => {
@@ -40,7 +40,7 @@ describe("server", { concurrency: true }, () => {
 		const res = await fetch(`http://localhost:${port}/about`, {
 			signal: t.signal,
 		});
-		t.assert.deepStrictEqual(res.status, 200);
+		t.assert.deepStrictEqual<number>(res.status, 200);
 	});
 
 	it("should respond with 404", async (t: TestContext) => {
@@ -48,7 +48,7 @@ describe("server", { concurrency: true }, () => {
 		const res = await fetch(`http://localhost:${port}/adfasdf`, {
 			signal: t.signal,
 		});
-		t.assert.deepStrictEqual(res.status, 404);
+		t.assert.deepStrictEqual<number>(res.status, 404);
 	});
 
 	it("GET /todos should list todos", async (t: TestContext) => {
@@ -58,7 +58,7 @@ describe("server", { concurrency: true }, () => {
 		});
 
 		t.assert.ok(res.ok);
-		t.assert.deepStrictEqual(res.status, 200);
+		t.assert.deepStrictEqual<number>(res.status, 200);
 	});
 
 	it("POST /todos/create with missing title should show errors", async (t: TestContext) => {
@@ -85,7 +85,7 @@ describe("server", { concurrency: true }, () => {
 			method: "PUT",
 			signal: t.signal,
 		});
-		t.assert.deepStrictEqual(res.status, 404);
+		t.assert.deepStrictEqual<number>(res.status, 404);
 
 		const body = await res.text();
 		t.assert.match(body, /not found|error|unknown/i);

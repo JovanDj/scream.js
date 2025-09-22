@@ -21,11 +21,6 @@ export class Resolver {
 		this.#transformer = transformer;
 	}
 
-	resolveFile(path: string) {
-		const template = this.#fileLoader.loadFile(path);
-		return this.resolve(template);
-	}
-
 	resolve(template: string) {
 		const tokens = this.#tokenizer.tokenize(template);
 		const ast = this.#parser.parse(tokens);
@@ -36,7 +31,10 @@ export class Resolver {
 		ast: readonly ASTNode[],
 		chain: readonly string[],
 	): readonly ASTNode[] {
-		const extendsNode = ast.find((n) => n.type === "extends");
+		const extendsNode = ast.find((n) => {
+			return n.type === "extends";
+		});
+
 		if (!extendsNode) {
 			return ast;
 		}
