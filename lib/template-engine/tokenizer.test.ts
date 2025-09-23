@@ -316,7 +316,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			const template = "{{ user.name";
 			assert.throws(
 				() => tokenizer.tokenize(template),
-				/Unclosed variable tag/,
+				/Unclosed variable tag starting at index 0/,
 			);
 		});
 

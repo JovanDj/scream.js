@@ -14,7 +14,6 @@ export class ScreamTemplateEngine {
 	}
 
 	compile(template: string, context: Record<string, unknown>) {
-		console.log({ context });
 		const ast = this.#resolver.resolve(template);
 		const evaluatedAst = this.#evaluator.evaluate(ast, { ...context });
 		return this.#generator.generate(evaluatedAst);
