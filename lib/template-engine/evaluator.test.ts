@@ -18,7 +18,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { user: { name: "John" } };
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "variable", value: "John" },
 			]);
 		});
@@ -30,7 +30,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { user: { name: "John" } }; // age is not in the context
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "variable", value: "" },
 			]);
 		});
@@ -42,7 +42,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { user: { symbol: Symbol("test") } };
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "variable", value: "" },
 			]);
 		});
@@ -54,34 +54,8 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { user: { greet: () => "Hello" } }; // function in context
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
-				{ children: [], type: "variable", value: "" },
-			]);
-		});
-
-		it("should escape HTML special characters in variable values", () => {
-			const ast: readonly ASTNode[] = [
-				{ children: [], type: "variable", value: "xss" },
-			];
-			const context = { xss: "<script>alert('x')</script>" };
-			const result = evaluator.evaluate(ast, context);
-
 			assert.deepStrictEqual<ASTNode[]>(result, [
-				{
-					children: [],
-					type: "variable",
-					value: "&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;",
-				},
-			]);
-		});
-
-		it("should not escape already escaped values", () => {
-			const ast: readonly ASTNode[] = [{ type: "variable", value: "safe" }];
-			const context = { safe: "&lt;div&gt;" };
-			const result = evaluator.evaluate(ast, context);
-
-			assert.deepStrictEqual(result, [
-				{ type: "variable", value: "&lt;div&gt;" },
+				{ children: [], type: "variable", value: "" },
 			]);
 		});
 
@@ -128,8 +102,113 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { errors: { title: ["First", "Second"] } };
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ type: "variable", value: "First, Second" },
+			]);
+		});
+	});
+
+	describe("HTML entities escaping", () => {
+		it("should escape HTML special characters in variable values", () => {
+			const ast: readonly ASTNode[] = [
+				{ children: [], type: "variable", value: "xss" },
+			];
+			const context = { xss: "<script>alert('x')</script>" };
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual<ASTNode[]>(result, [
+				{
+					children: [],
+					type: "variable",
+					value: "&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;",
+				},
+			]);
+		});
+
+		it("should not escape already escaped values", () => {
+			const ast: readonly ASTNode[] = [{ type: "variable", value: "safe" }];
+			const context = { safe: "&lt;div&gt;" };
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual<ASTNode[]>(result, [
+				{ type: "variable", value: "&lt;div&gt;" },
+			]);
+		});
+
+		it("should escape ampersand", () => {
+			const ast: readonly ASTNode[] = [
+				{ children: [], type: "variable", value: "val" },
+			];
+			const context = { val: "Fish & Chips" };
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual<ASTNode[]>(result, [
+				{ children: [], type: "variable", value: "Fish &amp; Chips" },
+			]);
+		});
+
+		it("should escape less-than and greater-than", () => {
+			const ast: readonly ASTNode[] = [
+				{ children: [], type: "variable", value: "val" },
+			];
+			const context = { val: "<tag>content</tag>" };
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual<ASTNode[]>(result, [
+				{
+					children: [],
+					type: "variable",
+					value: "&lt;tag&gt;content&lt;/tag&gt;",
+				},
+			]);
+		});
+
+		it("should escape double and single quotes", () => {
+			const ast: readonly ASTNode[] = [
+				{ children: [], type: "variable", value: "quote" },
+			];
+			const context = { quote: `"O'Reilly"` };
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual<ASTNode[]>(result, [
+				{
+					children: [],
+					type: "variable",
+					value: "&quot;O&#39;Reilly&quot;",
+				},
+			]);
+		});
+
+		it("should escape multiple characters in one string", () => {
+			const ast: readonly ASTNode[] = [
+				{ children: [], type: "variable", value: "combo" },
+			];
+			const context = { combo: `<a href="x">O'Reilly & Friends</a>` };
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual<ASTNode[]>(result, [
+				{
+					children: [],
+					type: "variable",
+					value:
+						"&lt;a href=&quot;x&quot;&gt;O&#39;Reilly &amp; Friends&lt;/a&gt;",
+				},
+			]);
+		});
+
+		it("should not double-escape already safe values mixed with raw", () => {
+			const ast: readonly ASTNode[] = [
+				{ children: [], type: "variable", value: "val" },
+			];
+			const context = { val: "&lt;safe&gt;<unsafe>" };
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual<ASTNode[]>(result, [
+				{
+					children: [],
+					type: "variable",
+					value: "&lt;safe&gt;&lt;unsafe&gt;",
+				},
 			]);
 		});
 	});
@@ -445,7 +524,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { emptyStr: "" }; // Empty string
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "variable", value: "" },
 			]);
 		});
@@ -457,7 +536,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = { user: { null: null } }; // null value
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "variable", value: "" },
 			]);
 		});
@@ -469,7 +548,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const context = {}; // Missing key
 			const result = evaluator.evaluate(ast, context);
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "variable", value: "" },
 			]);
 		});
@@ -480,7 +559,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			];
 			const result = evaluator.evaluate(ast, {});
 
-			assert.deepStrictEqual(result, [
+			assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "variable", value: "" },
 			]);
 		});
