@@ -179,7 +179,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 		it("should render empty string if dot notation path hits non-object before reaching key", () => {
 			const template = "{{ user.name.first }}";
-			const context = { user: { name: "John" } }; // `name` is a string
+			const context = { user: { name: "John" } };
 			const result = templateEngine.compile(template, context);
 			assert.deepStrictEqual<string>(result, "");
 		});
@@ -566,7 +566,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should render nothing if dot-notated collection is undefined", () => {
 			const template =
 				"{% for item in user.items %}{{ item.name }} {% endfor %}";
-			const context = {}; // no user
+			const context = {};
 			const result = templateEngine.compile(template, context);
 			assert.deepStrictEqual<string>(result, "");
 		});

@@ -327,12 +327,10 @@ describe("Transformer", { concurrency: true }, () => {
 			},
 		];
 
-		// Step 1: apply parent override on grandparent
 		const intermediateAST = transformer.applyBlockOverrides(
 			grandParentAST,
 			parentAST,
 		);
-		// Step 2: apply child override on result
 		const finalAST = transformer.applyBlockOverrides(intermediateAST, childAST);
 
 		const expectedAST: readonly ASTNode[] = [

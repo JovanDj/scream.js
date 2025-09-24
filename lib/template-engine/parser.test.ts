@@ -157,7 +157,7 @@ describe("Parser", { concurrency: true }, () => {
 				{ collection: "users", iterator: "user", type: "for" },
 				{ collection: "user.tasks", iterator: "task", type: "for" },
 				{ type: "variable" },
-				{ name: "task", type: "identifier" }, // granular identifiers
+				{ name: "task", type: "identifier" },
 				{ type: "dot" },
 				{ name: "title", type: "identifier" },
 				{ type: "endfor" },
@@ -400,7 +400,7 @@ describe("Parser", { concurrency: true }, () => {
 				{ condition: "user", type: "if" },
 				{ type: "text", value: "Hello, " },
 				{ type: "variable" },
-				{ name: "user", type: "identifier" }, // granular tokens for user.name
+				{ name: "user", type: "identifier" },
 				{ type: "dot" },
 				{ name: "name", type: "identifier" },
 				{ type: "else" },

@@ -3,10 +3,10 @@ import type { Token } from "./tokenizer.js";
 export type ASTNode = {
 	readonly type: "text" | "variable" | "if" | "for" | "extends" | "block";
 	readonly value?: string;
+	readonly path?: (string | number)[];
 	readonly children?: readonly ASTNode[];
 	readonly alternate?: readonly ASTNode[];
 	readonly iterator?: string;
-	readonly path?: (string | number)[];
 };
 
 type ParseResult = {
@@ -21,10 +21,10 @@ type NodeResult = {
 
 export class Parser {
 	parse(tokens: readonly Token[]) {
-		return this.#parseTopLevel(tokens, 0).ast;
+		return this.#parseTemplate(tokens, 0).ast;
 	}
 
-	#parseTopLevel(tokens: readonly Token[], index: number): ParseResult {
+	#parseTemplate(tokens: readonly Token[], index: number): ParseResult {
 		if (index >= tokens.length) {
 			return { ast: [], nextIndex: index };
 		}
@@ -39,7 +39,7 @@ export class Parser {
 		}
 
 		const { node, nextIndex } = this.#parseNextNode(tokens, index);
-		const { ast: restNodes, nextIndex: finalIndex } = this.#parseTopLevel(
+		const { ast: restNodes, nextIndex: finalIndex } = this.#parseTemplate(
 			tokens,
 			nextIndex,
 		);
@@ -55,57 +55,10 @@ export class Parser {
 
 		switch (token.type) {
 			case "text":
-				return {
-					nextIndex: index + 1,
-					node: { type: "text", value: token.value },
-				};
+				return this.#parseText(index, token);
 
-			case "variable": {
-				const path: (string | number)[] = [];
-				let i = index + 1;
-
-				while (i < tokens.length) {
-					const t = tokens[i];
-					if (!t) {
-						break;
-					}
-
-					if (t.type === "identifier") {
-						path.push(t.name);
-					} else if (t.type === "number") {
-						path.push(t.value);
-					} else if (t.type === "string") {
-						path.push(t.value);
-					} else if (t.type === "dot") {
-						// skip
-					} else {
-						break; // end of variable expression
-					}
-					i++;
-				}
-
-				// fallback 1: variable token might have a name
-				if (
-					path.length === 0 &&
-					"name" in token &&
-					typeof token.name === "string"
-				) {
-					path.push(...this.#parsePath(token.name));
-				}
-
-				// fallback 2: inside a for-loop, use iterator
-				if (path.length === 0 && this.#loopStack.length > 0) {
-					const iterator = this.#loopStack[this.#loopStack.length - 1];
-					if (iterator) {
-						path.push(iterator);
-					}
-				}
-
-				return {
-					nextIndex: i,
-					node: { path, type: "variable" },
-				};
-			}
+			case "variable":
+				return this.#parseVariable(index, tokens);
 
 			case "block":
 				return this.#parseBlock(tokens, index);
@@ -117,14 +70,68 @@ export class Parser {
 				return this.#parseFor(tokens, index);
 
 			case "extends":
-				return {
-					nextIndex: index + 1,
-					node: { type: "extends", value: token.template },
-				};
+				return this.#parseExtends(index, token);
 
 			default:
 				throw new Error(`Unexpected token: ${token.type}`);
 		}
+	}
+
+	#parseExtends(
+		index: number,
+		token: { type: "extends"; template: string },
+	): NodeResult {
+		return {
+			nextIndex: index + 1,
+			node: { type: "extends", value: token.template },
+		};
+	}
+
+	#parseVariable(index: number, tokens: readonly Token[]): NodeResult {
+		const { path, nextIndex } = this.#parsePath(tokens, index + 1, []);
+		return { nextIndex, node: { path, type: "variable" } };
+	}
+
+	#parsePath(
+		tokens: readonly Token[],
+		index: number,
+		acc: (string | number)[],
+	): { path: (string | number)[]; nextIndex: number } {
+		if (index >= tokens.length) {
+			return { nextIndex: index, path: acc };
+		}
+
+		const token = tokens[index];
+		if (!token) {
+			throw new Error("Unknown token");
+		}
+
+		switch (token.type) {
+			case "identifier":
+				return this.#parsePath(tokens, index + 1, [...acc, token.name]);
+
+			case "number":
+				return this.#parsePath(tokens, index + 1, [...acc, token.value]);
+
+			case "string":
+				return this.#parsePath(tokens, index + 1, [...acc, token.value]);
+
+			case "dot":
+				return this.#parsePath(tokens, index + 1, acc);
+
+			default:
+				return { nextIndex: index, path: acc };
+		}
+	}
+
+	#parseText(
+		index: number,
+		token: { type: "text"; value: string },
+	): NodeResult {
+		return {
+			nextIndex: index + 1,
+			node: { type: "text", value: token.value },
+		};
 	}
 
 	#parseBlock(tokens: readonly Token[], index: number): NodeResult {
@@ -132,7 +139,7 @@ export class Parser {
 		if (!startToken || startToken.type !== "block") {
 			throw new Error("Missing start token for block");
 		}
-		const { ast: children, nextIndex } = this.#parseTopLevel(tokens, index + 1);
+		const { ast: children, nextIndex } = this.#parseTemplate(tokens, index + 1);
 		return {
 			nextIndex: nextIndex + 1,
 			node: { children, type: "block", value: startToken.name },
@@ -140,42 +147,43 @@ export class Parser {
 	}
 
 	#parseIf(tokens: readonly Token[], index: number): NodeResult {
-		const startToken = tokens[index];
-		if (!startToken || startToken.type !== "if") {
+		const start = tokens[index];
+
+		if (!start || start.type !== "if") {
 			throw new Error("Invalid if token");
 		}
 
-		const { ast: ifChildren, nextIndex: afterIf } = this.#parseUntil(
-			tokens,
-			index + 1,
-			["else", "endif"],
-		);
+		const thenRes = this.#parseTemplateUntil(tokens, index + 1, [
+			"else",
+			"endif",
+		]);
+		const next = tokens[thenRes.nextIndex];
 
-		const elseToken = tokens[afterIf];
-		if (elseToken?.type === "else") {
-			const { ast: elseChildren, nextIndex: afterElse } = this.#parseUntil(
-				tokens,
-				afterIf + 1,
-				["endif"],
-			);
+		if (next?.type === "else") {
+			const elseRes = this.#parseTemplateUntil(tokens, thenRes.nextIndex + 1, [
+				"endif",
+			]);
+			if (tokens[elseRes.nextIndex]?.type !== "endif") {
+				throw new Error(`Missing endif for if starting at ${index}`);
+			}
 			return {
-				nextIndex: afterElse + 1,
+				nextIndex: elseRes.nextIndex + 1,
 				node: {
-					alternate: elseChildren,
-					children: ifChildren,
+					alternate: elseRes.ast,
+					children: thenRes.ast,
 					type: "if",
-					value: startToken.condition,
+					value: start.condition,
 				},
 			};
 		}
 
+		if (next?.type !== "endif") {
+			throw new Error(`Missing endif for if starting at ${index}`);
+		}
+
 		return {
-			nextIndex: afterIf + 1,
-			node: {
-				children: ifChildren,
-				type: "if",
-				value: startToken.condition,
-			},
+			nextIndex: thenRes.nextIndex + 1,
+			node: { children: thenRes.ast, type: "if", value: start.condition },
 		};
 	}
 
@@ -188,7 +196,7 @@ export class Parser {
 		}
 
 		this.#loopStack.push(startToken.iterator);
-		const { ast: children, nextIndex } = this.#parseTopLevel(tokens, index + 1);
+		const { ast: children, nextIndex } = this.#parseTemplate(tokens, index + 1);
 		this.#loopStack.pop();
 
 		return {
@@ -202,36 +210,32 @@ export class Parser {
 		};
 	}
 
-	#parseUntil(
+	#parseTemplateUntil(
 		tokens: readonly Token[],
 		index: number,
-		endTypes: ReadonlyArray<string>,
+		endTypes: string[],
 	): ParseResult {
-		const walk = (idx: number, acc: readonly ASTNode[]): ParseResult => {
-			if (idx >= tokens.length) {
-				throw new Error("Unexpected end of input inside block");
-			}
+		if (index >= tokens.length) {
+			throw new Error("Unexpected end inside block");
+		}
 
-			const currentToken = tokens[idx];
-			if (!currentToken) {
-				throw new Error("Unexpected undefined token during walk"); // ✅ guard added back
-			}
+		const token = tokens[index];
 
-			if (endTypes.includes(currentToken.type)) {
-				return { ast: acc, nextIndex: idx };
-			}
+		if (!token) {
+			throw new Error("Unknown token");
+		}
 
-			const { node, nextIndex } = this.#parseNextNode(tokens, idx);
-			return walk(nextIndex, [...acc, node]);
-		};
+		if (endTypes.includes(token.type)) {
+			return { ast: [], nextIndex: index };
+		}
 
-		return walk(index, []);
-	}
-
-	#parsePath(path: string) {
-		return Array.from(
-			path.matchAll(/([a-zA-Z0-9_]+)|\[(\d+)\]/g),
-			(match) => match[1] ?? Number(match[2]),
+		const { node, nextIndex } = this.#parseNextNode(tokens, index);
+		const { ast: rest, nextIndex: finalIndex } = this.#parseTemplateUntil(
+			tokens,
+			nextIndex,
+			endTypes,
 		);
+
+		return { ast: [node, ...rest], nextIndex: finalIndex };
 	}
 }
