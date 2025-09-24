@@ -89,16 +89,23 @@ export class Evaluator {
 	}
 
 	#escape(value: string) {
-		if (/&(?:amp|lt|gt|quot|#39);/.test(value)) {
-			return value;
-		}
+		const ESCAPE_MAP: Record<string, string> = {
+			"'": "&#39;",
+			'"': "&quot;",
+			"&": "&amp;",
+			"`": "&#96;",
+			"<": "&lt;",
+			">": "&gt;",
+		};
 
-		return value
-			.replace(/&/g, "&amp;")
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/"/g, "&quot;")
-			.replace(/'/g, "&#39;");
+		const replacedValue = value.replace(
+			/&(?!amp;|lt;|gt;|quot;|#39;)/g,
+			"&amp;",
+		);
+
+		return replacedValue.replace(/[<>"'`]/g, (ch) => {
+			return ESCAPE_MAP[ch] ?? ch;
+		});
 	}
 
 	#evaluateIf(node: ASTNode, context: Record<string, unknown>): ASTNode {
