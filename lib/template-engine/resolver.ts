@@ -57,6 +57,6 @@ export class Resolver {
 
 		const resolvedParent = this.#resolveRecursive(parentAst, [...chain, name]);
 
-		return this.#transformer.applyBlockOverrides(resolvedParent, ast);
+		return this.#transformer.transform(resolvedParent, ast);
 	}
 }
