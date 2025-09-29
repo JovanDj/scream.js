@@ -87,12 +87,12 @@ export class ExpressApp implements Application {
 			resource.show(context);
 		});
 
-		router.patch("/:id", (req, res, next) => {
+		router.post("/:id/edit", (req, res, next) => {
 			const context = new ExpressHttpContext(req, res, next);
 			resource.update(context);
 		});
 
-		router.delete("/:id", (req, res, next) => {
+		router.post("/:id/delete", (req, res, next) => {
 			const context = new ExpressHttpContext(req, res, next);
 			resource.delete(context);
 		});

@@ -62,16 +62,40 @@ export class TodosController implements Resource {
 	}
 
 	async edit(ctx: HttpContext) {
-		return ctx.render("");
-	}
+		const id = +ctx.param("id");
+		const todo = await this.#todoService.findById(id);
 
-	async update(ctx: HttpContext) {
-		if (!ctx.param("id")) {
+		if (!todo) {
 			return ctx.notFound();
 		}
 
-		const todo = await this.#todoService.update(+ctx.param("id"), {});
-		return ctx.redirect(`http://localhost:3000/todos/${todo.id}`);
+		return ctx.render("edit", {
+			action: `/todos/${todo.id}/edit`,
+			errors: {},
+			fields: { title: todo.title, userId: todo.userId },
+			pageTitle: `Edit Todo #${todo.id}`,
+			submitLabel: "Update",
+		});
+	}
+
+	async update(ctx: HttpContext) {
+		const { value, errors } = ctx.validate(createTodoValidator);
+
+		if (!value) {
+			return ctx.render("edit", {
+				action: `/todos/${ctx.param("id")}/edit`,
+				errors,
+				fields: {
+					title: "",
+					userId: 1,
+				},
+				pageTitle: `Edit Todo #${ctx.param("id")}`,
+				submitLabel: "Submit",
+			});
+		}
+
+		const todo = await this.#todoService.update(+ctx.param("id"), value);
+		return ctx.redirect(`/todos/${todo.id}`);
 	}
 
 	async delete(ctx: HttpContext) {

@@ -1,0 +1,32 @@
+{% extends "layout.njk" %}
+
+{% block content %}
+
+<div class="container py-4 px-3 mx-auto">
+    <h1>{{ pageTitle }}</h1>
+
+    <form action="{{ action }}" method="POST">
+        <input hidden required value="{{ fields.userId }}" type="number" name="userId" class="form-control" id="userId">
+
+        <div class="mb-3">
+            <label for="title" class="form-label">Title</label>
+            <input 
+                type="text" 
+                name="title" 
+                class="form-control {% if errors.title %} is-invalid {% endif %}" 
+                id="title" 
+                value="{{ fields.title | default('') }}" 
+                aria-describedby="title">
+
+            {% if errors.title %}
+                <div class="invalid-feedback">
+                    {{ errors.title }}
+                </div>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary">{{ submitLabel }}</button>
+    </form>
+</div>
+
+{% endblock content %}
