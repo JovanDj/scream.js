@@ -2,7 +2,6 @@
 
 {% block content %}
     <div class="container py-4 px-3 mx-auto">
-
         <table class="table table-bordered table-striped">
             <thead class="thead-dark">
                 <tr>
@@ -12,6 +11,11 @@
             <tbody>
                 <tr>
                     <td>{{ todoTitle }}</td>
+                    <td>
+                        <form action="/todos/{{ todoId }}/delete" method="POST">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </td>
                 </tr>
             </tbody>
         </table>

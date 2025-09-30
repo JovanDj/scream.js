@@ -24,20 +24,20 @@ export class TodosController implements Resource {
 		if (!id) {
 			return ctx.notFound();
 		}
-
 		const todo = await this.#todoService.findById(+id);
 
 		if (!todo) {
 			return ctx.notFound();
 		}
 
-		const dto: FlatObject = {
+		return ctx.render("show", {
 			lang: ctx.acceptsLanguages(["en-US", "sr-Latn-RS"]),
-			pageTitle: `Todo | ${todo.id}`,
-			todoTitle: todo.title,
-		};
 
-		return ctx.render("show", dto);
+			pageTitle: `Todo | ${todo.id}`,
+
+			todoId: todo.id,
+			todoTitle: todo.title,
+		} satisfies FlatObject);
 	}
 
 	async create(ctx: HttpContext) {
@@ -103,8 +103,9 @@ export class TodosController implements Resource {
 			return ctx.notFound();
 		}
 
-		const changed = await this.#todoService.delete(+ctx.param("id"));
+		const id = +ctx.param("id");
+		await this.#todoService.delete(id);
 
-		return ctx.status(200).end(changed);
+		return ctx.redirect("/todos");
 	}
 }
