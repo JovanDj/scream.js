@@ -1,16 +1,45 @@
+import fs from "node:fs";
 import path from "node:path";
-
+import { Evaluator } from "@scream.js/template-engine/evaluator.js";
+import { Generator } from "@scream.js/template-engine/generator.js";
+import { Parser } from "@scream.js/template-engine/parser.js";
+import { Resolver } from "@scream.js/template-engine/resolver.js";
+import { SystemFileLoader } from "@scream.js/template-engine/system-file-loader.js";
+import { ScreamTemplateEngine } from "@scream.js/template-engine/template-engine.js";
+import { Tokenizer } from "@scream.js/template-engine/tokenizer.js";
+import { Transformer } from "@scream.js/template-engine/transformer.js";
 import express from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
-import nunjucks from "nunjucks";
 
 import type { Application } from "../application.js";
 import { ExpressApp } from "./express-application.js";
 
 export const createExpressApp: () => Application = () => {
 	const app = express();
+	const templateEngine = new ScreamTemplateEngine(
+		new Resolver(
+			new SystemFileLoader(),
+			new Tokenizer(),
+			new Parser(),
+			new Transformer(),
+		),
+		new Evaluator(),
+		new Generator(),
+	);
 
 	const viewsPath = path.join(process.cwd(), "views");
+
+	app.engine("njk", (filePath, options, callback) => {
+		fs.readFile(filePath, { encoding: "utf-8" }, (err, content) => {
+			if (err) {
+				return callback(err);
+			}
+
+			const rendered = templateEngine.compile(content, { ...options });
+
+			return callback(null, rendered);
+		});
+	});
 
 	app.set("views", viewsPath);
 	app.set("view engine", "njk");
@@ -25,22 +54,6 @@ export const createExpressApp: () => Application = () => {
 			target: "http://localhost:5173",
 		}),
 	);
-
-	nunjucks
-		.configure(viewsPath, {
-			autoescape: true,
-			express: app,
-			noCache: process.env["NODE_ENV"] === "development",
-			watch: process.env["NODE_ENV"] === "development",
-		})
-		.addGlobal("viteScripts", () => {
-			return `
-				<link rel="stylesheet" href="http://localhost:5173/styles.scss">
-				<script type="module" src="http://localhost:5173/main.ts"></script>
-				<script type="module" src="http://localhost:5173/@vite/client"></script>
-
-			`;
-		});
 
 	return new ExpressApp(app);
 };
