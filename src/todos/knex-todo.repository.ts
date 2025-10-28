@@ -77,9 +77,11 @@ export class KnexTodoRepository implements TodoRepository {
 	}
 
 	async update(id: TodoSchema["id"], input: UpdateTodoInput) {
-		await this.#db("todos").where({ id }).update({
-			title: input.title,
-		});
+		await this.#db("todos")
+			.where({ id })
+			.update({
+				title: input.title ?? "",
+			});
 
 		const todo = await this.findById(id);
 
