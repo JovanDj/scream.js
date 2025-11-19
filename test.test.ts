@@ -8,7 +8,7 @@ function isAddressInfo(address: unknown): address is AddressInfo {
 	return !!address && typeof address === "object" && "port" in address;
 }
 
-describe("server", { concurrency: true }, () => {
+describe("server", () => {
 	let server: Server;
 	let port: number;
 

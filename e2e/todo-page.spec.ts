@@ -4,6 +4,7 @@ async function createTodo(page: Page, title: string) {
 	await page.goto("/todos/create");
 	await page.locator("#title").fill(title);
 	await page.getByRole("button", { name: /submit/i }).click();
+	await page.waitForURL(/\/todos\/\d+$/);
 	return page.url().split("/").pop();
 }
 
@@ -26,7 +27,7 @@ test("opens a create todo page", async ({ page }) => {
 });
 
 test("deletes a todo and redirects to index", async ({ page }) => {
-	const title = `ToDelete ${Date.now()}`;
+	const title = `ToDelete`;
 	const id = await createTodo(page, title);
 
 	await page.goto(`/todos/${id}`);
