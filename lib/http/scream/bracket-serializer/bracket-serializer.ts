@@ -33,11 +33,7 @@ export const encodeToBracketNotation = (
 		throw new Error("Maximum depth exceeded while serializing");
 	}
 
-	if (value === undefined) {
-		return acc;
-	}
-
-	if (typeof value === "function") {
+	if (value === undefined || typeof value === "function") {
 		return acc;
 	}
 
@@ -76,146 +72,125 @@ export const encodeToBracketNotation = (
 	const isPlainObject = proto === Object.prototype || proto === null;
 
 	seen.add(value);
-
-	if (Array.isArray(value)) {
-		value.forEach((item, index) => {
-			const key = `${prefix}[${index}]`;
-			assertKeyLength(key);
-			encodeToBracketNotation(item, key, acc, depth + 1, seen);
-		});
-		seen.delete(value);
-		return acc;
-	}
-
-	const hasEnumerableKeys = Object.keys(value).length > 0;
-	const hasSymbolKeys = Object.getOwnPropertySymbols(value).length > 0;
-
-	if (isPlainObject && !hasEnumerableKeys && hasSymbolKeys && prefix) {
-		acc[prefix] = value;
-		seen.delete(value);
-		return acc;
-	}
-
-	const hasNumericKeys = Object.keys(value).some((key) => /^\d+$/.test(key));
-	const hasLengthProp =
-		typeof Object.getOwnPropertyDescriptor(value, "length")?.value === "number";
-
-	const hasCustomToString =
-		Object.hasOwn(value, "toString") &&
-		value.toString !== Object.prototype.toString;
-
-	const hasCustomValueOf =
-		Object.hasOwn(value, "valueOf") &&
-		value.valueOf !== Object.prototype.valueOf;
-
-	const ownToJSONDescriptor = Object.getOwnPropertyDescriptor(value, "toJSON");
-	const toJSONFunction =
-		typeof ownToJSONDescriptor?.value === "function"
-			? ownToJSONDescriptor.value
-			: undefined;
-	const hasOwnToJSON = Boolean(toJSONFunction);
-
-	if (isPlainObject && hasLengthProp && hasNumericKeys && prefix) {
-		acc[prefix] = value;
-		seen.delete(value);
-		return acc;
-	}
-
-	const shouldSerializeSpecialPlain =
-		isPlainObject &&
-		Boolean(prefix) &&
-		(hasCustomToString || hasCustomValueOf || hasOwnToJSON);
-
-	const serializeToJSONResult = (result: unknown) => {
-		if (!isRecord(result)) {
-			acc[prefix] = result;
-			seen.delete(value);
+	try {
+		if (Array.isArray(value)) {
+			value.forEach((item, index) => {
+				const key = `${prefix}[${index}]`;
+				assertKeyLength(key);
+				encodeToBracketNotation(item, key, acc, depth + 1, seen);
+			});
 			return acc;
 		}
 
-		for (const [jsonKey, jsonVal] of Object.entries(result)) {
-			const nextKey = `${prefix}[${jsonKey}]`;
-			encodeToBracketNotation(jsonVal, nextKey, acc, depth + 1, seen);
-		}
-		seen.delete(value);
-		return acc;
-	};
-	const serializeError = (error: Error) => {
-		const entries = Object.entries(error).filter(
-			([, entryValue]) => typeof entryValue !== "undefined",
-		);
-		if (entries.length === 0) {
-			seen.delete(error);
+		const hasEnumerableKeys = Object.keys(value).length > 0;
+		const hasSymbolKeys = Object.getOwnPropertySymbols(value).length > 0;
+
+		if (isPlainObject && !hasEnumerableKeys && hasSymbolKeys && prefix) {
+			acc[prefix] = value;
 			return acc;
 		}
-		for (const [key, entryValue] of entries) {
-			const nextKey = prefix ? `${prefix}[${key}]` : key;
-			encodeToBracketNotation(entryValue, nextKey, acc, depth + 1, seen);
-		}
-		seen.delete(error);
-		return acc;
-	};
 
-	if (shouldSerializeSpecialPlain && !toJSONFunction) {
-		acc[prefix] = value;
-		seen.delete(value);
-		return acc;
-	}
+		const hasNumericKeys = Object.keys(value).some((key) => /^\d+$/.test(key));
+		const hasLengthProp =
+			typeof Object.getOwnPropertyDescriptor(value, "length")?.value ===
+			"number";
 
-	if (shouldSerializeSpecialPlain && toJSONFunction) {
-		return serializeToJSONResult(toJSONFunction.call(value));
-	}
+		const hasCustomToString =
+			Object.hasOwn(value, "toString") &&
+			value.toString !== Object.prototype.toString;
 
-	if (prefix === "") {
-		const entries = Object.entries(value).filter(
-			([k, v]) => !unsafeKeys.has(k) && typeof v !== "undefined",
+		const hasCustomValueOf =
+			Object.hasOwn(value, "valueOf") &&
+			value.valueOf !== Object.prototype.valueOf;
+
+		const ownToJSONDescriptor = Object.getOwnPropertyDescriptor(
+			value,
+			"toJSON",
 		);
 
-		for (const [k, v] of entries) {
+		const toJSONFunction =
+			typeof ownToJSONDescriptor?.value === "function"
+				? ownToJSONDescriptor.value
+				: undefined;
+
+		const hasOwnToJSON = Boolean(toJSONFunction);
+
+		if (isPlainObject && hasLengthProp && hasNumericKeys && prefix) {
+			acc[prefix] = value;
+			return acc;
+		}
+
+		const shouldSerializeSpecialPlain =
+			isPlainObject &&
+			Boolean(prefix) &&
+			(hasCustomToString || hasCustomValueOf || hasOwnToJSON);
+
+		const serializeToJSONResult = (result: unknown) => {
+			if (!isRecord(result)) {
+				acc[prefix] = result;
+				return acc;
+			}
+
+			for (const [jsonKey, jsonVal] of Object.entries(result)) {
+				const nextKey = `${prefix}[${jsonKey}]`;
+				encodeToBracketNotation(jsonVal, nextKey, acc, depth + 1, seen);
+			}
+			return acc;
+		};
+		const serializeError = (error: Error) => {
+			const entries = Object.entries(error).filter(
+				([, entryValue]) => typeof entryValue !== "undefined",
+			);
+
+			for (const [key, entryValue] of entries) {
+				const nextKey = prefix ? `${prefix}[${key}]` : key;
+				encodeToBracketNotation(entryValue, nextKey, acc, depth + 1, seen);
+			}
+			return acc;
+		};
+
+		if (shouldSerializeSpecialPlain && !toJSONFunction) {
+			acc[prefix] = value;
+			return acc;
+		}
+
+		if (shouldSerializeSpecialPlain && toJSONFunction) {
+			return serializeToJSONResult(toJSONFunction(value));
+		}
+
+		if (prefix === "") {
+			const entries = Object.entries(value).filter(
+				([k, v]) => !unsafeKeys.has(k) && typeof v !== "undefined",
+			);
+
+			for (const [k, v] of entries) {
+				assertPropertyNameSafe(k);
+				assertKeyLength(k);
+				encodeToBracketNotation(v, k, acc, depth + 1, seen);
+			}
+			return acc;
+		}
+
+		if (!isPlainObject && value instanceof Error) {
+			return serializeError(value);
+		}
+
+		if (!isPlainObject) {
+			acc[prefix] = value;
+			return acc;
+		}
+
+		for (const [k, v] of Object.entries(value)) {
+			if (unsafeKeys.has(k)) {
+				continue;
+			}
 			assertPropertyNameSafe(k);
-			assertKeyLength(k);
-			encodeToBracketNotation(v, k, acc, depth + 1, seen);
+			const key = prefix ? `${prefix}[${k}]` : k;
+			encodeToBracketNotation(v, key, acc, depth + 1, seen);
 		}
-		seen.delete(value);
+
 		return acc;
-	}
-
-	const isTypedArray =
-		ArrayBuffer.isView(value) && !(value instanceof DataView);
-
-	if (!isPlainObject && (isTypedArray || value instanceof ArrayBuffer)) {
-		acc[prefix] = value;
+	} finally {
 		seen.delete(value);
-		return acc;
 	}
-
-	if (!isPlainObject && value instanceof Error) {
-		return serializeError(value);
-	}
-
-	if (!isPlainObject && prefix && toJSONFunction) {
-		return serializeToJSONResult(toJSONFunction.call(value));
-	}
-
-	if (!isPlainObject) {
-		acc[prefix] = value;
-		seen.delete(value);
-		return acc;
-	}
-
-	for (const [k, v] of Object.entries(value)) {
-		if (unsafeKeys.has(k)) {
-			continue;
-		}
-		if (typeof v === "undefined") {
-			continue;
-		}
-		assertPropertyNameSafe(k);
-		const key = prefix ? `${prefix}[${k}]` : k;
-		assertKeyLength(key);
-		encodeToBracketNotation(v, key, acc, depth + 1, seen);
-	}
-
-	seen.delete(value);
-	return acc;
 };

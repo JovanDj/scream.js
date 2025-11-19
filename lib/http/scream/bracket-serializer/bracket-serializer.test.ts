@@ -911,4 +911,18 @@ describe("Encode to bracket notation", { concurrency: true }, () => {
 			value: 123,
 		});
 	});
+
+	it("does not treat shared object references as circular", (t: TestContext) => {
+		t.plan(1);
+
+		const shared = { id: 1 };
+		const input = { first: shared, second: shared };
+
+		const result = encodeToBracketNotation(input);
+
+		t.assert.deepStrictEqual(result, {
+			"first[id]": 1,
+			"second[id]": 1,
+		});
+	});
 });
