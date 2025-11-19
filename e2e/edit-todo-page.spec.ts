@@ -4,12 +4,16 @@ async function createTodo(page: Page, title: string) {
 	await page.goto("/todos/create");
 	await page.locator("#title").fill(title);
 	await page.getByRole("button", { name: /submit/i }).click();
-	const url = page.url();
-	return url.split("/").pop();
+	await page.waitForURL(/\/todos\/\d+$/);
+	const id = new URL(page.url()).pathname.split("/").pop();
+	if (!id) {
+		throw new Error("Could not determine todo id from url");
+	}
+	return id;
 }
 
 test("has title heading", async ({ page }) => {
-	const id = await createTodo(page, `Temp ${Date.now()}`);
+	const id = await createTodo(page, `Temp`);
 	await page.goto(`/todos/${id}/edit`);
 	await expect(
 		page.getByRole("heading", { name: new RegExp(`Edit Todo #${id}`) }),
@@ -17,7 +21,7 @@ test("has title heading", async ({ page }) => {
 });
 
 test("pre-fills the form with existing data", async ({ page }) => {
-	const title = `Prefilled ${Date.now()}`;
+	const title = `Prefilled`;
 	const id = await createTodo(page, title);
 
 	await page.goto(`/todos/${id}/edit`);
@@ -27,7 +31,7 @@ test("pre-fills the form with existing data", async ({ page }) => {
 test("shows validation error when clearing the title and submitting", async ({
 	page,
 }) => {
-	const id = await createTodo(page, `Validate ${Date.now()}`);
+	const id = await createTodo(page, `Validate`);
 
 	await page.goto(`/todos/${id}/edit`);
 	await page.locator("#title").fill("");
@@ -39,7 +43,7 @@ test("shows validation error when clearing the title and submitting", async ({
 });
 
 test("label click focuses the title input", async ({ page }) => {
-	const id = await createTodo(page, `Focus ${Date.now()}`);
+	const id = await createTodo(page, `Focus`);
 	await page.goto(`/todos/${id}/edit`);
 
 	await page.locator('label[for="title"]').click();
@@ -49,10 +53,10 @@ test("label click focuses the title input", async ({ page }) => {
 test("pressing Enter submits the form with valid title and updates todo", async ({
 	page,
 }) => {
-	const id = await createTodo(page, `Old Title ${Date.now()}`);
+	const id = await createTodo(page, `Old Title`);
 	await page.goto(`/todos/${id}/edit`);
 
-	const newTitle = `Updated via Enter ${Date.now()}`;
+	const newTitle = `Updated via Enter`;
 	await page.locator("#title").fill(newTitle);
 	await page.keyboard.press("Enter");
 
@@ -61,10 +65,10 @@ test("pressing Enter submits the form with valid title and updates todo", async 
 });
 
 test("updates a todo with valid title and redirects", async ({ page }) => {
-	const id = await createTodo(page, `Old Title ${Date.now()}`);
+	const id = await createTodo(page, `Old Title`);
 	await page.goto(`/todos/${id}/edit`);
 
-	const newTitle = `Updated ${Date.now()}`;
+	const newTitle = `Updated`;
 	await page.locator("#title").fill(newTitle);
 	await page.getByRole("button", { name: /update/i }).click();
 

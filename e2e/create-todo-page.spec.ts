@@ -41,7 +41,7 @@ test("pressing Enter submits the form when empty and shows error", async ({
 test("creates a todo with valid title and redirects", async ({ page }) => {
 	await page.goto("/todos/create");
 
-	const title = `Buy milk ${Date.now()}`;
+	const title = `Buy milk`;
 	await page.locator("#title").fill(title);
 	await page.getByRole("button", { name: /submit/i }).click();
 
@@ -53,7 +53,7 @@ test("creates a todo with valid title and redirects", async ({ page }) => {
 test("creating via Enter key works with a filled title", async ({ page }) => {
 	await page.goto("/todos/create");
 
-	const title = `Write tests ${Date.now()}`;
+	const title = `Write tests`;
 	await page.locator("#title").fill(title);
 	await page.keyboard.press("Enter");
 
