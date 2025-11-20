@@ -1,6 +1,9 @@
 import { File } from "node:buffer";
 import { describe, it, type TestContext } from "node:test";
-import { encodeToBracketNotation } from "./bracket-serializer.js";
+import {
+	encodeInputName,
+	encodeToBracketNotation,
+} from "./bracket-serializer.js";
 
 describe("Encode to bracket notation", { concurrency: true }, () => {
 	it("encodes a flat object", (t: TestContext) => {
@@ -923,6 +926,22 @@ describe("Encode to bracket notation", { concurrency: true }, () => {
 		t.assert.deepStrictEqual(result, {
 			"first[id]": 1,
 			"second[id]": 1,
+		});
+	});
+
+	it("encodes single input names from dot paths", (t: TestContext) => {
+		t.plan(1);
+
+		const result = encodeInputName("todo.user.address.street");
+
+		t.assert.deepStrictEqual(result, "todo[user][address][street]");
+	});
+
+	it("throws on invalid input name segments", (t: TestContext) => {
+		t.plan(1);
+
+		t.assert.throws(() => encodeInputName("todo.user[name]"), {
+			message: /invalid path segment/i,
 		});
 	});
 });

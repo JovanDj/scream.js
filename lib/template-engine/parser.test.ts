@@ -86,6 +86,22 @@ describe("Parser", { concurrency: true }, () => {
 				{ path: ["foo", "bar", 12, "baz"], type: "variable" },
 			]);
 		});
+
+		it("should parse function calls with arguments", () => {
+			const tokens: Token[] = [
+				{ type: "variable" },
+				{ name: "encodeInputName", type: "identifier" },
+				{ type: "lparen" },
+				{ type: "string", value: "todo.title" },
+				{ type: "rparen" },
+			];
+
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual<ASTNode[]>(ast, [
+				{ path: ["encodeInputName", "todo", "title"], type: "variable" },
+			]);
+		});
 	});
 
 	describe("Conditionals", () => {

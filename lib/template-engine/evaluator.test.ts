@@ -106,6 +106,38 @@ describe("Evaluator", { concurrency: true }, () => {
 				{ type: "variable", value: "First, Second" },
 			]);
 		});
+
+		it("should resolve array length via dot notation", () => {
+			const ast: readonly ASTNode[] = [
+				{ path: ["items", "length"], type: "variable" },
+			];
+			const context = { items: [{ id: 1 }, { id: 2 }] };
+
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual<ASTNode[]>(result, [
+				{ path: ["items", "length"], type: "variable", value: "2" },
+			]);
+		});
+
+		it("should invoke functions encountered in path", () => {
+			const ast: readonly ASTNode[] = [
+				{ path: ["encodeInputName", "todo", "title"], type: "variable" },
+			];
+			const context = {
+				encodeInputName: (path: string) => `encoded:${path}`,
+			};
+
+			const result = evaluator.evaluate(ast, context);
+
+			assert.deepStrictEqual<ASTNode[]>(result, [
+				{
+					path: ["encodeInputName", "todo", "title"],
+					type: "variable",
+					value: "encoded:todo.title",
+				},
+			]);
+		});
 	});
 
 	describe("HTML entities escaping", () => {

@@ -12,7 +12,9 @@ export type Token =
 	| { type: "identifier"; name: string }
 	| { type: "dot" }
 	| { type: "number"; value: number }
-	| { type: "string"; value: string };
+	| { type: "string"; value: string }
+	| { type: "lparen" }
+	| { type: "rparen" };
 
 export class Tokenizer {
 	tokenize(template: string): readonly Token[] {
@@ -259,6 +261,18 @@ export class Tokenizer {
 				}
 
 				tokens.push({ name: ident, type: "identifier" });
+				continue;
+			}
+
+			if (char === "(") {
+				tokens.push({ type: "lparen" });
+				i++;
+				continue;
+			}
+
+			if (char === ")") {
+				tokens.push({ type: "rparen" });
+				i++;
 				continue;
 			}
 

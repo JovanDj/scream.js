@@ -107,8 +107,32 @@ export class Parser {
 		}
 
 		switch (token.type) {
-			case "identifier":
+			case "identifier": {
+				if (tokens[index + 1]?.type === "lparen") {
+					const stringToken = tokens[index + 2];
+					const closing = tokens[index + 3];
+
+					if (!stringToken || stringToken.type !== "string") {
+						throw new Error("Function arguments must be string literals");
+					}
+					if (!closing || closing.type !== "rparen") {
+						throw new Error("Unclosed function call");
+					}
+
+					const segments = stringToken.value
+						.split(".")
+						.map((segment) => segment.trim())
+						.filter(Boolean);
+
+					return this.#parsePath(tokens, index + 4, [
+						...acc,
+						token.name,
+						...segments,
+					]);
+				}
+
 				return this.#parsePath(tokens, index + 1, [...acc, token.name]);
+			}
 
 			case "number":
 				return this.#parsePath(tokens, index + 1, [...acc, token.value]);

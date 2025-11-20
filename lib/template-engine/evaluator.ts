@@ -45,19 +45,60 @@ export class Evaluator {
 	}
 
 	#resolvePath(root: unknown, path: readonly (string | number)[]) {
-		return path.reduce<unknown>((acc, key) => {
-			if (!acc) {
-				return undefined;
-			}
+		const result = path.reduce<{
+			acc: unknown;
+			done: boolean;
+		}>(
+			(state, key, index) => {
+				if (state.done) {
+					return state;
+				}
 
-			if (Array.isArray(acc) && typeof key === "number") {
-				return acc[key];
-			}
-			if (this.#isRecord(acc) && key in acc) {
-				return acc[key];
-			}
-			return undefined;
-		}, root);
+				const acc = state.acc;
+
+				if (acc === undefined || acc === null) {
+					return { acc: undefined, done: true };
+				}
+
+				if (typeof acc === "function") {
+					const remainingSegments = path
+						.slice(index)
+						.map((segment) =>
+							typeof segment === "string" ? segment : String(segment),
+						);
+
+					return {
+						acc: acc(remainingSegments.join(".")),
+						done: true,
+					};
+				}
+
+				if (Array.isArray(acc) && key === "length") {
+					return { acc: acc.length, done: false };
+				}
+
+				if (Array.isArray(acc) && typeof key === "number") {
+					return { acc: acc[key], done: false };
+				}
+
+				if (Array.isArray(acc)) {
+					return { acc: undefined, done: true };
+				}
+
+				if (!this.#isRecord(acc) || typeof key !== "string") {
+					return { acc: undefined, done: true };
+				}
+
+				if (!(key in acc)) {
+					return { acc: undefined, done: true };
+				}
+
+				return { acc: acc[key], done: false };
+			},
+			{ acc: root, done: false },
+		);
+
+		return result.done ? result.acc : result.acc;
 	}
 
 	#evaluateVariable(node: ASTNode, context: Record<string, unknown>) {

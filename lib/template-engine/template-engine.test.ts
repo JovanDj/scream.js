@@ -185,6 +185,49 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		});
 	});
 
+	describe("Form helpers", () => {
+		it("should expose encodeInputName to templates", () => {
+			const template = `<input type="text" name="{{ encodeInputName('todo.title') }}" value="{{ todo.title }}">`;
+			const context = {
+				todo: { title: "Buy milk" },
+			};
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(
+				result,
+				'<input type="text" name="todo[title]" value="Buy milk">',
+			);
+		});
+
+		it("should encode nested paths via encodeInputName", () => {
+			const template = `<input name="{{ encodeInputName('todo.owner.address.street') }}" value="{{ todo.owner.address.street }}">`;
+			const context = {
+				todo: { owner: { address: { street: "Elm" } } },
+			};
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(
+				result,
+				'<input name="todo[owner][address][street]" value="Elm">',
+			);
+		});
+
+		it("should reuse encodeInputName multiple times", () => {
+			const template =
+				'<input name="{{ encodeInputName(\'todo.title\') }}" value="{{ todo.title }}"><input name="{{ encodeInputName(\'todo.description\') }}" value="{{ todo.description }}"> ';
+			const context = { todo: { description: "text", title: "Buy milk" } };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual(
+				result,
+				'<input name="todo[title]" value="Buy milk"><input name="todo[description]" value="text"> ',
+			);
+		});
+	});
+
 	describe("Input escape", () => {
 		it("should escape HTML special characters", () => {
 			const template = "Hello, {{ name }}!";

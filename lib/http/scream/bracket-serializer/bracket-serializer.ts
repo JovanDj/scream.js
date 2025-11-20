@@ -194,3 +194,23 @@ export const encodeToBracketNotation = (
 		seen.delete(value);
 	}
 };
+
+export const encodeInputName = (path: string) => {
+	const segments = path
+		.split(".")
+		.map((segment) => segment.trim())
+		.filter(Boolean);
+
+	if (segments.length === 0) {
+		throw new Error("Path must contain at least one segment");
+	}
+
+	const unsafeSegment = segments.find((segment) => /[[\]]/.test(segment));
+	if (unsafeSegment) {
+		throw new Error(`Invalid path segment: ${unsafeSegment}`);
+	}
+
+	const [head, ...rest] = segments;
+
+	return rest.length === 0 ? head : `${head}[${rest.join("][")}]`;
+};

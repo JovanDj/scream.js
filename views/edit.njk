@@ -6,13 +6,13 @@
     <h1>{{ pageTitle }}</h1>
 
     <form action="{{ action }}" method="POST">
-        <input hidden required value="{{ fields.userId }}" type="number" name="userId" class="form-control" id="userId">
+        <input hidden required value="{{ fields.userId }}" type="number" name="{{ encodeInputName('userId') }}" class="form-control" id="userId">
 
         <div class="mb-3">
             <label for="title" class="form-label">Title</label>
             <input 
                 type="text" 
-                name="title" 
+                name="{{ encodeInputName('title') }}" 
                 class="form-control {% if errors.title %} is-invalid {% endif %}" 
                 id="title" 
                 value="{{ fields.title }}" 

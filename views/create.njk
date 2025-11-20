@@ -6,12 +6,12 @@
         <h1>New Todo</h1>
 
         <form action="/todos/create" method="POST">
-            <input hidden required value="1" type="number" name="userId" class="form-control" id="userId" aria-describedby="userId">
+            <input hidden required value="1" type="number" name="{{ encodeInputName('userId') }}" class="form-control" id="userId" aria-describedby="userId">
 
            
             <div class="mb-3">
                 <label for="title" class="form-label">Title</label>
-                <input type="text" name="title" class="form-control {% if errors.title %} is-invalid {% endif %}" id="title" aria-describedby="title">
+                <input type="text" name="{{ encodeInputName('title') }}" class="form-control {% if errors.title %} is-invalid {% endif %}" id="title" aria-describedby="title">
 
                 {% if errors.title %}
                     <div class="invalid-feedback">

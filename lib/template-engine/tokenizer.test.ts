@@ -115,6 +115,19 @@ describe("Tokenizer", { concurrency: true }, () => {
 				{ type: "number", value: 12 },
 			]);
 		});
+
+		it("should tokenize function calls with string arguments", () => {
+			const template = "{{ encodeInputName('todo.title') }}";
+			const tokens = tokenizer.tokenize(template);
+
+			assert.deepStrictEqual<Token[]>(tokens, [
+				{ type: "variable" },
+				{ name: "encodeInputName", type: "identifier" },
+				{ type: "lparen" },
+				{ type: "string", value: "todo.title" },
+				{ type: "rparen" },
+			]);
+		});
 	});
 
 	describe("Conditionals", () => {

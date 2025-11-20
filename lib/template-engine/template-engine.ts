@@ -1,3 +1,4 @@
+import { encodeInputName } from "../http/scream/bracket-serializer/bracket-serializer.js";
 import type { Evaluator } from "./evaluator.js";
 import type { Generator } from "./generator.js";
 import type { Resolver } from "./resolver.js";
@@ -15,7 +16,10 @@ export class ScreamTemplateEngine {
 
 	compile(template: string, context: Record<string, unknown>) {
 		const ast = this.#resolver.resolve(template);
-		const evaluatedAst = this.#evaluator.evaluate(ast, { ...context });
+		const evaluatedAst = this.#evaluator.evaluate(ast, {
+			encodeInputName,
+			...context,
+		});
 		return this.#generator.generate(evaluatedAst);
 	}
 }
