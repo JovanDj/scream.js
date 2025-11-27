@@ -2,7 +2,7 @@ import { describe, it, type TestContext } from "node:test";
 import type { SqlExpression } from "../sql-expression.js";
 import { LimitExpression } from "./limit-expression.js";
 
-describe("LimitExpression", () => {
+describe("LimitExpression", { concurrency: true }, () => {
 	it("should form LIMIT expression", (t: TestContext) => {
 		t.plan(1);
 		const limit = 10;
