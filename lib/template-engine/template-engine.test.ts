@@ -1,4 +1,5 @@
 import { beforeEach, describe, it, type TestContext } from "node:test";
+import type { TemplateContext } from "./context.js";
 import { Evaluator } from "./evaluator.js";
 import { Generator } from "./generator.js";
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
@@ -34,7 +35,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 
 			const template = "Hello, {{ name }}!";
-			const context = { name: "John" };
+			const context: TemplateContext = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -44,7 +45,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should replace an object key", (t: TestContext) => {
 			t.plan(1);
 			const template = "Hello, {{ user.name }}!";
-			const context = { user: { name: "John" } };
+			const context: TemplateContext = { user: { name: "John" } };
 
 			const result = templateEngine.compile(template, context);
 
@@ -54,7 +55,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should replace a nested object key", (t: TestContext) => {
 			t.plan(1);
 			const template = "Hello, {{ dto.user.name }}!";
-			const context = { dto: { user: { name: "John" } } };
+			const context: TemplateContext = { dto: { user: { name: "John" } } };
 
 			const result = templateEngine.compile(template, context);
 
@@ -64,7 +65,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should replace multiple variables", (t: TestContext) => {
 			t.plan(1);
 			const template = "Hello, {{ name }}! Welcome to {{ place }}.";
-			const context = { name: "John", place: "Serbia" };
+			const context: TemplateContext = { name: "John", place: "Serbia" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -77,7 +78,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should replace missing variables with an empty string", (t: TestContext) => {
 			t.plan(1);
 			const template = "Hello, {{ name }}! Welcome to {{ place }}.";
-			const context = { name: "John" };
+			const context: TemplateContext = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -87,7 +88,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should return an empty string for an empty template", (t: TestContext) => {
 			t.plan(1);
 			const template = "";
-			const context = { name: "John" };
+			const context: TemplateContext = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -97,7 +98,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should ignore extra variables in the context", (t: TestContext) => {
 			t.plan(1);
 			const template = "Hello, {{ name }}!";
-			const context = { age: 30, name: "John" };
+			const context: TemplateContext = { age: 30, name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -107,7 +108,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should handle falsy values correctly", (t: TestContext) => {
 			t.plan(1);
 			const template = "Age: {{ age }}, Active: {{ active }}.";
-			const context = { active: false, age: 0 };
+			const context: TemplateContext = { active: false, age: 0 };
 
 			const result = templateEngine.compile(template, context);
 
@@ -117,7 +118,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should handle whitespace inside placeholders", (t: TestContext) => {
 			t.plan(1);
 			const template = "Hello, {{   name   }}!";
-			const context = { name: "John" };
+			const context: TemplateContext = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -127,7 +128,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should replace duplicate placeholders", (t: TestContext) => {
 			t.plan(1);
 			const template = "{{ name }} {{ name }} {{ name }}";
-			const context = { name: "John" };
+			const context: TemplateContext = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -137,7 +138,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should handle nested braces gracefully", (t: TestContext) => {
 			t.plan(1);
 			const template = "This is {{ notAVariable }} example.";
-			const context = { notAVariable: "{{nested}}" };
+			const context: TemplateContext = { notAVariable: "{{nested}}" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -147,7 +148,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should handle empty variable names gracefully", (t: TestContext) => {
 			t.plan(1);
 			const template = "Hello, {{ }}!";
-			const context = { "": "" };
+			const context: TemplateContext = { "": "" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -157,7 +158,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should return the template unchanged if no variables exist", (t: TestContext) => {
 			t.plan(1);
 			const template = "Hello, world!";
-			const context = { name: "John" };
+			const context: TemplateContext = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -168,7 +169,11 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"Array: {{ array }}, Object: {{ obj }}, Function: {{ func }}.";
-			const context = { array: [1, 2], func: () => {}, obj: { key: "value" } };
+			const context: TemplateContext = {
+				array: [1, 2],
+				func: () => {},
+				obj: { key: "value" },
+			};
 
 			const result = templateEngine.compile(template, context);
 
@@ -181,7 +186,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should ignore malformed placeholders", (t: TestContext) => {
 			t.plan(1);
 			const template = "Hello, { name }} and {{ place }";
-			const context = { name: "John", place: "Serbia" };
+			const context: TemplateContext = { name: "John", place: "Serbia" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -194,7 +199,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should render empty string for non-serializable or symbolic values", (t: TestContext) => {
 			t.plan(1);
 			const template = "{{ magic }}";
-			const context = { magic: Symbol("test") };
+			const context: TemplateContext = { magic: Symbol("test") };
 			const result = templateEngine.compile(template, context);
 			t.assert.deepStrictEqual<string>(result, "");
 		});
@@ -202,7 +207,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should render empty string if dot notation path hits non-object before reaching key", (t: TestContext) => {
 			t.plan(1);
 			const template = "{{ user.name.first }}";
-			const context = { user: { name: "John" } };
+			const context: TemplateContext = { user: { name: "John" } };
 			const result = templateEngine.compile(template, context);
 			t.assert.deepStrictEqual<string>(result, "");
 		});
@@ -212,7 +217,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should escape HTML special characters", (t: TestContext) => {
 			t.plan(1);
 			const template = "Hello, {{ name }}!";
-			const context = { name: "<script>alert('XSS')</script>" };
+			const context: TemplateContext = {
+				name: "<script>alert('XSS')</script>",
+			};
 
 			const result = templateEngine.compile(template, context);
 
@@ -225,7 +232,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should not escape normal strings", (t: TestContext) => {
 			t.plan(1);
 			const template = "Hello, {{ name }}!";
-			const context = { name: "John" };
+			const context: TemplateContext = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -235,7 +242,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should escape only valid variable replacements", (t: TestContext) => {
 			t.plan(1);
 			const template = "Hello, {{ name }} and {{ title }}!";
-			const context = { name: "<Admin>", title: undefined };
+			const context: TemplateContext = { name: "<Admin>", title: undefined };
 
 			const result = templateEngine.compile(template, context);
 
@@ -245,7 +252,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should escape all HTML special characters", (t: TestContext) => {
 			t.plan(1);
 			const template = "Input: {{ userInput }}";
-			const context = { userInput: '<div class="test">&</div>' };
+			const context: TemplateContext = {
+				userInput: '<div class="test">&</div>',
+			};
 
 			const result = templateEngine.compile(template, context);
 
@@ -258,7 +267,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should escape single quotes", (t: TestContext) => {
 			t.plan(1);
 			const template = "Message: '{{ message }}'";
-			const context = { message: "O'Reilly's book" };
+			const context: TemplateContext = { message: "O'Reilly's book" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -271,7 +280,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should escape double quotes", (t: TestContext) => {
 			t.plan(1);
 			const template = "Attribute: {{ attribute }}";
-			const context = { attribute: '"test"' };
+			const context: TemplateContext = { attribute: '"test"' };
 
 			const result = templateEngine.compile(template, context);
 
@@ -281,7 +290,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should escape ampersands", (t: TestContext) => {
 			t.plan(1);
 			const template = "Symbol: {{ symbol }}";
-			const context = { symbol: "&" };
+			const context: TemplateContext = { symbol: "&" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -291,7 +300,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should escape a combination of special characters", (t: TestContext) => {
 			t.plan(1);
 			const template = "{{ content }}";
-			const context = { content: "<script>alert('XSS & test');</script>" };
+			const context: TemplateContext = {
+				content: "<script>alert('XSS & test');</script>",
+			};
 
 			const result = templateEngine.compile(template, context);
 
@@ -304,7 +315,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should handle empty strings without escaping", (t: TestContext) => {
 			t.plan(1);
 			const template = "Value: {{ empty }}";
-			const context = { empty: "" };
+			const context: TemplateContext = { empty: "" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -314,7 +325,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should not escape numbers", (t: TestContext) => {
 			t.plan(1);
 			const template = "Number: {{ number }}";
-			const context = { number: 12345 };
+			const context: TemplateContext = { number: 12345 };
 
 			const result = templateEngine.compile(template, context);
 
@@ -324,7 +335,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should not escape boolean values", (t: TestContext) => {
 			t.plan(1);
 			const template = "Boolean: {{ boolValue }}";
-			const context = { boolValue: true };
+			const context: TemplateContext = { boolValue: true };
 
 			const result = templateEngine.compile(template, context);
 
@@ -334,7 +345,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should not escape non-variable parts of the template", (t: TestContext) => {
 			t.plan(1);
 			const template = "Static content with <tags> and & symbols.";
-			const context = {};
+			const context: TemplateContext = {};
 
 			const result = templateEngine.compile(template, context);
 
@@ -347,7 +358,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should not re-escape already escaped input", (t: TestContext) => {
 			t.plan(1);
 			const template = "Value: {{ value }}";
-			const context = { value: "&lt;script&gt;" };
+			const context: TemplateContext = { value: "&lt;script&gt;" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -359,7 +370,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should handle simple conditionals", (t: TestContext) => {
 			t.plan(1);
 			const template = "{% if isLoggedIn %} Welcome, {{ name }}! {% endif %}";
-			const context = { isLoggedIn: true, name: "John" };
+			const context: TemplateContext = { isLoggedIn: true, name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -370,7 +381,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% if isLoggedIn %} Welcome! {% else %} Please log in. {% endif %}";
-			const context = { isLoggedIn: false };
+			const context: TemplateContext = { isLoggedIn: false };
 
 			const result = templateEngine.compile(template, context);
 
@@ -381,7 +392,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% if isAdmin %} Admin Panel {% else %} User Panel {% endif %}";
-			const context = {};
+			const context: TemplateContext = {};
 
 			const result = templateEngine.compile(template, context);
 
@@ -391,7 +402,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should handle conditionals with content outside", (t: TestContext) => {
 			t.plan(1);
 			const template = "{% if name %}Name{% else %}{% endif %}After";
-			const context = { name: "John" };
+			const context: TemplateContext = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -402,7 +413,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"Before{% if name %}Inside{% else %}Else{% endif %}After";
-			const context = { name: "John" };
+			const context: TemplateContext = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -413,7 +424,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"Before{% if condition %}Inside{% else %}Else{% endif %}After";
-			const context = { condition: true };
+			const context: TemplateContext = { condition: true };
 
 			const result = templateEngine.compile(template, context);
 
@@ -424,7 +435,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% if condition1 %}Outer{% if condition2 %}Inner{% endif %}{% endif %}";
-			const context = { condition1: true, condition2: false };
+			const context: TemplateContext = { condition1: true, condition2: false };
 
 			const result = templateEngine.compile(template, context);
 
@@ -435,7 +446,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% if condition1 %}Outer{% if condition2 %}Inner{% else %}Fallback{% endif %}{% else %}Default{% endif %}";
-			const context = { condition1: true, condition2: false };
+			const context: TemplateContext = { condition1: true, condition2: false };
 
 			const result = templateEngine.compile(template, context);
 
@@ -446,7 +457,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% if condition1 %}Outer{% if condition2 %}Inner{% endif %}{% endif %}";
-			const context = {};
+			const context: TemplateContext = {};
 
 			const result = templateEngine.compile(template, context);
 
@@ -457,7 +468,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% if condition1 %}First{% endif %}Middle{% if condition2 %}Second{% endif %}";
-			const context = { condition1: true, condition2: false };
+			const context: TemplateContext = { condition1: true, condition2: false };
 
 			const result = templateEngine.compile(template, context);
 
@@ -467,7 +478,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should treat 0 as falsy in conditionals", (t: TestContext) => {
 			t.plan(1);
 			const template = "{% if count %}Has count{% else %}No count{% endif %}";
-			const context = { count: 0 };
+			const context: TemplateContext = { count: 0 };
 			const result = templateEngine.compile(template, context);
 			t.assert.deepStrictEqual<string>(result, "No count");
 		});
@@ -476,7 +487,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% if username %}Hi, {{ username }}{% else %}Guest{% endif %}";
-			const context = { username: "Alice" };
+			const context: TemplateContext = { username: "Alice" };
 			const result = templateEngine.compile(template, context);
 			t.assert.deepStrictEqual<string>(result, "Hi, Alice");
 		});
@@ -485,7 +496,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% if empty %}Has value{% else %}Empty string{% endif %}";
-			const context = { empty: "" };
+			const context: TemplateContext = { empty: "" };
 			const result = templateEngine.compile(template, context);
 			t.assert.deepStrictEqual<string>(result, "Empty string");
 		});
@@ -495,7 +506,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				t.plan(1);
 				const template =
 					"{% if items.length %}Items exist{% else %}No items{% endif %}";
-				const context = { items: [{ id: 1 }, { id: 2 }] };
+				const context: TemplateContext = { items: [{ id: 1 }, { id: 2 }] };
 
 				const result = templateEngine.compile(template, context);
 
@@ -506,7 +517,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				t.plan(1);
 				const template =
 					"{% if items.length %}Items exist{% else %}No items{% endif %}";
-				const context = { items: [] };
+				const context: TemplateContext = { items: [] };
 
 				const result = templateEngine.compile(template, context);
 
@@ -517,7 +528,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				t.plan(1);
 				const template =
 					"{% if items.length %}Items exist{% else %}No items{% endif %}";
-				const context = {};
+				const context: TemplateContext = {};
 
 				const result = templateEngine.compile(template, context);
 
@@ -528,7 +539,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				t.plan(1);
 				const template =
 					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
-				const context = { user: { profile: { name: "Alice" } } };
+				const context: TemplateContext = {
+					user: { profile: { name: "Alice" } },
+				};
 
 				const result = templateEngine.compile(template, context);
 
@@ -539,7 +552,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				t.plan(1);
 				const template =
 					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
-				const context = { user: { profile: {} } };
+				const context: TemplateContext = { user: { profile: {} } };
 
 				const result = templateEngine.compile(template, context);
 
@@ -550,7 +563,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				t.plan(1);
 				const template =
 					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
-				const context = { user: { profile: null } };
+				const context: TemplateContext = { user: { profile: null } };
 
 				const result = templateEngine.compile(template, context);
 
@@ -561,7 +574,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				t.plan(1);
 				const template =
 					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
-				const context = { user: "notAnObject" };
+				const context: TemplateContext = { user: "notAnObject" };
 
 				const result = templateEngine.compile(template, context);
 
@@ -573,7 +586,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"A {% if x %} B {% for y in ys %} C {% endfor %} D {% endif %} E";
-			const context = { x: true, ys: ["item"] };
+			const context: TemplateContext = { x: true, ys: ["item"] };
 
 			const result = templateEngine.compile(template, context);
 
@@ -585,7 +598,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should iterate over a simple array", (t: TestContext) => {
 			t.plan(1);
 			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
-			const context = { letters: ["A", "B", "C"] };
+			const context: TemplateContext = { letters: ["A", "B", "C"] };
 
 			const result = templateEngine.compile(template, context);
 
@@ -595,7 +608,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should render nothing for an empty array", (t: TestContext) => {
 			t.plan(1);
 			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
-			const context = { letters: [] };
+			const context: TemplateContext = { letters: [] };
 
 			const result = templateEngine.compile(template, context);
 
@@ -606,7 +619,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% for user in users %}{% for task in user.tasks %}{{ user.name }}-{{ task }};{% endfor %}{% endfor %}";
-			const context = {
+			const context: TemplateContext = {
 				users: [
 					{ name: "Alice", tasks: ["t1", "t2"] },
 					{ name: "Bob", tasks: ["t3"] },
@@ -621,7 +634,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should render nothing for non-array collections", (t: TestContext) => {
 			t.plan(1);
 			const template = "{% for item in items %} {{ item }} {% endfor %}";
-			const context = { items: "not an array" };
+			const context: TemplateContext = { items: "not an array" };
 
 			const result = templateEngine.compile(template, context);
 
@@ -633,7 +646,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should render nothing when the collection variable is missing", (t: TestContext) => {
 			t.plan(1);
 			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
-			const context = {};
+			const context: TemplateContext = {};
 
 			const result = templateEngine.compile(template, context);
 
@@ -644,7 +657,10 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% for item in outer %}[{% for item in inner %}{{ item }}, {% endfor %}|{{ item }}]{% endfor %}";
-			const context = { inner: ["i1", "i2"], outer: ["o1", "o2"] };
+			const context: TemplateContext = {
+				inner: ["i1", "i2"],
+				outer: ["o1", "o2"],
+			};
 
 			const result = templateEngine.compile(template, context);
 
@@ -655,7 +671,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% for item in items %}{{ item }}{% endfor %}{{ item }}";
-			const context = { item: "outer", items: ["X", "Y"] };
+			const context: TemplateContext = { item: "outer", items: ["X", "Y"] };
 
 			const result = templateEngine.compile(template, context);
 
@@ -666,7 +682,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% for item in user.items %}{{ item.name }} {% endfor %}";
-			const context = { user: { items: [{ name: "A" }, { name: "B" }] } };
+			const context: TemplateContext = {
+				user: { items: [{ name: "A" }, { name: "B" }] },
+			};
 			const result = templateEngine.compile(template, context);
 			t.assert.deepStrictEqual<string>(result, "A B ");
 		});
@@ -675,7 +693,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% for item in user.items %}{{ item.name }} {% endfor %}";
-			const context = {};
+			const context: TemplateContext = {};
 			const result = templateEngine.compile(template, context);
 			t.assert.deepStrictEqual<string>(result, "");
 		});
@@ -684,8 +702,8 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(2);
 			const template = "{% for item in items %}{{ item }} {% endfor %}";
 
-			const contextWithNull = { items: null };
-			const contextWithUndefined = {};
+			const contextWithNull: TemplateContext = { items: null };
+			const contextWithUndefined: TemplateContext = {};
 
 			const resultNull = templateEngine.compile(template, contextWithNull);
 			const resultUndefined = templateEngine.compile(
@@ -700,7 +718,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should iterate over a collection of objects and use dot notation", (t: TestContext) => {
 			t.plan(1);
 			const template = "{% for item in items %}{{ item.name }} {% endfor %}";
-			const context = {
+			const context: TemplateContext = {
 				items: [{ name: "Alpha" }, { name: "Beta" }, { name: "Gamma" }],
 			};
 
@@ -712,7 +730,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% for item in items %}{{ item.meta.name }} {% endfor %}";
-			const context = {
+			const context: TemplateContext = {
 				items: [
 					{ meta: { name: "X" } },
 					{ meta: { name: "Y" } },
@@ -728,7 +746,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const template =
 				"{% for item in items %}{{ item }} {% endfor %}{{ item }}";
-			const context = { items: ["One"] };
+			const context: TemplateContext = { items: ["One"] };
 
 			const result = templateEngine.compile(template, context);
 			t.assert.deepStrictEqual<string>(result, "One ");
