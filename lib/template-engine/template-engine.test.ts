@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it, type TestContext } from "node:test";
 import { Evaluator } from "./evaluator.js";
 import { Generator } from "./generator.js";
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
@@ -31,519 +30,580 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 	});
 
 	describe("Variable replacement", () => {
-		it("should replace a single variable", () => {
+		it("should replace a single variable", (t: TestContext) => {
+			t.plan(1);
+
 			const template = "Hello, {{ name }}!";
 			const context = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Hello, John!");
+			t.assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
-		it("should replace an object key", () => {
+		it("should replace an object key", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, {{ user.name }}!";
 			const context = { user: { name: "John" } };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Hello, John!");
+			t.assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
-		it("should replace a nested object key", () => {
+		it("should replace a nested object key", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, {{ dto.user.name }}!";
 			const context = { dto: { user: { name: "John" } } };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Hello, John!");
+			t.assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
-		it("should replace multiple variables", () => {
+		it("should replace multiple variables", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, {{ name }}! Welcome to {{ place }}.";
 			const context = { name: "John", place: "Serbia" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Hello, John! Welcome to Serbia.");
+			t.assert.deepStrictEqual<string>(
+				result,
+				"Hello, John! Welcome to Serbia.",
+			);
 		});
 
-		it("should replace missing variables with an empty string", () => {
+		it("should replace missing variables with an empty string", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, {{ name }}! Welcome to {{ place }}.";
 			const context = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Hello, John! Welcome to .");
+			t.assert.deepStrictEqual<string>(result, "Hello, John! Welcome to .");
 		});
 
-		it("should return an empty string for an empty template", () => {
+		it("should return an empty string for an empty template", (t: TestContext) => {
+			t.plan(1);
 			const template = "";
 			const context = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "");
+			t.assert.deepStrictEqual<string>(result, "");
 		});
 
-		it("should ignore extra variables in the context", () => {
+		it("should ignore extra variables in the context", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, {{ name }}!";
 			const context = { age: 30, name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Hello, John!");
+			t.assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
-		it("should handle falsy values correctly", () => {
+		it("should handle falsy values correctly", (t: TestContext) => {
+			t.plan(1);
 			const template = "Age: {{ age }}, Active: {{ active }}.";
 			const context = { active: false, age: 0 };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Age: 0, Active: false.");
+			t.assert.deepStrictEqual<string>(result, "Age: 0, Active: false.");
 		});
 
-		it("should handle whitespace inside placeholders", () => {
+		it("should handle whitespace inside placeholders", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, {{   name   }}!";
 			const context = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Hello, John!");
+			t.assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
-		it("should replace duplicate placeholders", () => {
+		it("should replace duplicate placeholders", (t: TestContext) => {
+			t.plan(1);
 			const template = "{{ name }} {{ name }} {{ name }}";
 			const context = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "John John John");
+			t.assert.deepStrictEqual<string>(result, "John John John");
 		});
 
-		it("should handle nested braces gracefully", () => {
+		it("should handle nested braces gracefully", (t: TestContext) => {
+			t.plan(1);
 			const template = "This is {{ notAVariable }} example.";
 			const context = { notAVariable: "{{nested}}" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "This is {{nested}} example.");
+			t.assert.deepStrictEqual<string>(result, "This is {{nested}} example.");
 		});
 
-		it("should handle empty variable names gracefully", () => {
+		it("should handle empty variable names gracefully", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, {{ }}!";
 			const context = { "": "" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Hello, !");
+			t.assert.deepStrictEqual<string>(result, "Hello, !");
 		});
 
-		it("should return the template unchanged if no variables exist", () => {
+		it("should return the template unchanged if no variables exist", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, world!";
 			const context = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Hello, world!");
+			t.assert.deepStrictEqual<string>(result, "Hello, world!");
 		});
 
-		it("should replace non-primitive context values with an empty string", () => {
+		it("should replace non-primitive context values with an empty string", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"Array: {{ array }}, Object: {{ obj }}, Function: {{ func }}.";
 			const context = { array: [1, 2], func: () => {}, obj: { key: "value" } };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(
+			t.assert.deepStrictEqual<string>(
 				result,
 				"Array: 1, 2, Object: , Function: .",
 			);
 		});
 
-		it("should ignore malformed placeholders", () => {
+		it("should ignore malformed placeholders", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, { name }} and {{ place }";
 			const context = { name: "John", place: "Serbia" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Hello, { name }} and {{ place }");
+			t.assert.deepStrictEqual<string>(
+				result,
+				"Hello, { name }} and {{ place }",
+			);
 		});
 
-		it("should render empty string for non-serializable or symbolic values", () => {
+		it("should render empty string for non-serializable or symbolic values", (t: TestContext) => {
+			t.plan(1);
 			const template = "{{ magic }}";
 			const context = { magic: Symbol("test") };
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result, "");
+			t.assert.deepStrictEqual<string>(result, "");
 		});
 
-		it("should render empty string if dot notation path hits non-object before reaching key", () => {
+		it("should render empty string if dot notation path hits non-object before reaching key", (t: TestContext) => {
+			t.plan(1);
 			const template = "{{ user.name.first }}";
 			const context = { user: { name: "John" } };
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result, "");
+			t.assert.deepStrictEqual<string>(result, "");
 		});
 	});
 
 	describe("Input escape", () => {
-		it("should escape HTML special characters", () => {
+		it("should escape HTML special characters", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, {{ name }}!";
 			const context = { name: "<script>alert('XSS')</script>" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(
+			t.assert.deepStrictEqual<string>(
 				result,
 				"Hello, &lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;!",
 			);
 		});
 
-		it("should not escape normal strings", () => {
+		it("should not escape normal strings", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, {{ name }}!";
 			const context = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Hello, John!");
+			t.assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
-		it("should escape only valid variable replacements", () => {
+		it("should escape only valid variable replacements", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, {{ name }} and {{ title }}!";
 			const context = { name: "<Admin>", title: undefined };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Hello, &lt;Admin&gt; and !");
+			t.assert.deepStrictEqual<string>(result, "Hello, &lt;Admin&gt; and !");
 		});
 
-		it("should escape all HTML special characters", () => {
+		it("should escape all HTML special characters", (t: TestContext) => {
+			t.plan(1);
 			const template = "Input: {{ userInput }}";
 			const context = { userInput: '<div class="test">&</div>' };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(
+			t.assert.deepStrictEqual<string>(
 				result,
 				"Input: &lt;div class=&quot;test&quot;&gt;&amp;&lt;/div&gt;",
 			);
 		});
 
-		it("should escape single quotes", () => {
+		it("should escape single quotes", (t: TestContext) => {
+			t.plan(1);
 			const template = "Message: '{{ message }}'";
 			const context = { message: "O'Reilly's book" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(
+			t.assert.deepStrictEqual<string>(
 				result,
 				"Message: 'O&#39;Reilly&#39;s book'",
 			);
 		});
 
-		it("should escape double quotes", () => {
+		it("should escape double quotes", (t: TestContext) => {
+			t.plan(1);
 			const template = "Attribute: {{ attribute }}";
 			const context = { attribute: '"test"' };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Attribute: &quot;test&quot;");
+			t.assert.deepStrictEqual<string>(result, "Attribute: &quot;test&quot;");
 		});
 
-		it("should escape ampersands", () => {
+		it("should escape ampersands", (t: TestContext) => {
+			t.plan(1);
 			const template = "Symbol: {{ symbol }}";
 			const context = { symbol: "&" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Symbol: &amp;");
+			t.assert.deepStrictEqual<string>(result, "Symbol: &amp;");
 		});
 
-		it("should escape a combination of special characters", () => {
+		it("should escape a combination of special characters", (t: TestContext) => {
+			t.plan(1);
 			const template = "{{ content }}";
 			const context = { content: "<script>alert('XSS & test');</script>" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(
+			t.assert.deepStrictEqual<string>(
 				result,
 				"&lt;script&gt;alert(&#39;XSS &amp; test&#39;);&lt;/script&gt;",
 			);
 		});
 
-		it("should handle empty strings without escaping", () => {
+		it("should handle empty strings without escaping", (t: TestContext) => {
+			t.plan(1);
 			const template = "Value: {{ empty }}";
 			const context = { empty: "" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Value: ");
+			t.assert.deepStrictEqual<string>(result, "Value: ");
 		});
 
-		it("should not escape numbers", () => {
+		it("should not escape numbers", (t: TestContext) => {
+			t.plan(1);
 			const template = "Number: {{ number }}";
 			const context = { number: 12345 };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Number: 12345");
+			t.assert.deepStrictEqual<string>(result, "Number: 12345");
 		});
 
-		it("should not escape boolean values", () => {
+		it("should not escape boolean values", (t: TestContext) => {
+			t.plan(1);
 			const template = "Boolean: {{ boolValue }}";
 			const context = { boolValue: true };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Boolean: true");
+			t.assert.deepStrictEqual<string>(result, "Boolean: true");
 		});
 
-		it("should not escape non-variable parts of the template", () => {
+		it("should not escape non-variable parts of the template", (t: TestContext) => {
+			t.plan(1);
 			const template = "Static content with <tags> and & symbols.";
 			const context = {};
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(
+			t.assert.deepStrictEqual<string>(
 				result,
 				"Static content with <tags> and & symbols.",
 			);
 		});
 
-		it("should not re-escape already escaped input", () => {
+		it("should not re-escape already escaped input", (t: TestContext) => {
+			t.plan(1);
 			const template = "Value: {{ value }}";
 			const context = { value: "&lt;script&gt;" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Value: &lt;script&gt;");
+			t.assert.deepStrictEqual<string>(result, "Value: &lt;script&gt;");
 		});
 	});
 
 	describe("Conditionals", () => {
-		it("should handle simple conditionals", () => {
+		it("should handle simple conditionals", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% if isLoggedIn %} Welcome, {{ name }}! {% endif %}";
 			const context = { isLoggedIn: true, name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Welcome, John!");
+			t.assert.deepStrictEqual<string>(result, "Welcome, John!");
 		});
 
-		it("should handle conditionals with else", () => {
+		it("should handle conditionals with else", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% if isLoggedIn %} Welcome! {% else %} Please log in. {% endif %}";
 			const context = { isLoggedIn: false };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Please log in.");
+			t.assert.deepStrictEqual<string>(result, "Please log in.");
 		});
 
-		it("should handle missing variables in conditionals", () => {
+		it("should handle missing variables in conditionals", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% if isAdmin %} Admin Panel {% else %} User Panel {% endif %}";
 			const context = {};
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "User Panel");
+			t.assert.deepStrictEqual<string>(result, "User Panel");
 		});
 
-		it("should handle conditionals with content outside", () => {
+		it("should handle conditionals with content outside", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% if name %}Name{% else %}{% endif %}After";
 			const context = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "NameAfter");
+			t.assert.deepStrictEqual<string>(result, "NameAfter");
 		});
 
-		it("should handle conditionals with content outside", () => {
+		it("should handle conditionals with content outside", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"Before{% if name %}Inside{% else %}Else{% endif %}After";
 			const context = { name: "John" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "BeforeInsideAfter");
+			t.assert.deepStrictEqual<string>(result, "BeforeInsideAfter");
 		});
 
-		it("should handle conditionals with content before and after", () => {
+		it("should handle conditionals with content before and after", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"Before{% if condition %}Inside{% else %}Else{% endif %}After";
 			const context = { condition: true };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "BeforeInsideAfter");
+			t.assert.deepStrictEqual<string>(result, "BeforeInsideAfter");
 		});
 
-		it("should handle nested conditionals", () => {
+		it("should handle nested conditionals", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% if condition1 %}Outer{% if condition2 %}Inner{% endif %}{% endif %}";
 			const context = { condition1: true, condition2: false };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Outer");
+			t.assert.deepStrictEqual<string>(result, "Outer");
 		});
 
-		it("should handle deeply nested conditionals with alternate branches", () => {
+		it("should handle deeply nested conditionals with alternate branches", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% if condition1 %}Outer{% if condition2 %}Inner{% else %}Fallback{% endif %}{% else %}Default{% endif %}";
 			const context = { condition1: true, condition2: false };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "OuterFallback");
+			t.assert.deepStrictEqual<string>(result, "OuterFallback");
 		});
 
-		it("should handle missing variables in nested conditionals", () => {
+		it("should handle missing variables in nested conditionals", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% if condition1 %}Outer{% if condition2 %}Inner{% endif %}{% endif %}";
 			const context = {};
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "");
+			t.assert.deepStrictEqual<string>(result, "");
 		});
 
-		it("should handle multiple independent conditionals", () => {
+		it("should handle multiple independent conditionals", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% if condition1 %}First{% endif %}Middle{% if condition2 %}Second{% endif %}";
 			const context = { condition1: true, condition2: false };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "FirstMiddle");
+			t.assert.deepStrictEqual<string>(result, "FirstMiddle");
 		});
 
-		it("should treat 0 as falsy in conditionals", () => {
+		it("should treat 0 as falsy in conditionals", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% if count %}Has count{% else %}No count{% endif %}";
 			const context = { count: 0 };
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result, "No count");
+			t.assert.deepStrictEqual<string>(result, "No count");
 		});
 
-		it("should treat non-empty string as truthy in conditionals", () => {
+		it("should treat non-empty string as truthy in conditionals", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% if username %}Hi, {{ username }}{% else %}Guest{% endif %}";
 			const context = { username: "Alice" };
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result, "Hi, Alice");
+			t.assert.deepStrictEqual<string>(result, "Hi, Alice");
 		});
 
-		it("should treat empty string as falsy in conditionals", () => {
+		it("should treat empty string as falsy in conditionals", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% if empty %}Has value{% else %}Empty string{% endif %}";
 			const context = { empty: "" };
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result, "Empty string");
+			t.assert.deepStrictEqual<string>(result, "Empty string");
 		});
 
 		describe("Conditionals - dot notation in if conditions", () => {
-			it("should evaluate truthy dot notation expressions correctly", () => {
+			it("should evaluate truthy dot notation expressions correctly", (t: TestContext) => {
+				t.plan(1);
 				const template =
 					"{% if items.length %}Items exist{% else %}No items{% endif %}";
 				const context = { items: [{ id: 1 }, { id: 2 }] };
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual<string>(result, "Items exist");
+				t.assert.deepStrictEqual<string>(result, "Items exist");
 			});
 
-			it("should evaluate falsy dot notation expressions correctly when array is empty", () => {
+			it("should evaluate falsy dot notation expressions correctly when array is empty", (t: TestContext) => {
+				t.plan(1);
 				const template =
 					"{% if items.length %}Items exist{% else %}No items{% endif %}";
 				const context = { items: [] };
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual<string>(result, "No items");
+				t.assert.deepStrictEqual<string>(result, "No items");
 			});
 
-			it("should evaluate falsy dot notation expressions correctly when property is missing", () => {
+			it("should evaluate falsy dot notation expressions correctly when property is missing", (t: TestContext) => {
+				t.plan(1);
 				const template =
 					"{% if items.length %}Items exist{% else %}No items{% endif %}";
 				const context = {};
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual<string>(result, "No items");
+				t.assert.deepStrictEqual<string>(result, "No items");
 			});
 
-			it("should evaluate truthy deeply nested dot notation expressions", () => {
+			it("should evaluate truthy deeply nested dot notation expressions", (t: TestContext) => {
+				t.plan(1);
 				const template =
 					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
 				const context = { user: { profile: { name: "Alice" } } };
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual<string>(result, "Hello");
+				t.assert.deepStrictEqual<string>(result, "Hello");
 			});
 
-			it("should evaluate falsy deeply nested dot notation expressions when inner property is missing", () => {
+			it("should evaluate falsy deeply nested dot notation expressions when inner property is missing", (t: TestContext) => {
+				t.plan(1);
 				const template =
 					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
 				const context = { user: { profile: {} } };
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual<string>(result, "No name");
+				t.assert.deepStrictEqual<string>(result, "No name");
 			});
 
-			it("should evaluate falsy dot notation expressions when intermediate value is not an object", () => {
+			it("should evaluate falsy dot notation expressions when intermediate value is not an object", (t: TestContext) => {
+				t.plan(1);
 				const template =
 					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
 				const context = { user: { profile: null } };
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual<string>(result, "No name");
+				t.assert.deepStrictEqual<string>(result, "No name");
 			});
 
-			it("should evaluate falsy dot notation expressions when top-level key is not an object", () => {
+			it("should evaluate falsy dot notation expressions when top-level key is not an object", (t: TestContext) => {
+				t.plan(1);
 				const template =
 					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
 				const context = { user: "notAnObject" };
 
 				const result = templateEngine.compile(template, context);
 
-				assert.deepStrictEqual<string>(result, "No name");
+				t.assert.deepStrictEqual<string>(result, "No name");
 			});
 		});
 
-		it("should handle interleaved text, conditionals, and loops", () => {
+		it("should handle interleaved text, conditionals, and loops", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"A {% if x %} B {% for y in ys %} C {% endfor %} D {% endif %} E";
 			const context = { x: true, ys: ["item"] };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "A B  C  D E");
+			t.assert.deepStrictEqual<string>(result, "A B  C  D E");
 		});
 	});
 
 	describe("Iterations", () => {
-		it("should iterate over a simple array", () => {
+		it("should iterate over a simple array", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
 			const context = { letters: ["A", "B", "C"] };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, " A  B  C ");
+			t.assert.deepStrictEqual<string>(result, " A  B  C ");
 		});
 
-		it("should render nothing for an empty array", () => {
+		it("should render nothing for an empty array", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
 			const context = { letters: [] };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "");
+			t.assert.deepStrictEqual<string>(result, "");
 		});
 
-		it("should support nested loops", () => {
+		it("should support nested loops", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% for user in users %}{% for task in user.tasks %}{{ user.name }}-{{ task }};{% endfor %}{% endfor %}";
 			const context = {
@@ -555,66 +615,73 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "Alice-t1;Alice-t2;Bob-t3;");
+			t.assert.deepStrictEqual<string>(result, "Alice-t1;Alice-t2;Bob-t3;");
 		});
 
-		it("should render nothing for non-array collections", () => {
+		it("should render nothing for non-array collections", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% for item in items %} {{ item }} {% endfor %}";
 			const context = { items: "not an array" };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "");
+			t.assert.deepStrictEqual<string>(result, "");
 		});
 
 		it.todo("should shadow parent context variables in for loop");
 
-		it("should render nothing when the collection variable is missing", () => {
+		it("should render nothing when the collection variable is missing", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
 			const context = {};
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "");
+			t.assert.deepStrictEqual<string>(result, "");
 		});
 
-		it("should allow iterator shadowing without leaking outer values", () => {
+		it("should allow iterator shadowing without leaking outer values", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% for item in outer %}[{% for item in inner %}{{ item }}, {% endfor %}|{{ item }}]{% endfor %}";
 			const context = { inner: ["i1", "i2"], outer: ["o1", "o2"] };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "[i1, i2, |o1][i1, i2, |o2]");
+			t.assert.deepStrictEqual<string>(result, "[i1, i2, |o1][i1, i2, |o2]");
 		});
 
-		it("should preserve existing context after loops complete", () => {
+		it("should preserve existing context after loops complete", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% for item in items %}{{ item }}{% endfor %}{{ item }}";
 			const context = { item: "outer", items: ["X", "Y"] };
 
 			const result = templateEngine.compile(template, context);
 
-			assert.deepStrictEqual<string>(result, "XYouter");
+			t.assert.deepStrictEqual<string>(result, "XYouter");
 		});
 
-		it("should support dot notation in collection reference", () => {
+		it("should support dot notation in collection reference", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% for item in user.items %}{{ item.name }} {% endfor %}";
 			const context = { user: { items: [{ name: "A" }, { name: "B" }] } };
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result, "A B ");
+			t.assert.deepStrictEqual<string>(result, "A B ");
 		});
 
-		it("should render nothing if dot-notated collection is undefined", () => {
+		it("should render nothing if dot-notated collection is undefined", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% for item in user.items %}{{ item.name }} {% endfor %}";
 			const context = {};
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result, "");
+			t.assert.deepStrictEqual<string>(result, "");
 		});
 
-		it("should handle collections with null or undefined values", () => {
+		it("should handle collections with null or undefined values", (t: TestContext) => {
+			t.plan(2);
 			const template = "{% for item in items %}{{ item }} {% endfor %}";
 
 			const contextWithNull = { items: null };
@@ -626,21 +693,23 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				contextWithUndefined,
 			);
 
-			assert.deepStrictEqual<string>(resultNull, "");
-			assert.deepStrictEqual<string>(resultUndefined, "");
+			t.assert.deepStrictEqual<string>(resultNull, "");
+			t.assert.deepStrictEqual<string>(resultUndefined, "");
 		});
 
-		it("should iterate over a collection of objects and use dot notation", () => {
+		it("should iterate over a collection of objects and use dot notation", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% for item in items %}{{ item.name }} {% endfor %}";
 			const context = {
 				items: [{ name: "Alpha" }, { name: "Beta" }, { name: "Gamma" }],
 			};
 
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result, "Alpha Beta Gamma ");
+			t.assert.deepStrictEqual<string>(result, "Alpha Beta Gamma ");
 		});
 
-		it("should iterate over a collection and handle nested properties", () => {
+		it("should iterate over a collection and handle nested properties", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% for item in items %}{{ item.meta.name }} {% endfor %}";
 			const context = {
@@ -652,16 +721,17 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			};
 
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result, "X Y Z ");
+			t.assert.deepStrictEqual<string>(result, "X Y Z ");
 		});
 
-		it("should not leak iterator variable outside the for loop", () => {
+		it("should not leak iterator variable outside the for loop", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% for item in items %}{{ item }} {% endfor %}{{ item }}";
 			const context = { items: ["One"] };
 
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result, "One ");
+			t.assert.deepStrictEqual<string>(result, "One ");
 		});
 	});
 
@@ -673,31 +743,34 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			);
 		});
 
-		it("should render all overridden blocks correctly", () => {
+		it("should render all overridden blocks correctly", (t: TestContext) => {
+			t.plan(1);
 			const childTemplate = `{% extends "layout.html" %}
 			{% block header %}Custom Header{% endblock header %}
 			{% block content %}Custom Content{% endblock content %}
 			{% block footer %}Custom Footer{% endblock footer %}`;
 
 			const result = templateEngine.compile(childTemplate, {});
-			assert.deepStrictEqual<string>(
+			t.assert.deepStrictEqual<string>(
 				result,
 				"<header>Custom Header</header><main>Custom Content</main><footer>Custom Footer</footer>",
 			);
 		});
 
-		it("should preserve default blocks if only some are overridden", () => {
+		it("should preserve default blocks if only some are overridden", (t: TestContext) => {
+			t.plan(1);
 			const childTemplate = `{% extends "layout.html" %}
 			{% block content %}Only Content Changed{% endblock content %}`;
 
 			const result = templateEngine.compile(childTemplate, {});
-			assert.deepStrictEqual<string>(
+			t.assert.deepStrictEqual<string>(
 				result,
 				"<header>Default Header</header><main>Only Content Changed</main><footer>Default Footer</footer>",
 			);
 		});
 
-		it("should preserve unknown blocks in the layout", () => {
+		it("should preserve unknown blocks in the layout", (t: TestContext) => {
+			t.plan(1);
 			const layoutWithExtraBlock =
 				"<main>{% block content %}Default Content{% endblock content %}</main>{% block sidebar %}Default Sidebar{% endblock sidebar %}";
 
@@ -707,13 +780,14 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			{% block content %}Main Page{% endblock content %}`;
 
 			const result = templateEngine.compile(childTemplate, {});
-			assert.deepStrictEqual<string>(
+			t.assert.deepStrictEqual<string>(
 				result,
 				"<main>Main Page</main>Default Sidebar",
 			);
 		});
 
-		it("should support nested layouts and override hierarchy", () => {
+		it("should support nested layouts and override hierarchy", (t: TestContext) => {
+			t.plan(1);
 			fileLoader.setTemplate(
 				"base.html",
 				`<header>{% block header %}Base Header{% endblock header %}</header><main>{% block content %}Base Content{% endblock content %}</main><footer>{% block footer %}Base Footer{% endblock footer %}</footer>`,
@@ -728,13 +802,14 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(childTemplate, {});
 
-			assert.deepStrictEqual<string>(
+			t.assert.deepStrictEqual<string>(
 				result,
 				"<header>Parent Header</header><main>Child Content</main><footer>Base Footer</footer>",
 			);
 		});
 
-		it("should support 4-level nested layout inheritance", () => {
+		it("should support 4-level nested layout inheritance", (t: TestContext) => {
+			t.plan(1);
 			fileLoader.setTemplate(
 				"base.html",
 				"<main>{% block content %}Base{% endblock content %}</main>",
@@ -750,10 +825,11 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const childTemplate = `{% extends "level2.html" %}{% block content %}Level3{% endblock content %}`;
 
 			const result = templateEngine.compile(childTemplate, {});
-			assert.deepStrictEqual<string>(result, "<main>Level3</main>");
+			t.assert.deepStrictEqual<string>(result, "<main>Level3</main>");
 		});
 
-		it("should combine parent and child block overrides correctly", () => {
+		it("should combine parent and child block overrides correctly", (t: TestContext) => {
+			t.plan(1);
 			fileLoader.setTemplate(
 				"base.html",
 				`<header>{% block header %}Base Header{% endblock header %}</header><main>{% block content %}Base Content{% endblock content %}</main>`,
@@ -765,13 +841,14 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const childTemplate = `{% extends "parent.html" %}{% block content %}Child Content{% endblock content %}`;
 
 			const result = templateEngine.compile(childTemplate, {});
-			assert.deepStrictEqual<string>(
+			t.assert.deepStrictEqual<string>(
 				result,
 				"<header>Parent Header</header><main>Child Content</main>",
 			);
 		});
 
-		it("should combine parent and child block overrides correctly with compile()", () => {
+		it("should combine parent and child block overrides correctly with compile()", (t: TestContext) => {
+			t.plan(1);
 			fileLoader.setTemplate(
 				"base.html",
 				`<header>{% block header %}Base Header{% endblock header %}</header><main>{% block content %}Base Content{% endblock content %}</main>`,
@@ -786,13 +863,14 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(childTemplate, {});
 
-			assert.deepStrictEqual<string>(
+			t.assert.deepStrictEqual<string>(
 				result,
 				"<header>Parent Header</header><main>Child Content</main>",
 			);
 		});
 
-		it("should throw on cyclic layout extends", () => {
+		it("should throw on cyclic layout extends", (t: TestContext) => {
+			t.plan(1);
 			fileLoader.setTemplate(
 				"a.html",
 				`{% extends "b.html" %}{% block content %}A{% endblock %}`,
@@ -802,7 +880,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				`{% extends "a.html" %}{% block content %}B{% endblock %}`,
 			);
 
-			assert.throws(
+			t.assert.throws(
 				() =>
 					templateEngine.compile(
 						`{% extends "a.html" %}{% block content %}Root{% endblock %}`,

@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it, type TestContext } from "node:test";
 import { Generator } from "./generator.js";
 import type { ASTNode } from "./parser.js";
 
@@ -10,7 +9,8 @@ describe("Generator", { concurrency: true }, () => {
 		generator = new Generator();
 	});
 
-	it("renders a flat sequence of text nodes", () => {
+	it("renders a flat sequence of text nodes", (t: TestContext) => {
+		t.plan(1);
 		const ast: readonly ASTNode[] = [
 			{ children: [], type: "text", value: "Hello" },
 			{ children: [], type: "text", value: " " },
@@ -18,18 +18,20 @@ describe("Generator", { concurrency: true }, () => {
 			{ children: [], type: "text", value: "!" },
 		];
 		const output = generator.generate(ast);
-		assert.deepStrictEqual<string>(output, "Hello World!");
+		t.assert.deepStrictEqual<string>(output, "Hello World!");
 	});
 
-	it("renders a single variable node", () => {
+	it("renders a single variable node", (t: TestContext) => {
+		t.plan(1);
 		const ast: readonly ASTNode[] = [
 			{ children: [], type: "variable", value: "Evaluated" },
 		];
 		const output = generator.generate(ast);
-		assert.deepStrictEqual<string>(output, "Evaluated");
+		t.assert.deepStrictEqual<string>(output, "Evaluated");
 	});
 
-	it("renders nested blocks with text content", () => {
+	it("renders nested blocks with text content", (t: TestContext) => {
+		t.plan(1);
 		const ast: readonly ASTNode[] = [
 			{
 				children: [
@@ -49,16 +51,18 @@ describe("Generator", { concurrency: true }, () => {
 			},
 		];
 		const output = generator.generate(ast);
-		assert.deepStrictEqual<string>(output, "Start Middle! End");
+		t.assert.deepStrictEqual<string>(output, "Start Middle! End");
 	});
 
-	it("renders empty result when given empty AST", () => {
+	it("renders empty result when given empty AST", (t: TestContext) => {
+		t.plan(1);
 		const ast: readonly ASTNode[] = [];
 		const output = generator.generate(ast);
-		assert.deepStrictEqual<string>(output, "");
+		t.assert.deepStrictEqual<string>(output, "");
 	});
 
-	it("renders alternate branch when children are empty", () => {
+	it("renders alternate branch when children are empty", (t: TestContext) => {
+		t.plan(1);
 		const generator = new Generator();
 
 		const ast: readonly ASTNode[] = [
@@ -71,6 +75,6 @@ describe("Generator", { concurrency: true }, () => {
 		];
 
 		const output = generator.generate(ast);
-		assert.deepStrictEqual<string>(output, "Fallback shown");
+		t.assert.deepStrictEqual<string>(output, "Fallback shown");
 	});
 });

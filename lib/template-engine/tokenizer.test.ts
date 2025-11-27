@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it, type TestContext } from "node:test";
 
 import { type Token, Tokenizer } from "./tokenizer.js";
 
@@ -11,37 +10,41 @@ describe("Tokenizer", { concurrency: true }, () => {
 	});
 
 	describe("Variable replacement", () => {
-		it("should tokenize a single variable", () => {
+		it("should tokenize a single variable", (t: TestContext) => {
+			t.plan(1);
 			const template = "{{ name }}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "variable" },
 				{ name: "name", type: "identifier" },
 			]);
 		});
 
-		it("should tokenize empty variable", () => {
+		it("should tokenize empty variable", (t: TestContext) => {
+			t.plan(1);
 			const template = "{{}}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [{ type: "variable" }]);
+			t.assert.deepStrictEqual<Token[]>(tokens, [{ type: "variable" }]);
 		});
 
-		it("should tokenize trailing brace as text after variable", () => {
+		it("should tokenize trailing brace as text after variable", (t: TestContext) => {
+			t.plan(1);
 			const tokens = tokenizer.tokenize("{{}}}");
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "variable" },
 				{ type: "text", value: "}" },
 			]);
 		});
 
-		it("should tokenize multiple variables", () => {
+		it("should tokenize multiple variables", (t: TestContext) => {
+			t.plan(1);
 			const template = "{{ firstName }} {{ lastName }}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "variable" },
 				{ name: "firstName", type: "identifier" },
 				{ type: "text", value: " " },
@@ -50,11 +53,12 @@ describe("Tokenizer", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should tokenize variables with surrounding text", () => {
+		it("should tokenize variables with surrounding text", (t: TestContext) => {
+			t.plan(1);
 			const template = "Hello, {{ name }}!";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "text", value: "Hello, " },
 				{ type: "variable" },
 				{ name: "name", type: "identifier" },
@@ -62,11 +66,12 @@ describe("Tokenizer", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should tokenize nested variables with dot notation", () => {
+		it("should tokenize nested variables with dot notation", (t: TestContext) => {
+			t.plan(1);
 			const template = "Welcome {{ user.profile.name }}!";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "text", value: "Welcome " },
 				{ type: "variable" },
 				{ name: "user", type: "identifier" },
@@ -78,22 +83,24 @@ describe("Tokenizer", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should tokenize variables with bracket notation and strings", () => {
+		it("should tokenize variables with bracket notation and strings", (t: TestContext) => {
+			t.plan(1);
 			const template = "{{ user['first-name'] }}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "variable" },
 				{ name: "user", type: "identifier" },
 				{ type: "string", value: "first-name" },
 			]);
 		});
 
-		it("should tokenize deeply nested variables", () => {
+		it("should tokenize deeply nested variables", (t: TestContext) => {
+			t.plan(1);
 			const template = "{{ a.b.c.d }}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "variable" },
 				{ name: "a", type: "identifier" },
 				{ type: "dot" },
@@ -105,11 +112,12 @@ describe("Tokenizer", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should tokenize variables with numbers", () => {
+		it("should tokenize variables with numbers", (t: TestContext) => {
+			t.plan(1);
 			const template = "{{ items[12] }}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "variable" },
 				{ name: "items", type: "identifier" },
 				{ type: "number", value: 12 },
@@ -118,23 +126,25 @@ describe("Tokenizer", { concurrency: true }, () => {
 	});
 
 	describe("Conditionals", () => {
-		it("should tokenize simple conditionals", () => {
+		it("should tokenize simple conditionals", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% if isLoggedIn %} Welcome! {% endif %}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ condition: "isLoggedIn", type: "if" },
 				{ type: "text", value: " Welcome! " },
 				{ type: "endif" },
 			]);
 		});
 
-		it("should tokenize conditionals with else", () => {
+		it("should tokenize conditionals with else", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% if isLoggedIn %} Welcome! {% else %} Please log in. {% endif %}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ condition: "isLoggedIn", type: "if" },
 				{ type: "text", value: " Welcome! " },
 				{ type: "else" },
@@ -145,11 +155,12 @@ describe("Tokenizer", { concurrency: true }, () => {
 	});
 
 	describe("Iterations", () => {
-		it("should tokenize a simple for loop", () => {
+		it("should tokenize a simple for loop", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ collection: "letters", iterator: "letter", type: "for" },
 				{ type: "text", value: " " },
 				{ type: "variable" },
@@ -159,12 +170,13 @@ describe("Tokenizer", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should tokenize nested for loops", () => {
+		it("should tokenize nested for loops", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% for user in users %} {% for task in user.tasks %} {{ task.title }} {% endfor %} {% endfor %}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ collection: "users", iterator: "user", type: "for" },
 				{ type: "text", value: " " },
 				{ collection: "user.tasks", iterator: "task", type: "for" },
@@ -180,11 +192,12 @@ describe("Tokenizer", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should handle an empty loop gracefully", () => {
+		it("should handle an empty loop gracefully", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% for item in emptyArray %}{% endfor %}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ collection: "emptyArray", iterator: "item", type: "for" },
 				{ type: "endfor" },
 			]);
@@ -192,38 +205,42 @@ describe("Tokenizer", { concurrency: true }, () => {
 	});
 
 	describe("Layouts", () => {
-		it("should tokenize layouts ", () => {
+		it("should tokenize layouts ", (t: TestContext) => {
+			t.plan(1);
 			const template = `{% extends "layout" %}`;
 
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ template: "layout", type: "extends" },
 			]);
 		});
 
-		it("should tokenize layouts with single quotes", () => {
+		it("should tokenize layouts with single quotes", (t: TestContext) => {
+			t.plan(1);
 			const template = `{% extends 'layout' %}`;
 			const tokens = tokenizer.tokenize(template);
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ template: "layout", type: "extends" },
 			]);
 		});
 
-		it("should tokenize a named block", () => {
+		it("should tokenize a named block", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% block content %}Hello{% endblock %}";
 			const tokens = tokenizer.tokenize(template);
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ name: "content", type: "block" },
 				{ type: "text", value: "Hello" },
 				{ type: "endblock" },
 			]);
 		});
 
-		it("should tokenize an endblock with an optional name", () => {
+		it("should tokenize an endblock with an optional name", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% block content %}Hello{% endblock content %}";
 			const tokens = tokenizer.tokenize(template);
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ name: "content", type: "block" },
 				{ type: "text", value: "Hello" },
 				{ type: "endblock" },
@@ -232,49 +249,55 @@ describe("Tokenizer", { concurrency: true }, () => {
 	});
 
 	describe("Edge Cases & Errors", () => {
-		it("should throw on unclosed for block", () => {
+		it("should throw on unclosed for block", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% for item in items";
-			assert.throws(() => tokenizer.tokenize(template), /Unclosed {% for %}/);
+			t.assert.throws(() => tokenizer.tokenize(template), /Unclosed {% for %}/);
 		});
 
-		it("should throw on malformed for tag (missing 'in')", () => {
+		it("should throw on malformed for tag (missing 'in')", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% for item items %}";
-			assert.throws(
+			t.assert.throws(
 				() => tokenizer.tokenize(template),
 				/Invalid syntax in {% for %}/,
 			);
 		});
 
-		it("should throw on malformed for tag (missing iterator)", () => {
+		it("should throw on malformed for tag (missing iterator)", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% for in items %}";
-			assert.throws(
+			t.assert.throws(
 				() => tokenizer.tokenize(template),
 				/Invalid syntax in {% for %} tag. Use '{% for item in collection %}'/,
 			);
 		});
 
-		it("should handle plain text only", () => {
+		it("should handle plain text only", (t: TestContext) => {
+			t.plan(1);
 			const template = "Just plain text.";
 			const tokens = tokenizer.tokenize(template);
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "text", value: "Just plain text." },
 			]);
 		});
 
-		it("should handle whitespace-only template", () => {
+		it("should handle whitespace-only template", (t: TestContext) => {
+			t.plan(1);
 			const template = "   \n\t  ";
 			const tokens = tokenizer.tokenize(template);
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ type: "text", value: "   \n\t  " },
 			]);
 		});
 
-		it("should tokenize a mix of control flow and variables", () => {
+		it("should tokenize a mix of control flow and variables", (t: TestContext) => {
+			t.plan(1);
 			const template =
 				"{% if user %}Hi, {{ user.name }}!{% else %}Log in.{% endif %}";
 			const tokens = tokenizer.tokenize(template);
 
-			assert.deepStrictEqual<Token[]>(tokens, [
+			t.assert.deepStrictEqual<Token[]>(tokens, [
 				{ condition: "user", type: "if" },
 				{ type: "text", value: "Hi, " },
 				{ type: "variable" },
@@ -288,73 +311,82 @@ describe("Tokenizer", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should throw on unclosed extends tag", () => {
+		it("should throw on unclosed extends tag", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% extends 'layout'";
-			assert.throws(
+			t.assert.throws(
 				() => tokenizer.tokenize(template),
 				/Unclosed {% extends %} tag/,
 			);
 		});
 
-		it("should throw on unclosed block tag", () => {
+		it("should throw on unclosed block tag", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% block content";
-			assert.throws(
+			t.assert.throws(
 				() => tokenizer.tokenize(template),
 				/Unclosed {% block %} tag/,
 			);
 		});
 
-		it("should throw on unclosed endif tag", () => {
+		it("should throw on unclosed endif tag", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% endif";
-			assert.throws(
+			t.assert.throws(
 				() => tokenizer.tokenize(template),
 				/Unclosed {% endif %} tag/,
 			);
 		});
 
-		it("should throw on unclosed variable tag", () => {
+		it("should throw on unclosed variable tag", (t: TestContext) => {
+			t.plan(1);
 			const template = "{{ user.name";
-			assert.throws(
+			t.assert.throws(
 				() => tokenizer.tokenize(template),
 				/Unclosed variable tag starting at index 0/,
 			);
 		});
 
-		it("should throw on unclosed if tag", () => {
+		it("should throw on unclosed if tag", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% if condition";
-			assert.throws(
+			t.assert.throws(
 				() => tokenizer.tokenize(template),
 				/Unclosed {% if %} tag/,
 			);
 		});
 
-		it("should throw on unclosed else tag", () => {
+		it("should throw on unclosed else tag", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% else";
-			assert.throws(
+			t.assert.throws(
 				() => tokenizer.tokenize(template),
 				/Unclosed {% else %} tag/,
 			);
 		});
 
-		it("should throw on unclosed endif tag", () => {
+		it("should throw on unclosed endif tag", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% endif";
-			assert.throws(
+			t.assert.throws(
 				() => tokenizer.tokenize(template),
 				/Unclosed {% endif %} tag/,
 			);
 		});
 
-		it("should throw on unclosed endfor tag", () => {
+		it("should throw on unclosed endfor tag", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% endfor";
-			assert.throws(
+			t.assert.throws(
 				() => tokenizer.tokenize(template),
 				/Unclosed {% endfor %} tag/,
 			);
 		});
 
-		it("should throw on unclosed endblock tag", () => {
+		it("should throw on unclosed endblock tag", (t: TestContext) => {
+			t.plan(1);
 			const template = "{% endblock";
-			assert.throws(
+			t.assert.throws(
 				() => tokenizer.tokenize(template),
 				/Unclosed {% endblock %} tag/,
 			);

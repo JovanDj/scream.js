@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it, type TestContext } from "node:test";
 
 import { type ASTNode, Parser } from "./parser.js";
 import type { Token } from "./tokenizer.js";
@@ -12,19 +11,21 @@ describe("Parser", { concurrency: true }, () => {
 	});
 
 	describe("Variable replacement", () => {
-		it("should parse a single variable", () => {
+		it("should parse a single variable", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ type: "variable" },
 				{ name: "name", type: "identifier" },
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{ path: ["name"], type: "variable" },
 			]);
 		});
 
-		it("should parse multiple variables", () => {
+		it("should parse multiple variables", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ type: "variable" },
 				{ name: "firstName", type: "identifier" },
@@ -34,14 +35,15 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{ path: ["firstName"], type: "variable" },
 				{ type: "text", value: " " },
 				{ path: ["lastName"], type: "variable" },
 			]);
 		});
 
-		it("should parse variable with dot notation path", () => {
+		it("should parse variable with dot notation path", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ type: "variable" },
 				{ name: "user", type: "identifier" },
@@ -50,12 +52,13 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{ path: ["user", "name"], type: "variable" },
 			]);
 		});
 
-		it("should parse variable with bracket notation path", () => {
+		it("should parse variable with bracket notation path", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ type: "variable" },
 				{ name: "errors", type: "identifier" },
@@ -65,12 +68,13 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{ path: ["errors", "title", 0], type: "variable" },
 			]);
 		});
 
-		it("should parse variable with mixed dot and bracket notation", () => {
+		it("should parse variable with mixed dot and bracket notation", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ type: "variable" },
 				{ name: "foo", type: "identifier" },
@@ -82,14 +86,15 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{ path: ["foo", "bar", 12, "baz"], type: "variable" },
 			]);
 		});
 	});
 
 	describe("Conditionals", () => {
-		it("should parse a simple conditional", () => {
+		it("should parse a simple conditional", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ condition: "isLoggedIn", type: "if" },
 				{ type: "text", value: "Welcome!" },
@@ -97,7 +102,7 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					children: [{ type: "text", value: "Welcome!" }],
 					type: "if",
@@ -106,7 +111,8 @@ describe("Parser", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should parse a conditional with else", () => {
+		it("should parse a conditional with else", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ condition: "isAdmin", type: "if" },
 				{ type: "text", value: "Admin Panel" },
@@ -116,7 +122,7 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					alternate: [{ type: "text", value: "User Panel" }],
 					children: [{ type: "text", value: "Admin Panel" }],
@@ -128,7 +134,8 @@ describe("Parser", { concurrency: true }, () => {
 	});
 
 	describe("Iterations", () => {
-		it("should parse a simple for loop", () => {
+		it("should parse a simple for loop", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ collection: "letters", iterator: "letter", type: "for" },
 				{ type: "variable" },
@@ -137,7 +144,7 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					children: [
 						{
@@ -152,7 +159,8 @@ describe("Parser", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should parse nested loops", () => {
+		it("should parse nested loops", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ collection: "users", iterator: "user", type: "for" },
 				{ collection: "user.tasks", iterator: "task", type: "for" },
@@ -165,7 +173,7 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					children: [
 						{
@@ -189,16 +197,18 @@ describe("Parser", { concurrency: true }, () => {
 	});
 
 	describe("Layouts", () => {
-		it("should parse an extends directive", () => {
+		it("should parse an extends directive", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [{ template: "layout", type: "extends" }];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{ type: "extends", value: "layout" },
 			]);
 		});
 
-		it("should parse a block with content", () => {
+		it("should parse a block with content", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ type: "text", value: "Hello" },
@@ -206,7 +216,7 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					children: [{ type: "text", value: "Hello" }],
 					type: "block",
@@ -215,7 +225,8 @@ describe("Parser", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should parse a nested if inside a block", () => {
+		it("should parse a nested if inside a block", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ condition: "user.isAdmin", type: "if" },
@@ -227,7 +238,7 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					children: [
 						{
@@ -253,7 +264,8 @@ describe("Parser", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should parse multiple blocks", () => {
+		it("should parse multiple blocks", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ name: "header", type: "block" },
 				{ type: "text", value: "Header Content" },
@@ -264,7 +276,7 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					children: [
 						{
@@ -288,7 +300,8 @@ describe("Parser", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should parse a block with loops and conditionals", () => {
+		it("should parse a block with loops and conditionals", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ collection: "items", iterator: "item", type: "for" },
@@ -298,7 +311,7 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					children: [
 						{
@@ -314,7 +327,8 @@ describe("Parser", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should not insert the block node as its own child", () => {
+		it("should not insert the block node as its own child", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ type: "text", value: "Inside block" },
@@ -322,7 +336,7 @@ describe("Parser", { concurrency: true }, () => {
 			];
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					children: [
 						{
@@ -336,7 +350,8 @@ describe("Parser", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should not nest a block inside another block's children", () => {
+		it("should not nest a block inside another block's children", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ name: "outer", type: "block" },
 				{ name: "inner", type: "block" },
@@ -347,7 +362,7 @@ describe("Parser", { concurrency: true }, () => {
 
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					children: [
 						{
@@ -369,17 +384,20 @@ describe("Parser", { concurrency: true }, () => {
 	});
 
 	describe("Parser - Edge Cases & Errors", () => {
-		it("should throw on endif without if", () => {
+		it("should throw on endif without if", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [{ type: "endif" }];
-			assert.throws(() => parser.parse(tokens), /Unexpected token: endif/);
+			t.assert.throws(() => parser.parse(tokens), /Unexpected token: endif/);
 		});
 
-		it("should throw on else without if", () => {
+		it("should throw on else without if", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [{ type: "else" }];
-			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+			t.assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
 		});
 
-		it("should not descend past an unexpected else", () => {
+		it("should not descend past an unexpected else", (t: TestContext) => {
+			t.plan(1);
 			const forbiddenToken = {} as Token;
 			Object.defineProperty(forbiddenToken, "type", {
 				get() {
@@ -393,90 +411,100 @@ describe("Parser", { concurrency: true }, () => {
 				forbiddenToken,
 			];
 
-			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+			t.assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
 		});
 
-		it("should throw on dangling else after a closed if", () => {
+		it("should throw on dangling else after a closed if", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ condition: "isAdmin", type: "if" },
 				{ type: "text", value: "admin" },
 				{ type: "endif" },
 				{ type: "else" },
 			];
-			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+			t.assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
 		});
 
-		it("should throw on stray endif surrounded by text", () => {
+		it("should throw on stray endif surrounded by text", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ type: "text", value: "Hello " },
 				{ type: "endif" },
 				{ type: "text", value: " world" },
 			];
-			assert.throws(() => parser.parse(tokens), /Unexpected token: endif/);
+			t.assert.throws(() => parser.parse(tokens), /Unexpected token: endif/);
 		});
 
-		it("should throw on stray else surrounded by text", () => {
+		it("should throw on stray else surrounded by text", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ type: "text", value: "before " },
 				{ type: "else" },
 				{ type: "text", value: " after" },
 			];
-			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+			t.assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
 		});
 
-		it("should throw on endfor without for", () => {
+		it("should throw on endfor without for", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ type: "endfor" },
 				{ type: "endif" },
 			];
-			assert.throws(() => parser.parse(tokens), /endfor/);
+			t.assert.throws(() => parser.parse(tokens), /endfor/);
 		});
 
-		it("should throw on endblock without block", () => {
+		it("should throw on endblock without block", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ type: "endblock" },
 				{ type: "endif" },
 			];
-			assert.throws(() => parser.parse(tokens), /endblock/);
+			t.assert.throws(() => parser.parse(tokens), /endblock/);
 		});
 
-		it("should throw when if is closed with endfor", () => {
+		it("should throw when if is closed with endfor", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ type: "endfor" },
 			];
-			assert.throws(() => parser.parse(tokens), /endfor/);
+			t.assert.throws(() => parser.parse(tokens), /endfor/);
 		});
 
-		it("should throw when for is closed with endif", () => {
+		it("should throw when for is closed with endif", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ collection: "xs", iterator: "x", type: "for" },
 				{ type: "endif" },
 			];
-			assert.throws(() => parser.parse(tokens), /endif/);
+			t.assert.throws(() => parser.parse(tokens), /endif/);
 		});
 
-		it("should throw when else appears inside a for loop", () => {
+		it("should throw when else appears inside a for loop", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ collection: "xs", iterator: "x", type: "for" },
 				{ type: "else" },
 				{ type: "endfor" },
 			];
-			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+			t.assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
 		});
 
-		it("should throw when else appears inside a block", () => {
+		it("should throw when else appears inside a block", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ type: "else" },
 				{ type: "endblock" },
 			];
-			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+			t.assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
 		});
 
-		it("should throw on multiple else branches in a single if", () => {
+		it("should throw on multiple else branches in a single if", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ type: "text", value: "A" },
@@ -486,36 +514,46 @@ describe("Parser", { concurrency: true }, () => {
 				{ type: "text", value: "C" },
 				{ type: "endif" },
 			];
-			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+			t.assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
 		});
 
-		it("should throw on unclosed if", () => {
+		it("should throw on unclosed if", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ type: "text", value: "inside" },
 			];
-			assert.throws(() => parser.parse(tokens), /Unexpected end inside block/);
+			t.assert.throws(
+				() => parser.parse(tokens),
+				/Unexpected end inside block/,
+			);
 		});
 
-		it("should throw on unclosed for", () => {
+		it("should throw on unclosed for", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ collection: "xs", iterator: "x", type: "for" },
 				{ type: "text", value: "item" },
 			];
-			assert.throws(() => parser.parse(tokens), /Unexpected end inside block/);
+			t.assert.throws(
+				() => parser.parse(tokens),
+				/Unexpected end inside block/,
+			);
 		});
 
-		it("should throw on unexpected endblock inside if", () => {
+		it("should throw on unexpected endblock inside if", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ type: "endblock" },
 				{ type: "endif" },
 			];
-			assert.throws(() => parser.parse(tokens), /Unexpected token: endblock/);
+			t.assert.throws(() => parser.parse(tokens), /Unexpected token: endblock/);
 		});
 
-		it("should bind else to the nearest if", () => {
+		it("should bind else to the nearest if", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ condition: "a", type: "if" },
 				{ condition: "b", type: "if" },
@@ -528,7 +566,7 @@ describe("Parser", { concurrency: true }, () => {
 
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					children: [
 						{
@@ -544,7 +582,8 @@ describe("Parser", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should preserve text around an if/else/endif sequence", () => {
+		it("should preserve text around an if/else/endif sequence", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ type: "text", value: "before " },
 				{ condition: "x", type: "if" },
@@ -557,7 +596,7 @@ describe("Parser", { concurrency: true }, () => {
 
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{ type: "text", value: "before " },
 				{
 					alternate: [{ type: "text", value: "alt" }],
@@ -569,7 +608,8 @@ describe("Parser", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should parse interleaved tags and text", () => {
+		it("should parse interleaved tags and text", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ type: "text", value: "A " },
 				{ condition: "x", type: "if" },
@@ -584,7 +624,7 @@ describe("Parser", { concurrency: true }, () => {
 
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{ type: "text", value: "A " },
 				{
 					children: [
@@ -605,7 +645,8 @@ describe("Parser", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should parse block with nested if and for", () => {
+		it("should parse block with nested if and for", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ condition: "x", type: "if" },
@@ -621,7 +662,7 @@ describe("Parser", { concurrency: true }, () => {
 
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{
 					children: [
 						{
@@ -649,15 +690,17 @@ describe("Parser", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should handle empty input", () => {
+		it("should handle empty input", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [];
 			const ast = parser.parse(tokens);
-			assert.deepStrictEqual<ASTNode[]>(ast, []);
+			t.assert.deepStrictEqual<ASTNode[]>(ast, []);
 		});
 
 		it.todo("should handle template with only whitespace text");
 
-		it("should parse a complex nested template", () => {
+		it("should parse a complex nested template", (t: TestContext) => {
+			t.plan(1);
 			const tokens: Token[] = [
 				{ template: "layout", type: "extends" },
 				{ name: "content", type: "block" },
@@ -675,7 +718,7 @@ describe("Parser", { concurrency: true }, () => {
 
 			const ast = parser.parse(tokens);
 
-			assert.deepStrictEqual<ASTNode[]>(ast, [
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
 				{ type: "extends", value: "layout" },
 				{
 					children: [
