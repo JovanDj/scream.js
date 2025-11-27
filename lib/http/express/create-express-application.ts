@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import path from "node:path";
 import { Evaluator } from "@scream.js/template-engine/evaluator.js";
 import { Generator } from "@scream.js/template-engine/generator.js";
@@ -29,16 +28,13 @@ export const createExpressApp: () => Application = () => {
 
 	const viewsPath = path.join(process.cwd(), "views");
 
-	app.engine("njk", (filePath, options, callback) => {
-		fs.readFile(filePath, { encoding: "utf-8" }, (err, content) => {
-			if (err) {
-				return callback(err);
-			}
-
-			const rendered = templateEngine.compile(content, { ...options });
-
-			return callback(null, rendered);
-		});
+	app.engine("njk", async (filePath, options, callback) => {
+		try {
+			const rendered = await templateEngine.compileFile(filePath, options);
+			callback(null, rendered);
+		} catch (err) {
+			callback(err);
+		}
 	});
 
 	app.set("views", viewsPath);

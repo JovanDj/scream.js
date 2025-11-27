@@ -1,18 +1,55 @@
-export type Token =
-	| { type: "text"; value: string }
-	| { type: "variable" }
-	| { type: "if"; condition: string }
-	| { type: "else" }
-	| { type: "endif" }
-	| { type: "for"; iterator: string; collection: string }
-	| { type: "endfor" }
-	| { type: "extends"; template: string }
-	| { type: "block"; name: string }
-	| { type: "endblock"; name?: string }
-	| { type: "identifier"; name: string }
-	| { type: "dot" }
-	| { type: "number"; value: number }
-	| { type: "string"; value: string };
+export const TOKENS = {
+	block: (name: string) => {
+		return { name, type: "block" } as const;
+	},
+	dot: () => {
+		return { type: "dot" } as const;
+	},
+	else: () => {
+		return { type: "else" } as const;
+	},
+	endblock: () => {
+		return { type: "endblock" } as const;
+	},
+	endfor: () => {
+		return { type: "endfor" } as const;
+	},
+	endif: () => {
+		return { type: "endif" } as const;
+	},
+	extends: (template: string) => {
+		return { template, type: "extends" } as const;
+	},
+	for: (iterator: string, collection: string) => {
+		return { collection, iterator, type: "for" } as const;
+	},
+	identifier: (name: string) => {
+		return { name, type: "identifier" } as const;
+	},
+	if: (condition: string) => {
+		return { condition, type: "if" } as const;
+	},
+	lparen: () => {
+		return { type: "lparen" } as const;
+	},
+	number: (value: number) => {
+		return { type: "number", value } as const;
+	},
+	rparen: () => {
+		return { type: "rparen" } as const;
+	},
+	string: (value: string) => {
+		return { type: "string", value } as const;
+	},
+	text: (value: string) => {
+		return { type: "text", value } as const;
+	},
+	variable: () => {
+		return { type: "variable" } as const;
+	},
+} as const;
+
+export type Token = ReturnType<(typeof TOKENS)[keyof typeof TOKENS]>;
 
 export class Tokenizer {
 	tokenize(template: string): readonly Token[] {
@@ -70,11 +107,7 @@ export class Tokenizer {
 					);
 				}
 
-				const blockName = template
-					.slice(index + "{% endblock".length, endIndex)
-					.trim();
-
-				tokens.push({ name: blockName, type: "endblock" });
+				tokens.push({ type: "endblock" });
 
 				index = endIndex + 2;
 				continue;

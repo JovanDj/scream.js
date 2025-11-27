@@ -202,7 +202,7 @@ describe("Parser", { concurrency: true }, () => {
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ type: "text", value: "Hello" },
-				{ name: "content", type: "endblock" },
+				{ type: "endblock" },
 			];
 			const ast = parser.parse(tokens);
 
@@ -257,10 +257,10 @@ describe("Parser", { concurrency: true }, () => {
 			const tokens: Token[] = [
 				{ name: "header", type: "block" },
 				{ type: "text", value: "Header Content" },
-				{ name: "header", type: "endblock" },
+				{ type: "endblock" },
 				{ name: "footer", type: "block" },
 				{ type: "text", value: "Footer Content" },
-				{ name: "footer", type: "endblock" },
+				{ type: "endblock" },
 			];
 			const ast = parser.parse(tokens);
 
@@ -294,7 +294,7 @@ describe("Parser", { concurrency: true }, () => {
 				{ collection: "items", iterator: "item", type: "for" },
 
 				{ type: "endfor" },
-				{ name: "content", type: "endblock" },
+				{ type: "endblock" },
 			];
 			const ast = parser.parse(tokens);
 
@@ -318,7 +318,7 @@ describe("Parser", { concurrency: true }, () => {
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ type: "text", value: "Inside block" },
-				{ name: "content", type: "endblock" },
+				{ type: "endblock" },
 			];
 			const ast = parser.parse(tokens);
 
@@ -341,8 +341,8 @@ describe("Parser", { concurrency: true }, () => {
 				{ name: "outer", type: "block" },
 				{ name: "inner", type: "block" },
 				{ type: "text", value: "Hello" },
-				{ name: "inner", type: "endblock" },
-				{ name: "outer", type: "endblock" },
+				{ type: "endblock" },
+				{ type: "endblock" },
 			];
 
 			const ast = parser.parse(tokens);
@@ -379,11 +379,275 @@ describe("Parser", { concurrency: true }, () => {
 			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
 		});
 
-		it.todo("should throw on endfor without for");
+		it("should not descend past an unexpected else", () => {
+			const forbiddenToken = {} as Token;
+			Object.defineProperty(forbiddenToken, "type", {
+				get() {
+					throw new Error("descended past unexpected conditional");
+				},
+			});
 
-		it.todo("should throw on unclosed if");
+			const tokens: Token[] = [
+				{ type: "text", value: "before" },
+				{ type: "else" },
+				forbiddenToken,
+			];
 
-		it.todo("should throw on unclosed for");
+			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+		});
+
+		it("should throw on dangling else after a closed if", () => {
+			const tokens: Token[] = [
+				{ condition: "isAdmin", type: "if" },
+				{ type: "text", value: "admin" },
+				{ type: "endif" },
+				{ type: "else" },
+			];
+			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+		});
+
+		it("should throw on stray endif surrounded by text", () => {
+			const tokens: Token[] = [
+				{ type: "text", value: "Hello " },
+				{ type: "endif" },
+				{ type: "text", value: " world" },
+			];
+			assert.throws(() => parser.parse(tokens), /Unexpected token: endif/);
+		});
+
+		it("should throw on stray else surrounded by text", () => {
+			const tokens: Token[] = [
+				{ type: "text", value: "before " },
+				{ type: "else" },
+				{ type: "text", value: " after" },
+			];
+			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+		});
+
+		it("should throw on endfor without for", () => {
+			const tokens: Token[] = [
+				{ condition: "x", type: "if" },
+				{ type: "endfor" },
+				{ type: "endif" },
+			];
+			assert.throws(() => parser.parse(tokens), /endfor/);
+		});
+
+		it("should throw on endblock without block", () => {
+			const tokens: Token[] = [
+				{ condition: "x", type: "if" },
+				{ type: "endblock" },
+				{ type: "endif" },
+			];
+			assert.throws(() => parser.parse(tokens), /endblock/);
+		});
+
+		it("should throw when if is closed with endfor", () => {
+			const tokens: Token[] = [
+				{ condition: "x", type: "if" },
+				{ type: "endfor" },
+			];
+			assert.throws(() => parser.parse(tokens), /endfor/);
+		});
+
+		it("should throw when for is closed with endif", () => {
+			const tokens: Token[] = [
+				{ collection: "xs", iterator: "x", type: "for" },
+				{ type: "endif" },
+			];
+			assert.throws(() => parser.parse(tokens), /endif/);
+		});
+
+		it("should throw when else appears inside a for loop", () => {
+			const tokens: Token[] = [
+				{ collection: "xs", iterator: "x", type: "for" },
+				{ type: "else" },
+				{ type: "endfor" },
+			];
+			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+		});
+
+		it("should throw when else appears inside a block", () => {
+			const tokens: Token[] = [
+				{ name: "content", type: "block" },
+				{ type: "else" },
+				{ type: "endblock" },
+			];
+			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+		});
+
+		it("should throw on multiple else branches in a single if", () => {
+			const tokens: Token[] = [
+				{ condition: "x", type: "if" },
+				{ type: "text", value: "A" },
+				{ type: "else" },
+				{ type: "text", value: "B" },
+				{ type: "else" },
+				{ type: "text", value: "C" },
+				{ type: "endif" },
+			];
+			assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
+		});
+
+		it("should throw on unclosed if", () => {
+			const tokens: Token[] = [
+				{ condition: "x", type: "if" },
+				{ type: "text", value: "inside" },
+			];
+			assert.throws(() => parser.parse(tokens), /Unexpected end inside block/);
+		});
+
+		it("should throw on unclosed for", () => {
+			const tokens: Token[] = [
+				{ condition: "x", type: "if" },
+				{ collection: "xs", iterator: "x", type: "for" },
+				{ type: "text", value: "item" },
+			];
+			assert.throws(() => parser.parse(tokens), /Unexpected end inside block/);
+		});
+
+		it("should throw on unexpected endblock inside if", () => {
+			const tokens: Token[] = [
+				{ condition: "x", type: "if" },
+				{ type: "endblock" },
+				{ type: "endif" },
+			];
+			assert.throws(() => parser.parse(tokens), /Unexpected token: endblock/);
+		});
+
+		it("should bind else to the nearest if", () => {
+			const tokens: Token[] = [
+				{ condition: "a", type: "if" },
+				{ condition: "b", type: "if" },
+				{ type: "text", value: "inner" },
+				{ type: "else" },
+				{ type: "text", value: "alt" },
+				{ type: "endif" },
+				{ type: "endif" },
+			];
+
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual<ASTNode[]>(ast, [
+				{
+					children: [
+						{
+							alternate: [{ type: "text", value: "alt" }],
+							children: [{ type: "text", value: "inner" }],
+							type: "if",
+							value: "b",
+						},
+					],
+					type: "if",
+					value: "a",
+				},
+			]);
+		});
+
+		it("should preserve text around an if/else/endif sequence", () => {
+			const tokens: Token[] = [
+				{ type: "text", value: "before " },
+				{ condition: "x", type: "if" },
+				{ type: "text", value: "inner" },
+				{ type: "else" },
+				{ type: "text", value: "alt" },
+				{ type: "endif" },
+				{ type: "text", value: " after" },
+			];
+
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual<ASTNode[]>(ast, [
+				{ type: "text", value: "before " },
+				{
+					alternate: [{ type: "text", value: "alt" }],
+					children: [{ type: "text", value: "inner" }],
+					type: "if",
+					value: "x",
+				},
+				{ type: "text", value: " after" },
+			]);
+		});
+
+		it("should parse interleaved tags and text", () => {
+			const tokens: Token[] = [
+				{ type: "text", value: "A " },
+				{ condition: "x", type: "if" },
+				{ type: "text", value: " B " },
+				{ collection: "ys", iterator: "y", type: "for" },
+				{ type: "text", value: " C " },
+				{ type: "endfor" },
+				{ type: "text", value: " D " },
+				{ type: "endif" },
+				{ type: "text", value: " E" },
+			];
+
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual<ASTNode[]>(ast, [
+				{ type: "text", value: "A " },
+				{
+					children: [
+						{ type: "text", value: " B " },
+
+						{
+							children: [{ type: "text", value: " C " }],
+							iterator: "y",
+							type: "for",
+							value: "ys",
+						},
+						{ type: "text", value: " D " },
+					],
+					type: "if",
+					value: "x",
+				},
+				{ type: "text", value: " E" },
+			]);
+		});
+
+		it("should parse block with nested if and for", () => {
+			const tokens: Token[] = [
+				{ name: "content", type: "block" },
+				{ condition: "x", type: "if" },
+				{ collection: "ys", iterator: "y", type: "for" },
+				{ type: "variable" },
+				{ name: "y", type: "identifier" },
+				{ type: "endfor" },
+				{ type: "else" },
+				{ type: "text", value: "Fallback" },
+				{ type: "endif" },
+				{ type: "endblock" },
+			];
+
+			const ast = parser.parse(tokens);
+
+			assert.deepStrictEqual<ASTNode[]>(ast, [
+				{
+					children: [
+						{
+							alternate: [{ type: "text", value: "Fallback" }],
+							children: [
+								{
+									children: [
+										{
+											path: ["y"],
+											type: "variable",
+										},
+									],
+									iterator: "y",
+									type: "for",
+									value: "ys",
+								},
+							],
+							type: "if",
+							value: "x",
+						},
+					],
+					type: "block",
+					value: "content",
+				},
+			]);
+		});
 
 		it("should handle empty input", () => {
 			const tokens: Token[] = [];
@@ -406,7 +670,7 @@ describe("Parser", { concurrency: true }, () => {
 				{ type: "else" },
 				{ type: "text", value: "Please log in." },
 				{ type: "endif" },
-				{ name: "content", type: "endblock" },
+				{ type: "endblock" },
 			];
 
 			const ast = parser.parse(tokens);
