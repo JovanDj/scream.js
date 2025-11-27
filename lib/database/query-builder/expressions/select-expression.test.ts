@@ -2,7 +2,7 @@ import { describe, it, type TestContext } from "node:test";
 import type { SqlExpression } from "../sql-expression.js";
 import { SelectExpression } from "./select-expression.js";
 
-describe("SelectExpression", () => {
+describe("SelectExpression", { concurrency: true }, () => {
 	it("should form SELECT expression with a single field", (t: TestContext) => {
 		t.plan(1);
 		const fields = "name";
