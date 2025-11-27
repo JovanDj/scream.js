@@ -1,11 +1,11 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it, type TestContext } from "node:test";
 import { createTodoSchema } from "./todo.schema.js";
 
 describe("createTodoSchema", () => {
-	it("rejects missing title", () => {
+	it("rejects missing title", (t: TestContext) => {
+		t.plan(1);
 		const data = { userId: 1 };
 
-		assert.throws(() => createTodoSchema.parse(data));
+		t.assert.throws(() => createTodoSchema.parse(data));
 	});
 });

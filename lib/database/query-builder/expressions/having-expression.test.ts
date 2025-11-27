@@ -1,15 +1,18 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it, type TestContext } from "node:test";
 import type { SqlExpression } from "../sql-expression.js";
 import { HavingExpression } from "./having-expression.js";
 
 describe("HavingExpression", () => {
-	it("should form HAVING expression", () => {
+	it("should form HAVING expression", (t: TestContext) => {
+		t.plan(1);
 		const havingExpression: SqlExpression = new HavingExpression(
 			"COUNT(*)",
 			">",
 		);
 
-		assert.deepStrictEqual(havingExpression.interpret(), "HAVING COUNT(*) > ?");
+		t.assert.deepStrictEqual(
+			havingExpression.interpret(),
+			"HAVING COUNT(*) > ?",
+		);
 	});
 });
