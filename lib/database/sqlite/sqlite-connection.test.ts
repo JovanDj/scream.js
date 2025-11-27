@@ -1,5 +1,10 @@
-import assert from "node:assert/strict";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	it,
+	type TestContext,
+} from "node:test";
 import { sql } from "../query-builder/sql-template-string.js";
 import { SqliteConnection } from "./sqlite-connection.js";
 
@@ -15,7 +20,8 @@ describe("SqliteDatabase", () => {
 	});
 
 	describe("CRUD", () => {
-		it("finds all rows", async () => {
+		it("finds all rows", async (t: TestContext) => {
+			t.plan(1);
 			await connection.run(
 				sql`CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT);`,
 			);
@@ -23,10 +29,11 @@ describe("SqliteDatabase", () => {
 
 			const users = await connection.all(sql`SELECT * FROM users;`);
 
-			assert.deepStrictEqual(users, [{ id: 1 }]);
+			t.assert.deepStrictEqual(users, [{ id: 1 }]);
 		});
 
-		it("finds single row", async () => {
+		it("finds single row", async (t: TestContext) => {
+			t.plan(1);
 			await connection.run(
 				sql`CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT);`,
 			);
@@ -34,10 +41,11 @@ describe("SqliteDatabase", () => {
 
 			const user = await connection.get(sql`SELECT * FROM users;`);
 
-			assert.deepStrictEqual(user, { id: 1 });
+			t.assert.deepStrictEqual(user, { id: 1 });
 		});
 
-		it("creates a new row", async () => {
+		it("creates a new row", async (t: TestContext) => {
+			t.plan(1);
 			await connection.run(
 				sql`CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT);`,
 			);
@@ -47,10 +55,11 @@ describe("SqliteDatabase", () => {
 				sql`SELECT * FROM users WHERE id = ${"1"};`,
 			);
 
-			assert.deepStrictEqual(user, { id: 1 });
+			t.assert.deepStrictEqual(user, { id: 1 });
 		});
 
-		it("updates a row", async () => {
+		it("updates a row", async (t: TestContext) => {
+			t.plan(1);
 			await connection.run(
 				sql`CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT);`,
 			);
@@ -66,10 +75,11 @@ describe("SqliteDatabase", () => {
 				sql`SELECT * FROM users WHERE id = ${"1"};`,
 			);
 
-			assert.deepStrictEqual(user, { id: 1, name: "Bob" });
+			t.assert.deepStrictEqual(user, { id: 1, name: "Bob" });
 		});
 
-		it("deletes a row", async () => {
+		it("deletes a row", async (t: TestContext) => {
+			t.plan(1);
 			await connection.run(
 				sql`CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT);`,
 			);
@@ -83,7 +93,7 @@ describe("SqliteDatabase", () => {
 				sql`SELECT * FROM users WHERE id = ${"1"};`,
 			);
 
-			assert.deepStrictEqual(user, undefined);
+			t.assert.deepStrictEqual(user, undefined);
 		});
 	});
 
@@ -94,7 +104,8 @@ describe("SqliteDatabase", () => {
 			);
 		});
 
-		it("commits a transaction successfully", async () => {
+		it("commits a transaction successfully", async (t: TestContext) => {
+			t.plan(1);
 			await connection.transaction(async (trx) => {
 				await trx.run(
 					sql`INSERT INTO test (id, name) VALUES (${["1", "Alice"]})`,
@@ -104,10 +115,11 @@ describe("SqliteDatabase", () => {
 			const row = await connection.get(
 				sql`SELECT * FROM test WHERE id = ${"1"};`,
 			);
-			assert.deepStrictEqual(row, { id: 1, name: "Alice" });
+			t.assert.deepStrictEqual(row, { id: 1, name: "Alice" });
 		});
 
-		it("rolls back a transaction on error", async () => {
+		it("rolls back a transaction on error", async (t: TestContext) => {
+			t.plan(1);
 			try {
 				await connection.transaction(async (trx) => {
 					await trx.run(
@@ -122,10 +134,11 @@ describe("SqliteDatabase", () => {
 			const row = await connection.get(
 				sql`SELECT * FROM test WHERE id = ${"1"};`,
 			);
-			assert.deepStrictEqual(row, undefined);
+			t.assert.deepStrictEqual(row, undefined);
 		});
 
-		it("returns data from a successful transaction", async () => {
+		it("returns data from a successful transaction", async (t: TestContext) => {
+			t.plan(1);
 			const result = await connection.transaction(async (trx) => {
 				await trx.run(sql`INSERT INTO test (name) VALUES (${"test name"})`);
 
@@ -136,10 +149,11 @@ describe("SqliteDatabase", () => {
 				return data;
 			});
 
-			assert.deepStrictEqual(result, { id: 1, name: "test name" });
+			t.assert.deepStrictEqual(result, { id: 1, name: "test name" });
 		});
 
-		it("returns computed result from a transaction", async () => {
+		it("returns computed result from a transaction", async (t: TestContext) => {
+			t.plan(1);
 			const sum = await connection.transaction(async (trx) => {
 				await trx.run(sql`CREATE TABLE numbers (num INTEGER);`);
 				await trx.run(sql`INSERT INTO numbers (num) VALUES (${["5"]})`);
@@ -152,7 +166,7 @@ describe("SqliteDatabase", () => {
 				return rows.reduce((acc, row) => acc + row.num, 0);
 			});
 
-			assert.deepStrictEqual(sum, 15);
+			t.assert.deepStrictEqual(sum, 15);
 		});
 	});
 });

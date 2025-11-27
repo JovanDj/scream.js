@@ -1,5 +1,10 @@
-import assert from "node:assert/strict";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	it,
+	type TestContext,
+} from "node:test";
 import config from "@scream.js/database/knexfile.js";
 import { createLogger } from "@scream.js/logger/logger-factory.js";
 import knex, { type Knex } from "knex";
@@ -34,35 +39,40 @@ describe("TodoService", () => {
 		await db.destroy();
 	});
 
-	it("fetches todos", async () => {
+	it("fetches todos", async (t: TestContext) => {
+		t.plan(1);
 		const todos = await todoService.findAll();
 
-		assert.deepStrictEqual<TodoSchema[]>(todos, []);
+		t.assert.deepStrictEqual<TodoSchema[]>(todos, []);
 	});
 
-	it("inserts a todo", async () => {
+	it("inserts a todo", async (t: TestContext) => {
+		t.plan(3);
 		const todo = await todoService.create({ title: "Test Todo", userId: 1 });
-		assert.ok(todo.id);
-		assert.deepStrictEqual<TodoSchema["title"]>(todo.title, "Test Todo");
-		assert.deepStrictEqual<TodoSchema["userId"]>(todo.userId, 1);
+		t.assert.ok(todo.id);
+		t.assert.deepStrictEqual<TodoSchema["title"]>(todo.title, "Test Todo");
+		t.assert.deepStrictEqual<TodoSchema["userId"]>(todo.userId, 1);
 	});
 
-	it("finds a todo by ID", async () => {
+	it("finds a todo by ID", async (t: TestContext) => {
+		t.plan(1);
 		const created = await todoService.create({ title: "Find Me", userId: 1 });
 		const found = await todoService.findById(created.id);
-		assert.deepStrictEqual<TodoSchema>(found, created);
+		t.assert.deepStrictEqual<TodoSchema>(found, created);
 	});
 
-	it("updates a todo", async () => {
+	it("updates a todo", async (t: TestContext) => {
+		t.plan(2);
 		const created = await todoService.create({ title: "Old Title", userId: 1 });
 		const updated = await todoService.update(created.id, {
 			title: "New Title",
 		});
-		assert.deepStrictEqual<TodoSchema["title"]>(updated.title, "New Title");
-		assert.deepStrictEqual<TodoSchema["userId"]>(updated.userId, 1);
+		t.assert.deepStrictEqual<TodoSchema["title"]>(updated.title, "New Title");
+		t.assert.deepStrictEqual<TodoSchema["userId"]>(updated.userId, 1);
 	});
 
-	it("deletes a todo", async () => {
+	it("deletes a todo", async (t: TestContext) => {
+		t.plan(2);
 		const created = await todoService.create({
 			title: "To Be Deleted",
 			userId: 1,
@@ -70,12 +80,13 @@ describe("TodoService", () => {
 		const result = await todoService.delete(created.id);
 		const todos = await todoService.findAll();
 
-		assert.deepStrictEqual<TodoSchema["userId"]>(result, 1);
-		assert.deepStrictEqual<TodoSchema[]>(todos, []);
+		t.assert.deepStrictEqual<TodoSchema["userId"]>(result, 1);
+		t.assert.deepStrictEqual<TodoSchema[]>(todos, []);
 	});
 
-	it("returns 0 when deleting non-existent todo", async () => {
+	it("returns 0 when deleting non-existent todo", async (t: TestContext) => {
+		t.plan(1);
 		const result = await todoService.delete(9999);
-		assert.deepStrictEqual<number>(result, 0);
+		t.assert.deepStrictEqual<number>(result, 0);
 	});
 });

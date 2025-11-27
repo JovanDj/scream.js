@@ -1,12 +1,12 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it, type TestContext } from "node:test";
 import type { SqlExpression } from "../sql-expression.js";
 import { WhereExpression } from "./where-expression.js";
 
 describe("WhereExpression", () => {
-	it("should form WHERE expression", () => {
+	it("should form WHERE expression", (t: TestContext) => {
+		t.plan(1);
 		const whereExpression: SqlExpression = new WhereExpression("name", "=");
 
-		assert.deepStrictEqual(whereExpression.interpret(), "WHERE name = ?");
+		t.assert.deepStrictEqual(whereExpression.interpret(), "WHERE name = ?");
 	});
 });

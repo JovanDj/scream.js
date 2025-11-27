@@ -1,5 +1,10 @@
-import assert from "node:assert/strict";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	it,
+	type TestContext,
+} from "node:test";
 import type { Connection } from "./connection.js";
 import { Database } from "./database.js";
 import { ScreamQueryBuilder } from "./query-builder/scream-query-builder.js";
@@ -30,19 +35,21 @@ describe("Database Read Queries", () => {
 		await connection.close();
 	});
 
-	it("should find a user by ID", async () => {
+	it("should find a user by ID", async (t: TestContext) => {
+		t.plan(1);
 		const user = await db.one<{ id: number; name: string }>((builder) =>
 			builder.select("*").from("users").where("id", "=", "1"),
 		);
 
-		assert.deepStrictEqual(user, { id: 1, name: "Alice" });
+		t.assert.deepStrictEqual(user, { id: 1, name: "Alice" });
 	});
 
-	it("should return undefined if user does not exist", async () => {
+	it("should return undefined if user does not exist", async (t: TestContext) => {
+		t.plan(1);
 		const user = await db.one<{ id: number; name: string }>((builder) =>
 			builder.select("*").from("users").where("id", "=", "999"),
 		);
 
-		assert.deepStrictEqual(user, undefined);
+		t.assert.deepStrictEqual(user, undefined);
 	});
 });
