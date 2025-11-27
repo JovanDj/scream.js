@@ -24,17 +24,34 @@ export class Parser {
 		return this.#parseTemplate(tokens, 0).ast;
 	}
 
-	#parseTemplate(tokens: readonly Token[], index: number): ParseResult {
+	#parseTemplate(
+		tokens: readonly Token[],
+		index: number,
+		stopTokens: readonly Token["type"][] = [],
+	): ParseResult {
 		if (index >= tokens.length) {
+			if (stopTokens.length > 0) {
+				throw new Error("Unexpected end inside block");
+			}
 			return { ast: [], nextIndex: index };
 		}
 
 		const token = tokens[index];
-		if (token?.type === "endfor" || token?.type === "endblock") {
+		if (!token) {
+			throw new Error("Unknown token");
+		}
+
+		if (stopTokens.includes(token.type)) {
 			return { ast: [], nextIndex: index };
 		}
 
-		if (token?.type === "endif" || token?.type === "else") {
+		if (
+			stopTokens.length === 0 &&
+			(token.type === "endif" ||
+				token.type === "else" ||
+				token.type === "endfor" ||
+				token.type === "endblock")
+		) {
 			throw new Error(`Unexpected token: ${token.type}`);
 		}
 
@@ -42,6 +59,7 @@ export class Parser {
 		const { ast: restNodes, nextIndex: finalIndex } = this.#parseTemplate(
 			tokens,
 			nextIndex,
+			stopTokens,
 		);
 
 		return { ast: [node, ...restNodes], nextIndex: finalIndex };
@@ -139,7 +157,14 @@ export class Parser {
 		if (!startToken || startToken.type !== "block") {
 			throw new Error("Missing start token for block");
 		}
-		const { ast: children, nextIndex } = this.#parseTemplate(tokens, index + 1);
+		const { ast: children, nextIndex } = this.#parseTemplate(
+			tokens,
+			index + 1,
+			["endblock"],
+		);
+		if (tokens[nextIndex]?.type !== "endblock") {
+			throw new Error("Missing endblock for block");
+		}
 		return {
 			nextIndex: nextIndex + 1,
 			node: { children, type: "block", value: startToken.name },
@@ -153,14 +178,11 @@ export class Parser {
 			throw new Error("Invalid if token");
 		}
 
-		const thenRes = this.#parseTemplateUntil(tokens, index + 1, [
-			"else",
-			"endif",
-		]);
+		const thenRes = this.#parseTemplate(tokens, index + 1, ["else", "endif"]);
 		const next = tokens[thenRes.nextIndex];
 
 		if (next?.type === "else") {
-			const elseRes = this.#parseTemplateUntil(tokens, thenRes.nextIndex + 1, [
+			const elseRes = this.#parseTemplate(tokens, thenRes.nextIndex + 1, [
 				"endif",
 			]);
 			if (tokens[elseRes.nextIndex]?.type !== "endif") {
@@ -196,8 +218,16 @@ export class Parser {
 		}
 
 		this.#loopStack.push(startToken.iterator);
-		const { ast: children, nextIndex } = this.#parseTemplate(tokens, index + 1);
+		const { ast: children, nextIndex } = this.#parseTemplate(
+			tokens,
+			index + 1,
+			["endfor"],
+		);
 		this.#loopStack.pop();
+
+		if (tokens[nextIndex]?.type !== "endfor") {
+			throw new Error("Missing endfor for loop");
+		}
 
 		return {
 			nextIndex: nextIndex + 1,
@@ -208,34 +238,5 @@ export class Parser {
 				value: startToken.collection,
 			},
 		};
-	}
-
-	#parseTemplateUntil(
-		tokens: readonly Token[],
-		index: number,
-		endTypes: string[],
-	): ParseResult {
-		if (index >= tokens.length) {
-			throw new Error("Unexpected end inside block");
-		}
-
-		const token = tokens[index];
-
-		if (!token) {
-			throw new Error("Unknown token");
-		}
-
-		if (endTypes.includes(token.type)) {
-			return { ast: [], nextIndex: index };
-		}
-
-		const { node, nextIndex } = this.#parseNextNode(tokens, index);
-		const { ast: rest, nextIndex: finalIndex } = this.#parseTemplateUntil(
-			tokens,
-			nextIndex,
-			endTypes,
-		);
-
-		return { ast: [node, ...rest], nextIndex: finalIndex };
 	}
 }

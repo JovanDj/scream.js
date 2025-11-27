@@ -512,6 +512,16 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				assert.deepStrictEqual<string>(result, "No name");
 			});
 		});
+
+		it("should handle interleaved text, conditionals, and loops", () => {
+			const template =
+				"A {% if x %} B {% for y in ys %} C {% endfor %} D {% endif %} E";
+			const context = { x: true, ys: ["item"] };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual<string>(result, "A B  C  D E");
+		});
 	});
 
 	describe("Iterations", () => {
@@ -533,7 +543,20 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			assert.deepStrictEqual<string>(result, "");
 		});
 
-		it("should support nested loops");
+		it("should support nested loops", () => {
+			const template =
+				"{% for user in users %}{% for task in user.tasks %}{{ user.name }}-{{ task }};{% endfor %}{% endfor %}";
+			const context = {
+				users: [
+					{ name: "Alice", tasks: ["t1", "t2"] },
+					{ name: "Bob", tasks: ["t3"] },
+				],
+			};
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual<string>(result, "Alice-t1;Alice-t2;Bob-t3;");
+		});
 
 		it("should render nothing for non-array collections", () => {
 			const template = "{% for item in items %} {{ item }} {% endfor %}";
@@ -555,12 +578,32 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			assert.deepStrictEqual<string>(result, "");
 		});
 
+		it("should allow iterator shadowing without leaking outer values", () => {
+			const template =
+				"{% for item in outer %}[{% for item in inner %}{{ item }}, {% endfor %}|{{ item }}]{% endfor %}";
+			const context = { inner: ["i1", "i2"], outer: ["o1", "o2"] };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual<string>(result, "[i1, i2, |o1][i1, i2, |o2]");
+		});
+
+		it("should preserve existing context after loops complete", () => {
+			const template =
+				"{% for item in items %}{{ item }}{% endfor %}{{ item }}";
+			const context = { item: "outer", items: ["X", "Y"] };
+
+			const result = templateEngine.compile(template, context);
+
+			assert.deepStrictEqual<string>(result, "XYouter");
+		});
+
 		it("should support dot notation in collection reference", () => {
 			const template =
 				"{% for item in user.items %}{{ item.name }} {% endfor %}";
 			const context = { user: { items: [{ name: "A" }, { name: "B" }] } };
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result.trim(), "A B");
+			assert.deepStrictEqual<string>(result, "A B ");
 		});
 
 		it("should render nothing if dot-notated collection is undefined", () => {
@@ -594,7 +637,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			};
 
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result.trim(), "Alpha Beta Gamma");
+			assert.deepStrictEqual<string>(result, "Alpha Beta Gamma ");
 		});
 
 		it("should iterate over a collection and handle nested properties", () => {
@@ -609,7 +652,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			};
 
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result.trim(), "X Y Z");
+			assert.deepStrictEqual<string>(result, "X Y Z ");
 		});
 
 		it("should not leak iterator variable outside the for loop", () => {
@@ -618,7 +661,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const context = { items: ["One"] };
 
 			const result = templateEngine.compile(template, context);
-			assert.deepStrictEqual<string>(result.trim(), "One");
+			assert.deepStrictEqual<string>(result, "One ");
 		});
 	});
 
@@ -673,18 +716,12 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should support nested layouts and override hierarchy", () => {
 			fileLoader.setTemplate(
 				"base.html",
-				`
-				<header>{% block header %}Base Header{% endblock header %}</header>
-				<main>{% block content %}Base Content{% endblock content %}</main>
-				<footer>{% block footer %}Base Footer{% endblock footer %}</footer>
-    			`,
+				`<header>{% block header %}Base Header{% endblock header %}</header><main>{% block content %}Base Content{% endblock content %}</main><footer>{% block footer %}Base Footer{% endblock footer %}</footer>`,
 			);
 
 			fileLoader.setTemplate(
 				"parent.html",
-				`{% extends "base.html" %}
-				{% block header %}Parent Header{% endblock header %}
-				{% block content %}Parent Content{% endblock content %}`,
+				`{% extends "base.html" %}{% block header %}Parent Header{% endblock header %}{% block content %}Parent Content{% endblock content %}`,
 			);
 
 			const childTemplate = `{% extends "parent.html" %}{% block content %}Child Content{% endblock content %}`;
@@ -692,8 +729,8 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const result = templateEngine.compile(childTemplate, {});
 
 			assert.deepStrictEqual<string>(
-				result.trim().replace(/\s+/g, " "),
-				"<header>Parent Header</header> <main>Child Content</main> <footer>Base Footer</footer>",
+				result,
+				"<header>Parent Header</header><main>Child Content</main><footer>Base Footer</footer>",
 			);
 		});
 
@@ -713,16 +750,13 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const childTemplate = `{% extends "level2.html" %}{% block content %}Level3{% endblock content %}`;
 
 			const result = templateEngine.compile(childTemplate, {});
-			assert.deepStrictEqual<string>(result.trim(), "<main>Level3</main>");
+			assert.deepStrictEqual<string>(result, "<main>Level3</main>");
 		});
 
 		it("should combine parent and child block overrides correctly", () => {
 			fileLoader.setTemplate(
 				"base.html",
-				`
-    <header>{% block header %}Base Header{% endblock header %}</header>
-    <main>{% block content %}Base Content{% endblock content %}</main>
-  `,
+				`<header>{% block header %}Base Header{% endblock header %}</header><main>{% block content %}Base Content{% endblock content %}</main>`,
 			);
 			fileLoader.setTemplate(
 				"parent.html",
@@ -732,18 +766,15 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.compile(childTemplate, {});
 			assert.deepStrictEqual<string>(
-				result.trim().replace(/\s+/g, " "),
-				"<header>Parent Header</header> <main>Child Content</main>",
+				result,
+				"<header>Parent Header</header><main>Child Content</main>",
 			);
 		});
 
 		it("should combine parent and child block overrides correctly with compile()", () => {
 			fileLoader.setTemplate(
 				"base.html",
-				`
-<header>{% block header %}Base Header{% endblock header %}</header>
-<main>{% block content %}Base Content{% endblock content %}</main>
-`,
+				`<header>{% block header %}Base Header{% endblock header %}</header><main>{% block content %}Base Content{% endblock content %}</main>`,
 			);
 
 			fileLoader.setTemplate(
@@ -756,8 +787,8 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const result = templateEngine.compile(childTemplate, {});
 
 			assert.deepStrictEqual<string>(
-				result.trim().replace(/\s+/g, " "),
-				"<header>Parent Header</header> <main>Child Content</main>",
+				result,
+				"<header>Parent Header</header><main>Child Content</main>",
 			);
 		});
 

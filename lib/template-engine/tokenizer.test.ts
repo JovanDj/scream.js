@@ -216,7 +216,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			assert.deepStrictEqual<Token[]>(tokens, [
 				{ name: "content", type: "block" },
 				{ type: "text", value: "Hello" },
-				{ name: "", type: "endblock" },
+				{ type: "endblock" },
 			]);
 		});
 
@@ -226,7 +226,7 @@ describe("Tokenizer", { concurrency: true }, () => {
 			assert.deepStrictEqual<Token[]>(tokens, [
 				{ name: "content", type: "block" },
 				{ type: "text", value: "Hello" },
-				{ name: "content", type: "endblock" },
+				{ type: "endblock" },
 			]);
 		});
 	});
