@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it, type TestContext } from "node:test";
 
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
 import { type ASTNode, Parser } from "./parser.js";
@@ -22,16 +21,18 @@ describe("Resolver", { concurrency: true }, () => {
 		resolver = new Resolver(fileLoader, tokenizer, parser, transformer);
 	});
 
-	it("resolves a template without inheritance", () => {
+	it("resolves a template without inheritance", (t: TestContext) => {
+		t.plan(1);
 		const template = "<h1>Hello</h1>";
 		const ast = resolver.resolve(template);
 
-		assert.deepStrictEqual<ASTNode[]>(ast, [
+		t.assert.deepStrictEqual<ASTNode[]>(ast, [
 			{ type: "text", value: "<h1>Hello</h1>" },
 		]);
 	});
 
-	it("resolves a template with single-level inheritance and full block override", () => {
+	it("resolves a template with single-level inheritance and full block override", (t: TestContext) => {
+		t.plan(1);
 		fileLoader.setTemplate(
 			"layout.html",
 			`
@@ -45,7 +46,7 @@ describe("Resolver", { concurrency: true }, () => {
 
 		const ast = resolver.resolve(template);
 
-		assert.deepStrictEqual<ASTNode[]>(ast, [
+		t.assert.deepStrictEqual<ASTNode[]>(ast, [
 			{
 				type: "text",
 				value: "\n        <header>",
@@ -81,7 +82,8 @@ describe("Resolver", { concurrency: true }, () => {
 		]);
 	});
 
-	it("resolves nested inheritance with partial block override", () => {
+	it("resolves nested inheritance with partial block override", (t: TestContext) => {
+		t.plan(1);
 		fileLoader.setTemplate(
 			"base.html",
 			`
@@ -100,7 +102,7 @@ describe("Resolver", { concurrency: true }, () => {
 
 		const ast = resolver.resolve(template);
 
-		assert.deepStrictEqual<ASTNode[]>(ast, [
+		t.assert.deepStrictEqual<ASTNode[]>(ast, [
 			{
 				type: "text",
 				value: "\n        <header>",
@@ -123,7 +125,8 @@ describe("Resolver", { concurrency: true }, () => {
 		]);
 	});
 
-	it("preserves default block content when not overridden", () => {
+	it("preserves default block content when not overridden", (t: TestContext) => {
+		t.plan(1);
 		fileLoader.setTemplate(
 			"layout.html",
 			`
@@ -134,7 +137,7 @@ describe("Resolver", { concurrency: true }, () => {
 
 		const ast = resolver.resolve(template);
 
-		assert.deepStrictEqual<ASTNode[]>(ast, [
+		t.assert.deepStrictEqual<ASTNode[]>(ast, [
 			{ type: "text", value: "\n        <nav>" },
 			{
 				children: [{ type: "text", value: "Default Nav" }],
@@ -145,11 +148,12 @@ describe("Resolver", { concurrency: true }, () => {
 		]);
 	});
 
-	it("throws on cyclic inheritance", () => {
+	it("throws on cyclic inheritance", (t: TestContext) => {
+		t.plan(1);
 		fileLoader.setTemplate("a.html", `{% extends "b.html" %}`);
 		fileLoader.setTemplate("b.html", `{% extends "a.html" %}`);
 
-		assert.throws(
+		t.assert.throws(
 			() => resolver.resolve(`{% extends "a.html" %}`),
 			/ cyclic extends /i,
 		);

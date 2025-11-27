@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
+import { beforeEach, describe, it, type TestContext } from "node:test";
 import type { ASTNode } from "./parser.js";
 import { Transformer } from "./transformer.js";
 
@@ -11,7 +10,8 @@ describe("Transformer", { concurrency: true }, () => {
 	});
 
 	describe("block overrides", () => {
-		it("replaces blocks in the parent template with child content", () => {
+		it("replaces blocks in the parent template with child content", (t: TestContext) => {
+			t.plan(1);
 			const parentAST: ASTNode[] = [
 				{ children: [], type: "text", value: "<main>" },
 				{
@@ -32,7 +32,7 @@ describe("Transformer", { concurrency: true }, () => {
 
 			const result = transformer.transform(parentAST, childAST);
 
-			assert.deepStrictEqual<ASTNode[]>(result, [
+			t.assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "text", value: "<main>" },
 				{
 					children: [{ children: [], type: "text", value: "Child Content" }],
@@ -43,7 +43,8 @@ describe("Transformer", { concurrency: true }, () => {
 			]);
 		});
 
-		it("retains default block content if no overrides are provided", () => {
+		it("retains default block content if no overrides are provided", (t: TestContext) => {
+			t.plan(1);
 			const parentAST: ASTNode[] = [
 				{
 					children: [{ children: [], type: "text", value: "Default" }],
@@ -54,10 +55,11 @@ describe("Transformer", { concurrency: true }, () => {
 
 			const result = transformer.transform(parentAST, []);
 
-			assert.deepStrictEqual<ASTNode[]>(result, parentAST);
+			t.assert.deepStrictEqual<ASTNode[]>(result, parentAST);
 		});
 
-		it("uses only the first matching block from child AST", () => {
+		it("uses only the first matching block from child AST", (t: TestContext) => {
+			t.plan(1);
 			const parentAST: ASTNode[] = [
 				{
 					children: [{ children: [], type: "text", value: "Default" }],
@@ -89,12 +91,13 @@ describe("Transformer", { concurrency: true }, () => {
 				},
 			];
 
-			assert.deepStrictEqual<ASTNode[]>(result, expectedAST);
+			t.assert.deepStrictEqual<ASTNode[]>(result, expectedAST);
 		});
 	});
 
 	describe("simplification", () => {
-		it("collapses adjacent text nodes", () => {
+		it("collapses adjacent text nodes", (t: TestContext) => {
+			t.plan(1);
 			const ast: ASTNode[] = [
 				{ children: [], type: "text", value: "Hello" },
 				{ children: [], type: "text", value: " " },
@@ -103,12 +106,13 @@ describe("Transformer", { concurrency: true }, () => {
 
 			const result = transformer.transform(ast, []);
 
-			assert.deepStrictEqual<ASTNode[]>(result, [
+			t.assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "text", value: "Hello World" },
 			]);
 		});
 
-		it("drops empty if nodes", () => {
+		it("drops empty if nodes", (t: TestContext) => {
+			t.plan(1);
 			const ast: ASTNode[] = [
 				{ children: [], type: "if", value: "cond" },
 				{ children: [], type: "text", value: "Keep" },
@@ -116,12 +120,13 @@ describe("Transformer", { concurrency: true }, () => {
 
 			const result = transformer.transform(ast, []);
 
-			assert.deepStrictEqual<ASTNode[]>(result, [
+			t.assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "text", value: "Keep" },
 			]);
 		});
 
-		it("preserves empty block nodes", () => {
+		it("preserves empty block nodes", (t: TestContext) => {
+			t.plan(1);
 			const ast: ASTNode[] = [
 				{ children: [], type: "block", value: "content" },
 				{ children: [], type: "text", value: "After" },
@@ -129,13 +134,14 @@ describe("Transformer", { concurrency: true }, () => {
 
 			const result = transformer.transform(ast, []);
 
-			assert.deepStrictEqual<ASTNode[]>(result, [
+			t.assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "block", value: "content" },
 				{ children: [], type: "text", value: "After" },
 			]);
 		});
 
-		it("simplifies recursively inside blocks", () => {
+		it("simplifies recursively inside blocks", (t: TestContext) => {
+			t.plan(1);
 			const ast: ASTNode[] = [
 				{
 					children: [
@@ -149,7 +155,7 @@ describe("Transformer", { concurrency: true }, () => {
 
 			const result = transformer.transform(ast, []);
 
-			assert.deepStrictEqual<ASTNode[]>(result, [
+			t.assert.deepStrictEqual<ASTNode[]>(result, [
 				{
 					children: [{ children: [], type: "text", value: "FooBar" }],
 					type: "block",
@@ -158,16 +164,18 @@ describe("Transformer", { concurrency: true }, () => {
 			]);
 		});
 
-		it("preserves identity of untouched non-block nodes", () => {
+		it("preserves identity of untouched non-block nodes", (t: TestContext) => {
+			t.plan(1);
 			const textNode: ASTNode = { children: [], type: "text", value: "Hello" };
 			const ast: ASTNode[] = [textNode];
 
 			const result = transformer.transform(ast, []);
 
-			assert.deepStrictEqual<ASTNode[]>(result, [textNode]);
+			t.assert.deepStrictEqual<ASTNode[]>(result, [textNode]);
 		});
 
-		it("normalizes whitespace inside text nodes", () => {
+		it("normalizes whitespace inside text nodes", (t: TestContext) => {
+			t.plan(1);
 			const ast: ASTNode[] = [
 				{ children: [], type: "text", value: "Hello   " },
 				{ children: [], type: "text", value: "   World" },
@@ -175,12 +183,13 @@ describe("Transformer", { concurrency: true }, () => {
 
 			const result = transformer.transform(ast, []);
 
-			assert.deepStrictEqual<ASTNode[]>(result, [
+			t.assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "text", value: "Hello World" },
 			]);
 		});
 
-		it("drops empty text nodes", () => {
+		it("drops empty text nodes", (t: TestContext) => {
+			t.plan(1);
 			const ast: ASTNode[] = [
 				{ children: [], type: "text", value: "" },
 				{ children: [], type: "text", value: "Hello" },
@@ -188,12 +197,13 @@ describe("Transformer", { concurrency: true }, () => {
 
 			const result = transformer.transform(ast, []);
 
-			assert.deepStrictEqual<ASTNode[]>(result, [
+			t.assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "text", value: "Hello" },
 			]);
 		});
 
-		it("collapses empty if with alternate into alternate branch", () => {
+		it("collapses empty if with alternate into alternate branch", (t: TestContext) => {
+			t.plan(1);
 			const ast: ASTNode[] = [
 				{
 					alternate: [{ children: [], type: "text", value: "Fallback" }],
@@ -205,12 +215,13 @@ describe("Transformer", { concurrency: true }, () => {
 
 			const result = transformer.transform(ast, []);
 
-			assert.deepStrictEqual<ASTNode[]>(result, [
+			t.assert.deepStrictEqual<ASTNode[]>(result, [
 				{ children: [], type: "text", value: "Fallback" },
 			]);
 		});
 
-		it("sorts child blocks deterministically by name", () => {
+		it("sorts child blocks deterministically by name", (t: TestContext) => {
+			t.plan(1);
 			const parentAST: ASTNode[] = [
 				{
 					children: [{ children: [], type: "text", value: "Default Header" }],
@@ -252,10 +263,11 @@ describe("Transformer", { concurrency: true }, () => {
 				},
 			];
 
-			assert.deepStrictEqual(result, expectedAST);
+			t.assert.deepStrictEqual(result, expectedAST);
 		});
 
-		it("produces same AST regardless of child block order", () => {
+		it("produces same AST regardless of child block order", (t: TestContext) => {
+			t.plan(1);
 			const parentAST: ASTNode[] = [
 				{
 					children: [{ children: [], type: "text", value: "Default" }],
@@ -293,9 +305,10 @@ describe("Transformer", { concurrency: true }, () => {
 			const result1 = transformer.transform(parentAST, childAST1);
 			const result2 = transformer.transform(parentAST, childAST2);
 
-			assert.deepStrictEqual(result1, result2);
+			t.assert.deepStrictEqual(result1, result2);
 		});
-		it("sorts child blocks deterministically by name", () => {
+		it("sorts child blocks deterministically by name", (t: TestContext) => {
+			t.plan(1);
 			const parentAST: ASTNode[] = [
 				{
 					children: [{ children: [], type: "text", value: "Default Header" }],
@@ -337,10 +350,11 @@ describe("Transformer", { concurrency: true }, () => {
 				},
 			];
 
-			assert.deepStrictEqual<ASTNode[]>(result, expectedAST);
+			t.assert.deepStrictEqual<ASTNode[]>(result, expectedAST);
 		});
 
-		it("produces same AST regardless of child block order", () => {
+		it("produces same AST regardless of child block order", (t: TestContext) => {
+			t.plan(1);
 			const parentAST: ASTNode[] = [
 				{
 					children: [{ children: [], type: "text", value: "Default" }],
@@ -378,7 +392,7 @@ describe("Transformer", { concurrency: true }, () => {
 			const result1 = transformer.transform(parentAST, childAST1);
 			const result2 = transformer.transform(parentAST, childAST2);
 
-			assert.deepStrictEqual<readonly ASTNode[]>(result1, result2);
+			t.assert.deepStrictEqual<readonly ASTNode[]>(result1, result2);
 		});
 	});
 });
