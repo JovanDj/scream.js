@@ -1,4 +1,5 @@
 import { beforeEach, describe, it, type TestContext } from "node:test";
+import type { TemplateContext } from "./context.js";
 import { Evaluator } from "./evaluator.js";
 import type { ASTNode } from "./parser.js";
 
@@ -15,7 +16,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "user.name" },
 			];
-			const context = { user: { name: "John" } };
+			const context: TemplateContext = { user: { name: "John" } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -28,7 +29,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "user.age" },
 			];
-			const context = { user: { name: "John" } };
+			const context: TemplateContext = { user: { name: "John" } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -41,7 +42,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "user.symbol" },
 			];
-			const context = { user: { symbol: Symbol("test") } };
+			const context: TemplateContext = { user: { symbol: Symbol("test") } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -54,7 +55,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "user.greet" },
 			];
-			const context = { user: { greet: () => "Hello" } };
+			const context: TemplateContext = { user: { greet: () => "Hello" } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -67,7 +68,9 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "errors.title[0]" },
 			];
-			const context = { errors: { title: ["First error", "Second error"] } };
+			const context: TemplateContext = {
+				errors: { title: ["First error", "Second error"] },
+			};
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -80,7 +83,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "errors.title[99]" },
 			];
-			const context = { errors: { title: ["Only error"] } };
+			const context: TemplateContext = { errors: { title: ["Only error"] } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -93,7 +96,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "errors.title[0]" },
 			];
-			const context = { errors: { title: "Not an array" } };
+			const context: TemplateContext = { errors: { title: "Not an array" } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -106,7 +109,9 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "errors.title" },
 			];
-			const context = { errors: { title: ["First", "Second"] } };
+			const context: TemplateContext = {
+				errors: { title: ["First", "Second"] },
+			};
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -121,7 +126,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "xss" },
 			];
-			const context = { xss: "<script>alert('x')</script>" };
+			const context: TemplateContext = { xss: "<script>alert('x')</script>" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -136,7 +141,7 @@ describe("Evaluator", { concurrency: true }, () => {
 		it("should not escape already escaped values", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [{ type: "variable", value: "safe" }];
-			const context = { safe: "&lt;div&gt;" };
+			const context: TemplateContext = { safe: "&lt;div&gt;" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -149,7 +154,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "val" },
 			];
-			const context = { val: "Fish & Chips" };
+			const context: TemplateContext = { val: "Fish & Chips" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -162,7 +167,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "val" },
 			];
-			const context = { val: "<tag>content</tag>" };
+			const context: TemplateContext = { val: "<tag>content</tag>" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -179,7 +184,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "quote" },
 			];
-			const context = { quote: `"O'Reilly"` };
+			const context: TemplateContext = { quote: `"O'Reilly"` };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -196,7 +201,9 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "combo" },
 			];
-			const context = { combo: `<a href="x">O'Reilly & Friends</a>` };
+			const context: TemplateContext = {
+				combo: `<a href="x">O'Reilly & Friends</a>`,
+			};
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -214,7 +221,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "val" },
 			];
-			const context = { val: "&lt;safe&gt;<unsafe>" };
+			const context: TemplateContext = { val: "&lt;safe&gt;<unsafe>" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -239,7 +246,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context = { show: true };
+			const context: TemplateContext = { show: true };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -263,7 +270,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context = { show: false };
+			const context: TemplateContext = { show: false };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -287,7 +294,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context = {};
+			const context: TemplateContext = {};
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -311,7 +318,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context = { user: { loggedIn: true } };
+			const context: TemplateContext = { user: { loggedIn: true } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -334,7 +341,7 @@ describe("Evaluator", { concurrency: true }, () => {
 					value: "zero",
 				},
 			];
-			const context = { zero: 0 };
+			const context: TemplateContext = { zero: 0 };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -357,7 +364,7 @@ describe("Evaluator", { concurrency: true }, () => {
 					value: "empty",
 				},
 			];
-			const context = { empty: "" };
+			const context: TemplateContext = { empty: "" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -380,7 +387,7 @@ describe("Evaluator", { concurrency: true }, () => {
 					value: "nil",
 				},
 			];
-			const context = { nil: null };
+			const context: TemplateContext = { nil: null };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -403,7 +410,7 @@ describe("Evaluator", { concurrency: true }, () => {
 					value: "missing",
 				},
 			];
-			const context = {};
+			const context: TemplateContext = {};
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -429,7 +436,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context = { items: ["A", "B"] };
+			const context: TemplateContext = { items: ["A", "B"] };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.ok(result[0]?.children);
@@ -450,7 +457,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context = { user: { favorites: ["Red", "Blue"] } };
+			const context: TemplateContext = { user: { favorites: ["Red", "Blue"] } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.ok(result[0]?.children);
@@ -471,7 +478,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context = { user: { favorites: null } };
+			const context: TemplateContext = { user: { favorites: null } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result[0]?.children, []);
@@ -487,7 +494,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context = { items: ["X"] };
+			const context: TemplateContext = { items: ["X"] };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result[0]?.children, []);
@@ -504,7 +511,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context = {
+			const context: TemplateContext = {
 				items: [{ name: "Alpha" }, { name: "Beta" }],
 			};
 
@@ -527,7 +534,7 @@ describe("Evaluator", { concurrency: true }, () => {
 					value: "items",
 				},
 			];
-			const context = { items: ["A", "B"] };
+			const context: TemplateContext = { items: ["A", "B"] };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -553,7 +560,9 @@ describe("Evaluator", { concurrency: true }, () => {
 					value: "items",
 				},
 			];
-			const context = { items: [{ name: "Alpha" }, { name: "Beta" }] };
+			const context: TemplateContext = {
+				items: [{ name: "Alpha" }, { name: "Beta" }],
+			};
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -585,7 +594,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context = { name: "Alice" };
+			const context: TemplateContext = { name: "Alice" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.ok(result[0]?.children);
@@ -619,7 +628,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context = { siteName: "test" };
+			const context: TemplateContext = { siteName: "test" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<string>(result[0]?.type, "block");
@@ -636,7 +645,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "emptyStr" },
 			];
-			const context = { emptyStr: "" };
+			const context: TemplateContext = { emptyStr: "" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -649,7 +658,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "user.null" },
 			];
-			const context = { user: { null: null } };
+			const context: TemplateContext = { user: { null: null } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -662,7 +671,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "missingKey" },
 			];
-			const context = {};
+			const context: TemplateContext = {};
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [

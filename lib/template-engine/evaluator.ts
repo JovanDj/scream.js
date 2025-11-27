@@ -1,11 +1,12 @@
+import type { TemplateContext } from "./context.js";
 import type { ASTNode } from "./parser.js";
 
 export class Evaluator {
-	evaluate(ast: readonly ASTNode[], context: Record<string, unknown>) {
+	evaluate(ast: readonly ASTNode[], context: TemplateContext) {
 		return ast.map((node) => this.#evaluateNode(node, context));
 	}
 
-	#evaluateNode(node: ASTNode, context: Record<string, unknown>) {
+	#evaluateNode(node: ASTNode, context: TemplateContext) {
 		switch (node.type) {
 			case "text":
 			case "extends":
@@ -60,7 +61,7 @@ export class Evaluator {
 		}, root);
 	}
 
-	#evaluateVariable(node: ASTNode, context: Record<string, unknown>) {
+	#evaluateVariable(node: ASTNode, context: TemplateContext) {
 		const path = this.#getPathFromNode(node);
 		const raw = this.#resolvePath(context, path);
 
@@ -108,7 +109,7 @@ export class Evaluator {
 		});
 	}
 
-	#evaluateIf(node: ASTNode, context: Record<string, unknown>): ASTNode {
+	#evaluateIf(node: ASTNode, context: TemplateContext): ASTNode {
 		const path = (node.value ?? "")
 			.split(".")
 			.map((s) => s.trim())
@@ -133,7 +134,7 @@ export class Evaluator {
 		};
 	}
 
-	#evaluateFor(node: ASTNode, context: Record<string, unknown>): ASTNode {
+	#evaluateFor(node: ASTNode, context: TemplateContext): ASTNode {
 		const path = (node.value ?? "")
 			.split(".")
 			.map((s) => s.trim())
@@ -159,7 +160,7 @@ export class Evaluator {
 		};
 	}
 
-	#evaluateBlock(node: ASTNode, context: Record<string, unknown>): ASTNode {
+	#evaluateBlock(node: ASTNode, context: TemplateContext): ASTNode {
 		return {
 			...node,
 			children: (node.children ?? []).map((child) =>

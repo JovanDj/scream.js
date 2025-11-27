@@ -30,7 +30,9 @@ export const createExpressApp: () => Application = () => {
 
 	app.engine("njk", async (filePath, options, callback) => {
 		try {
-			const rendered = await templateEngine.compileFile(filePath, options);
+			const rendered = await templateEngine.compileFile(filePath, {
+				...options,
+			});
 			callback(null, rendered);
 		} catch (err) {
 			callback(err);
