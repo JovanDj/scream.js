@@ -1,8 +1,12 @@
 import knex from "knex";
 import config from "./knexfile.ts";
 
-const env = process.env["NODE_ENV"] ?? "development";
-export const db = knex(config[env] ?? "");
+export const createDB = () => {
+	const env = process.env["NODE_ENV"] ?? "development";
+	return knex(config[env] ?? "");
+};
+
+export const db = createDB();
 
 export const setupDb = async () => {
 	await db.migrate.latest();

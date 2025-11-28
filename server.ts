@@ -1,7 +1,7 @@
 import "source-map-support/register";
 import { logger } from "./config/logger.js";
-import { app } from "./main.js";
+import { createApp } from "./main.js";
 
-export const server = app.listen(3000, () => {
+createApp().app.listen(3000, () => {
 	logger.log("Listening on port 3000");
 });
