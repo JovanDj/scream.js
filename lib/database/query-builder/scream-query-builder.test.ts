@@ -1,27 +1,24 @@
-import { beforeEach, describe, it, type TestContext } from "node:test";
+import { describe, it, type TestContext } from "node:test";
 import { ScreamQueryBuilder } from "./scream-query-builder.js";
 
 describe("ScreamQueryBuilder", { concurrency: true }, () => {
-	let builder: ScreamQueryBuilder;
-
-	beforeEach(() => {
-		builder = new ScreamQueryBuilder();
-	});
-
 	it("should build a SELECT query", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder.select("1 + 1").build();
 		t.assert.deepStrictEqual(query, { params: [], sql: "SELECT 1 + 1" });
 	});
 
 	it("should build a SELECT query with FROM clause", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder.select("*").from("users").build();
 		t.assert.deepStrictEqual(query, { params: [], sql: "SELECT * FROM users" });
 	});
 
 	it("should build a SELECT query with WHERE clause", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder
 			.select("*")
 			.from("users")
@@ -36,6 +33,7 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should build a SELECT query with ORDER BY clause", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder
 			.select("*")
 			.from("users")
@@ -50,6 +48,7 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should build a SELECT query with GROUP BY clause", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder.select("*").from("users").groupBy("age").build();
 
 		t.assert.deepStrictEqual(query, {
@@ -60,6 +59,7 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should build a SELECT query with HAVING clause", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder
 			.select("*")
 			.from("users")
@@ -75,6 +75,7 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should build a SELECT query with LIMIT clause", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder.select("*").from("users").limit(10).build();
 
 		t.assert.deepStrictEqual(query, {
@@ -85,6 +86,7 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should build a SELECT query with OFFSET clause", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder.select("*").from("users").limit(10).offset(5).build();
 
 		t.assert.deepStrictEqual(query, {
@@ -95,6 +97,7 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should build a SELECT query with JOIN clause", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder
 			.select("*")
 			.from("users")
@@ -109,6 +112,7 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should build an INSERT query", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder.insert("users", { id: 1, name: "Alice" }).build();
 
 		t.assert.deepStrictEqual(query, {
@@ -119,6 +123,7 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should build an UPDATE query", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder.update("users", { age: 30, name: "Alice" }).build();
 
 		t.assert.deepStrictEqual(query, {
@@ -129,6 +134,7 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should build a DELETE query", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder.delete("users").build();
 
 		t.assert.deepStrictEqual(query, { params: [], sql: "DELETE FROM users" });
@@ -136,6 +142,7 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should build a complex query with multiple clauses", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder
 			.select("*")
 			.from("users")
@@ -156,12 +163,14 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should handle empty string in SELECT fields", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder.select("").from("users").build();
 		t.assert.deepStrictEqual(query, { params: [], sql: "SELECT  FROM users" });
 	});
 
 	it("should handle special characters in table and column names", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder.select("name, age").from("user's_data").build();
 
 		t.assert.deepStrictEqual(query, {
@@ -172,6 +181,7 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should handle SQL keywords in table and column names", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder.select("select, from").from("table").build();
 
 		t.assert.deepStrictEqual(query, {
@@ -182,6 +192,7 @@ describe("ScreamQueryBuilder", { concurrency: true }, () => {
 
 	it("should preserve params across join", (t: TestContext) => {
 		t.plan(1);
+		const builder = new ScreamQueryBuilder();
 		const query = builder
 			.select("*")
 			.from("users")

@@ -1,17 +1,22 @@
-import type { Application } from "@scream.js/http/application.js";
-
+import { createDB } from "@scream.js/database/db.js";
 import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
-import { todoController } from "./src/todos/index.js";
+import { createTodoModule } from "./src/todos/index.js";
 
-export const app: Application = createExpressApp();
+export const createApp = () => {
+	const app = createExpressApp();
+	const db = createDB();
+	const { todoController } = createTodoModule(db);
 
-app.get("/", (ctx) =>
-	ctx.render("index", {
-		message: "Rendered with nunjucks",
-		name: "Jovan",
-	}),
-);
+	app.get("/", (ctx) =>
+		ctx.render("index", {
+			message: "Rendered with nunjucks",
+			name: "Jovan",
+		}),
+	);
 
-app.get("/about", (ctx) => ctx.render("about"));
+	app.get("/about", (ctx) => ctx.render("about"));
 
-app.resource("/todos", todoController);
+	app.resource("/todos", todoController);
+
+	return { app, db };
+};

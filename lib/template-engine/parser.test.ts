@@ -697,7 +697,14 @@ describe("Parser", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<ASTNode[]>(ast, []);
 		});
 
-		it.todo("should handle template with only whitespace text");
+		it("should handle template with only whitespace text", (t: TestContext) => {
+			t.plan(1);
+			const tokens: Token[] = [{ type: "text", value: "   \n\t  " }];
+			const ast = parser.parse(tokens);
+			t.assert.deepStrictEqual<ASTNode[]>(ast, [
+				{ type: "text", value: "   \n\t  " },
+			]);
+		});
 
 		it("should parse a complex nested template", (t: TestContext) => {
 			t.plan(1);
