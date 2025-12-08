@@ -1,4 +1,4 @@
-import knex from "knex";
+import knex, { type Knex } from "knex";
 import config from "./knexfile.ts";
 
 export const createDB = () => {
@@ -6,14 +6,13 @@ export const createDB = () => {
 	return knex(config[env] ?? "");
 };
 
-export const db = createDB();
-
-export const setupDb = async () => {
+export const setupDb = async (db: Knex) => {
 	await db.migrate.latest();
 	await db.seed.run();
+	await db.destroy();
 };
 
-export const teardownDb = async () => {
+export const teardownDb = async (db: Knex) => {
 	await db.migrate.rollback(undefined, true);
 	await db.destroy();
 };

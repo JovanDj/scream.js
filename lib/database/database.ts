@@ -25,7 +25,7 @@ export class Database {
 
 	async transaction<T>(callback: (trx: Database) => Promise<T>) {
 		return this.#connection.transaction(async (trx) => {
-			return await callback(new Database(trx, this.#queryBuilder));
+			return callback(new Database(trx, this.#queryBuilder));
 		});
 	}
 }
