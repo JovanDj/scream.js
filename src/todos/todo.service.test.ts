@@ -1,12 +1,14 @@
 import { describe, it, type TestContext } from "node:test";
 import { createDB } from "@scream.js/database/db.js";
+import { createLogger } from "@scream.js/logger/logger-factory.js";
 import { createTodoModule } from "./index.ts";
 import type { TodoSchema } from "./todo.schema.js";
 
 const setupTodoService = async () => {
 	const db = createDB();
+	const logger = createLogger();
 
-	const { todoService } = createTodoModule(db);
+	const { todoService } = createTodoModule(db, logger);
 
 	await db.migrate.latest();
 	await db("users").insert({ username: "test user" });
