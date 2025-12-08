@@ -1,33 +1,18 @@
-import type { AddressInfo } from "node:net";
 import { describe, it, type TestContext } from "node:test";
+import { testDatabase } from "@scream.js/database/test-helpers.js";
+import { startTestServer } from "@scream.js/http/server.js";
 import { createApp } from "./main.js";
 
 describe("server", { concurrency: true }, () => {
 	const setupServer = async () => {
-		const { app, db } = createApp();
+		const { db, cleanup: cleanupDb } = await testDatabase.setup({ seed: true });
+		const { app } = createApp({ db });
 
-		await db.migrate.latest();
-		await db.seed.run();
-
-		const server = app.listen(0);
-		const address = server.address();
-
-		const isAddressInfo = (address: unknown): address is AddressInfo => {
-			return !!address && typeof address === "object" && "port" in address;
-		};
-
-		if (!isAddressInfo(address)) {
-			server.close();
-			await db.destroy();
-			throw new Error("Failed to start server");
-		}
-
-		const port = address.port;
+		const { port, shutdown } = await startTestServer(app);
 
 		const cleanup = async () => {
-			server.close();
-			await db.migrate.rollback(undefined, true);
-			await db.destroy();
+			await shutdown();
+			await cleanupDb();
 		};
 
 		return { cleanup, port };

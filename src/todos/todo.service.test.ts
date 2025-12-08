@@ -1,22 +1,18 @@
 import { describe, it, type TestContext } from "node:test";
-import { createDB } from "@scream.js/database/db.js";
+import { testDatabase } from "@scream.js/database/test-helpers.js";
 import { createLogger } from "@scream.js/logger/logger-factory.js";
 import { createTodoModule } from "./index.ts";
 import type { TodoSchema } from "./todo.schema.js";
 
 const setupTodoService = async () => {
-	const db = createDB();
+	const { cleanup, db } = await testDatabase.setup({
+		prepare: async (database) => {
+			await database("users").insert({ username: "test user" });
+		},
+	});
 	const logger = createLogger();
 
 	const { todoService } = createTodoModule(db, logger);
-
-	await db.migrate.latest();
-	await db("users").insert({ username: "test user" });
-
-	const cleanup = async () => {
-		await db.migrate.rollback(undefined, true);
-		await db.destroy();
-	};
 
 	return { cleanup, todoService };
 };
