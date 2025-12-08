@@ -8,7 +8,7 @@ export class InsertResult {
 	/**
 	 * Id of the last row that was created
 	 */
-	get lastId() {
+	lastId() {
 		return this.#lastId;
 	}
 }
