@@ -30,5 +30,5 @@ export const createApp = ({
 
 	app.resource("/todos", todoController);
 
-	return { app, db };
+	return { app, db, logger };
 };
