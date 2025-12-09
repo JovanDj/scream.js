@@ -6,12 +6,14 @@ describe("InsertExpression", { concurrency: true }, () => {
 	it("should form INSERT INTO expression", (t: TestContext) => {
 		t.plan(1);
 		const table = "users";
-		const values = { id: 1, name: "Alice" };
-		const insertExpression: SqlExpression = new InsertExpression(table, values);
+		const insertExpression: SqlExpression = new InsertExpression(table, [
+			"id",
+			"name",
+		]);
 
 		t.assert.deepStrictEqual(
 			insertExpression.interpret(),
-			"INSERT INTO users (id, name) VALUES ('1', 'Alice')",
+			"INSERT INTO users (id, name) VALUES (?, ?)",
 		);
 	});
 });
