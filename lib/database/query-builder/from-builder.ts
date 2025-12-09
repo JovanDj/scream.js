@@ -6,11 +6,19 @@ import { OffsetExpression } from "./expressions/offset-expression.js";
 import { OrderByExpression } from "./expressions/order-by-expression.js";
 import { WhereExpression } from "./expressions/where-expression.js";
 import { SqlBuilder } from "./sql-builder.js";
+import type { SqlPrimitive } from "./sql-query.js";
 
 export class FromBuilder extends SqlBuilder {
-	where(condition: string, operator: string, param: string) {
+	where(condition: string, operator: string, param: SqlPrimitive) {
+		const hasWhere = this.expressions.some(
+			(expression) => expression instanceof WhereExpression,
+		);
+
 		return new FromBuilder(
-			[...this.expressions, new WhereExpression(condition, operator)],
+			[
+				...this.expressions,
+				new WhereExpression(condition, operator, hasWhere ? "AND" : "WHERE"),
+			],
 			[...this.params, param],
 		);
 	}
@@ -29,7 +37,7 @@ export class FromBuilder extends SqlBuilder {
 		);
 	}
 
-	having(condition: string, operator: string, param: string) {
+	having(condition: string, operator: string, param: SqlPrimitive) {
 		return new FromBuilder(
 			[...this.expressions, new HavingExpression(condition, operator)],
 			[...this.params, param],
@@ -55,9 +63,25 @@ export class FromBuilder extends SqlBuilder {
 		condition: string,
 		type: "INNER" | "LEFT" | "RIGHT" | "FULL" = "INNER",
 	) {
-		return new FromBuilder(
-			[...this.expressions, new JoinExpression(table, condition, type)],
-			[...this.params],
-		);
+		const joinExpression = new JoinExpression(table, condition, type);
+		const expressions = [...this.expressions];
+		const firstPostJoinIndex = expressions.findIndex((expression) => {
+			return (
+				expression instanceof WhereExpression ||
+				expression instanceof GroupByExpression ||
+				expression instanceof HavingExpression ||
+				expression instanceof OrderByExpression ||
+				expression instanceof LimitExpression ||
+				expression instanceof OffsetExpression
+			);
+		});
+
+		if (firstPostJoinIndex === -1) {
+			expressions.push(joinExpression);
+		} else {
+			expressions.splice(firstPostJoinIndex, 0, joinExpression);
+		}
+
+		return new FromBuilder(expressions, [...this.params]);
 	}
 }

@@ -4,6 +4,9 @@ import { SqlBuilder } from "./sql-builder.js";
 
 export class SelectBuilder extends SqlBuilder {
 	from(table: string) {
-		return new FromBuilder([...this.expressions, new FromExpression(table)]);
+		return new FromBuilder(
+			[...this.expressions, new FromExpression(table)],
+			[...this.params],
+		);
 	}
 }

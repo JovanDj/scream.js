@@ -6,12 +6,14 @@ describe("UpdateExpression", { concurrency: true }, () => {
 	it("should form UPDATE expression", (t: TestContext) => {
 		t.plan(1);
 		const table = "users";
-		const values = { age: 30, name: "Alice" };
-		const updateExpression: SqlExpression = new UpdateExpression(table, values);
+		const updateExpression: SqlExpression = new UpdateExpression(table, [
+			"age",
+			"name",
+		]);
 
 		t.assert.deepStrictEqual(
 			updateExpression.interpret(),
-			"UPDATE users SET age='30', name='Alice'",
+			"UPDATE users SET age = ?, name = ?",
 		);
 	});
 });
