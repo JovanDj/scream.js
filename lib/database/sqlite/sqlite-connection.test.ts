@@ -3,21 +3,20 @@ import { sql } from "../query-builder/sql-template-string.js";
 import { SqliteConnection } from "./sqlite-connection.js";
 
 describe("SqliteDatabase", { concurrency: true }, () => {
-	const withConnection = async (
-		run: (connection: SqliteConnection) => Promise<void>,
-	) => {
+	const withConnection = async () => {
 		const connection = await SqliteConnection.connect({ database: ":memory:" });
-		try {
-			await run(connection);
-		} finally {
+		const cleanup = async () => {
 			await connection.close();
-		}
+		};
+
+		return { cleanup, connection };
 	};
 
 	describe("CRUD", () => {
 		it("finds all rows", async (t: TestContext) => {
 			t.plan(1);
-			await withConnection(async (connection) => {
+			const { connection, cleanup } = await withConnection();
+			try {
 				await connection.run(
 					sql`CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT);`,
 				);
@@ -26,12 +25,15 @@ describe("SqliteDatabase", { concurrency: true }, () => {
 				const users = await connection.all(sql`SELECT * FROM users;`);
 
 				t.assert.deepStrictEqual(users, [{ id: 1 }]);
-			});
+			} finally {
+				await cleanup();
+			}
 		});
 
 		it("finds single row", async (t: TestContext) => {
 			t.plan(1);
-			await withConnection(async (connection) => {
+			const { connection, cleanup } = await withConnection();
+			try {
 				await connection.run(
 					sql`CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT);`,
 				);
@@ -40,12 +42,15 @@ describe("SqliteDatabase", { concurrency: true }, () => {
 				const user = await connection.get(sql`SELECT * FROM users;`);
 
 				t.assert.deepStrictEqual(user, { id: 1 });
-			});
+			} finally {
+				await cleanup();
+			}
 		});
 
 		it("creates a new row", async (t: TestContext) => {
 			t.plan(1);
-			await withConnection(async (connection) => {
+			const { connection, cleanup } = await withConnection();
+			try {
 				await connection.run(
 					sql`CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT);`,
 				);
@@ -56,12 +61,15 @@ describe("SqliteDatabase", { concurrency: true }, () => {
 				);
 
 				t.assert.deepStrictEqual(user, { id: 1 });
-			});
+			} finally {
+				await cleanup();
+			}
 		});
 
 		it("updates a row", async (t: TestContext) => {
 			t.plan(1);
-			await withConnection(async (connection) => {
+			const { connection, cleanup } = await withConnection();
+			try {
 				await connection.run(
 					sql`CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT);`,
 				);
@@ -78,12 +86,15 @@ describe("SqliteDatabase", { concurrency: true }, () => {
 				);
 
 				t.assert.deepStrictEqual(user, { id: 1, name: "Bob" });
-			});
+			} finally {
+				await cleanup();
+			}
 		});
 
 		it("deletes a row", async (t: TestContext) => {
 			t.plan(1);
-			await withConnection(async (connection) => {
+			const { connection, cleanup } = await withConnection();
+			try {
 				await connection.run(
 					sql`CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT);`,
 				);
@@ -98,14 +109,17 @@ describe("SqliteDatabase", { concurrency: true }, () => {
 				);
 
 				t.assert.deepStrictEqual(user, undefined);
-			});
+			} finally {
+				await cleanup();
+			}
 		});
 	});
 
 	describe("Transactions", () => {
 		it("commits a transaction successfully", async (t: TestContext) => {
 			t.plan(1);
-			await withConnection(async (connection) => {
+			const { connection, cleanup } = await withConnection();
+			try {
 				await connection.run(
 					sql`CREATE TABLE test (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT);`,
 				);
@@ -120,12 +134,15 @@ describe("SqliteDatabase", { concurrency: true }, () => {
 					sql`SELECT * FROM test WHERE id = ${"1"};`,
 				);
 				t.assert.deepStrictEqual(row, { id: 1, name: "Alice" });
-			});
+			} finally {
+				await cleanup();
+			}
 		});
 
 		it("rolls back a transaction on error", async (t: TestContext) => {
 			t.plan(1);
-			await withConnection(async (connection) => {
+			const { connection, cleanup } = await withConnection();
+			try {
 				await connection.run(
 					sql`CREATE TABLE test (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT);`,
 				);
@@ -145,12 +162,15 @@ describe("SqliteDatabase", { concurrency: true }, () => {
 					sql`SELECT * FROM test WHERE id = ${"1"};`,
 				);
 				t.assert.deepStrictEqual(row, undefined);
-			});
+			} finally {
+				await cleanup();
+			}
 		});
 
 		it("returns data from a successful transaction", async (t: TestContext) => {
 			t.plan(1);
-			await withConnection(async (connection) => {
+			const { connection, cleanup } = await withConnection();
+			try {
 				await connection.run(
 					sql`CREATE TABLE test (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT);`,
 				);
@@ -166,12 +186,15 @@ describe("SqliteDatabase", { concurrency: true }, () => {
 				});
 
 				t.assert.deepStrictEqual(result, { id: 1, name: "test name" });
-			});
+			} finally {
+				await cleanup();
+			}
 		});
 
 		it("returns computed result from a transaction", async (t: TestContext) => {
 			t.plan(1);
-			await withConnection(async (connection) => {
+			const { connection, cleanup } = await withConnection();
+			try {
 				const sum = await connection.transaction(async (trx) => {
 					await trx.run(sql`CREATE TABLE numbers (num INTEGER);`);
 					await trx.run(sql`INSERT INTO numbers (num) VALUES (${["5"]})`);
@@ -185,7 +208,9 @@ describe("SqliteDatabase", { concurrency: true }, () => {
 				});
 
 				t.assert.deepStrictEqual(sum, 15);
-			});
+			} finally {
+				await cleanup();
+			}
 		});
 	});
 });

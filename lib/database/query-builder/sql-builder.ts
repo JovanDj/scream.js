@@ -15,7 +15,7 @@ export abstract class SqlBuilder {
 
 	build(): SqlQuery {
 		return {
-			params: this.params,
+			params: [...this.params],
 			sql: this.expressions
 				.map((expression) => expression.interpret())
 				.join(" "),
