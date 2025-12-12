@@ -1,9 +1,8 @@
 import type { FlatObject } from "@scream.js/flat-object.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Resource } from "@scream.js/http/resource.js";
-
+import type { TodoService } from "../../core/todos/todo.service.js";
 import { createTodoValidator } from "./todo.schema.js";
-import type { TodoService } from "./todo.service.js";
 
 export class TodosController implements Resource {
 	readonly #todoService: TodoService;
@@ -53,10 +52,7 @@ export class TodosController implements Resource {
 			return ctx.render("create", { errors });
 		}
 
-		const todo = await this.#todoService.create({
-			title: value.title,
-			userId: value.userId,
-		});
+		const todo = await this.#todoService.create(value);
 
 		return ctx.redirect(`/todos/${todo.id}`);
 	}

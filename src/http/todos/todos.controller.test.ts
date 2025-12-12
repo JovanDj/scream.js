@@ -1,12 +1,22 @@
 import { describe, it, type TestContext } from "node:test";
 import { testDatabase } from "@scream.js/database/test-helpers.js";
+import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
 import { startTestServer } from "@scream.js/http/server.js";
-import { createApp } from "./main.js";
+import { createCoreServices } from "index.js";
+import { createHttpApp, createHttpControllers } from "main.js";
+import { KnexTodoRepository } from "src/infra/knex-todo.repository.js";
 
 describe("server", { concurrency: true }, () => {
 	const setupServer = async () => {
 		const { db, cleanup: cleanupDb } = await testDatabase.setup({ seed: true });
-		const { app } = createApp({ db });
+		const todoRepository = new KnexTodoRepository(db);
+		const { todoService } = createCoreServices({
+			todoRepository,
+		});
+		const { todosController } = createHttpControllers({ todoService });
+
+		const app = createExpressApp();
+		createHttpApp({ app, todosController });
 
 		const { port, shutdown } = await startTestServer(app);
 

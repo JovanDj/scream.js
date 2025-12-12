@@ -4,7 +4,7 @@ import { Router } from "express";
 import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
 import type { Middleware } from "../middleware.js";
-import type { Resource } from "../resource.ts";
+import type { Resource } from "../resource.js";
 
 import { ExpressHttpContext } from "./express-http-context.js";
 

@@ -6,5 +6,5 @@ export interface Router {
 	post(path: string, handler: Handler): this;
 	patch(path: string, handler: Handler): this;
 	delete(path: string, handler: Handler): this;
-	resource(path: string, resource: Resource): this;
+	resource(path: string, resource: Readonly<Resource>): this;
 }

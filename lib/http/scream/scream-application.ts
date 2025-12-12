@@ -50,7 +50,7 @@ export class ScreamApp implements Application {
 	}
 
 	// Resource method for CRUD-like routes
-	resource(path: string, resource: Resource) {
+	resource(path: string, resource: Readonly<Resource>) {
 		this.get(`${path}`, resource.index.bind(resource));
 		this.get(`${path}/create`, resource.create.bind(resource));
 		this.post(`${path}`, resource.store.bind(resource));
