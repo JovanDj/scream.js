@@ -1,8 +1,8 @@
 import { describe, it, type TestContext } from "node:test";
 import { testDatabase } from "@scream.js/database/test-helpers.js";
-import { createLogger } from "@scream.js/logger/logger-factory.js";
-import { createTodoModule } from "./index.ts";
-import type { TodoSchema } from "./todo.schema.js";
+import { KnexTodoRepository } from "src/infra/knex-todo.repository.js";
+import { createTodoModule } from "./index.js";
+import type { Todo } from "./todo.js";
 
 const setupTodoService = async () => {
 	const { cleanup, db } = await testDatabase.setup({
@@ -10,9 +10,9 @@ const setupTodoService = async () => {
 			await database("users").insert({ username: "test user" });
 		},
 	});
-	const logger = createLogger();
 
-	const { todoService } = createTodoModule(db, logger);
+	const todoRepository = new KnexTodoRepository(db);
+	const { todoService } = createTodoModule(todoRepository);
 
 	return { cleanup, todoService };
 };
@@ -24,7 +24,7 @@ describe("TodoService", { concurrency: true }, () => {
 		try {
 			const todos = await todoService.findAll();
 
-			t.assert.deepStrictEqual<TodoSchema[]>(todos, []);
+			t.assert.deepStrictEqual<Todo[]>(todos, []);
 		} finally {
 			await cleanup();
 		}
@@ -37,8 +37,8 @@ describe("TodoService", { concurrency: true }, () => {
 		try {
 			const todo = await todoService.create({ title: "Test Todo", userId: 1 });
 			t.assert.ok(todo.id);
-			t.assert.deepStrictEqual<TodoSchema["title"]>(todo.title, "Test Todo");
-			t.assert.deepStrictEqual<TodoSchema["userId"]>(todo.userId, 1);
+			t.assert.deepStrictEqual<Todo["title"]>(todo.title, "Test Todo");
+			t.assert.deepStrictEqual<Todo["userId"]>(todo.userId, 1);
 		} finally {
 			await cleanup();
 		}
@@ -50,7 +50,7 @@ describe("TodoService", { concurrency: true }, () => {
 		try {
 			const created = await todoService.create({ title: "Find Me", userId: 1 });
 			const found = await todoService.findById(created.id);
-			t.assert.deepStrictEqual<TodoSchema>(found, created);
+			t.assert.deepStrictEqual<Todo>(found, created);
 		} finally {
 			await cleanup();
 		}
@@ -67,8 +67,8 @@ describe("TodoService", { concurrency: true }, () => {
 			const updated = await todoService.update(created.id, {
 				title: "New Title",
 			});
-			t.assert.deepStrictEqual<TodoSchema["title"]>(updated.title, "New Title");
-			t.assert.deepStrictEqual<TodoSchema["userId"]>(updated.userId, 1);
+			t.assert.deepStrictEqual<Todo["title"]>(updated.title, "New Title");
+			t.assert.deepStrictEqual<Todo["userId"]>(updated.userId, 1);
 		} finally {
 			await cleanup();
 		}
@@ -85,8 +85,8 @@ describe("TodoService", { concurrency: true }, () => {
 			const result = await todoService.delete(created.id);
 			const todos = await todoService.findAll();
 
-			t.assert.deepStrictEqual<TodoSchema["userId"]>(result, 1);
-			t.assert.deepStrictEqual<TodoSchema[]>(todos, []);
+			t.assert.deepStrictEqual<Todo["userId"]>(result, 1);
+			t.assert.deepStrictEqual<Todo[]>(todos, []);
 		} finally {
 			await cleanup();
 		}

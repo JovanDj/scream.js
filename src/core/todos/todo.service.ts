@@ -1,9 +1,5 @@
+import type { CreateTodo, Todo, UpdateTodo } from "./todo.js";
 import type { TodoRepository } from "./todo.repository.js";
-import type {
-	CreateTodoInput,
-	TodoSchema,
-	UpdateTodoInput,
-} from "./todo.schema.js";
 
 export class TodoService {
 	readonly #todoRepository: TodoRepository;
@@ -16,19 +12,19 @@ export class TodoService {
 		return this.#todoRepository.findAll();
 	}
 
-	async findById(id: TodoSchema["id"]) {
+	async findById(id: Todo["id"]) {
 		return this.#todoRepository.findById(id);
 	}
 
-	async create(input: CreateTodoInput) {
+	async create(input: CreateTodo) {
 		return this.#todoRepository.insert(input);
 	}
 
-	async update(id: TodoSchema["id"], input: UpdateTodoInput) {
+	async update(id: Todo["id"], input: UpdateTodo) {
 		return this.#todoRepository.update(id, input);
 	}
 
-	async delete(id: TodoSchema["id"]) {
+	async delete(id: Todo["id"]) {
 		return this.#todoRepository.delete(id);
 	}
 }

@@ -4,7 +4,7 @@ import { createDB } from "@scream.js/database/db.js";
 import { Command } from "commander";
 import type { Knex } from "knex";
 
-export const createProgram = (db: Knex) => {
+export const createProgram = ({ db }: { db: Knex }) => {
 	const program = new Command();
 
 	program.name("scream");
@@ -79,7 +79,7 @@ if (isExecutedDirectly()) {
 	const db = createDB();
 
 	try {
-		await createProgram(db).parseAsync(process.argv);
+		await createProgram({ db }).parseAsync(process.argv);
 	} finally {
 		await db.destroy();
 	}

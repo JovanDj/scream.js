@@ -1,5 +1,5 @@
 import knex, { type Knex } from "knex";
-import config from "./knexfile.ts";
+import config from "./knexfile.js";
 
 export const createDB = () => {
 	const env = process.env["NODE_ENV"] ?? "development";

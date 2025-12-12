@@ -1,12 +1,7 @@
 import type { Knex } from "knex";
 import { z } from "zod/v4";
-
-import type { TodoRepository } from "./todo.repository.js";
-import type {
-	CreateTodoInput,
-	TodoSchema,
-	UpdateTodoInput,
-} from "./todo.schema.js";
+import type { CreateTodo, Todo, UpdateTodo } from "../core/todos/todo.js";
+import type { TodoRepository } from "../core/todos/todo.repository.js";
 
 export class KnexTodoRepository implements TodoRepository {
 	readonly #db: Knex;
@@ -15,7 +10,7 @@ export class KnexTodoRepository implements TodoRepository {
 		this.#db = db;
 	}
 
-	async findById(id: TodoSchema["id"]) {
+	async findById(id: Todo["id"]) {
 		const row = await this.#db("todos").where("id", id).first();
 
 		if (!row) {
@@ -34,7 +29,7 @@ export class KnexTodoRepository implements TodoRepository {
 			id: validator.id,
 			title: validator.title,
 			userId: validator.user_id,
-		} satisfies TodoSchema;
+		};
 	}
 
 	async findAll() {
@@ -57,7 +52,7 @@ export class KnexTodoRepository implements TodoRepository {
 		}));
 	}
 
-	async insert(input: CreateTodoInput) {
+	async insert(input: CreateTodo) {
 		const [id] = await this.#db("todos").insert({
 			title: input.title,
 			user_id: input.userId,
@@ -76,12 +71,10 @@ export class KnexTodoRepository implements TodoRepository {
 		return todo;
 	}
 
-	async update(id: TodoSchema["id"], input: UpdateTodoInput) {
+	async update(id: Todo["id"], input: UpdateTodo) {
 		await this.#db("todos")
 			.where({ id })
-			.update({
-				title: input.title ?? "",
-			});
+			.update({ title: input.title ?? "" });
 
 		const todo = await this.findById(id);
 
@@ -92,7 +85,7 @@ export class KnexTodoRepository implements TodoRepository {
 		return todo;
 	}
 
-	async delete(id: TodoSchema["id"]) {
+	async delete(id: Todo["id"]) {
 		const affectedRows = await this.#db("todos").where("id", id).del();
 
 		return affectedRows;
