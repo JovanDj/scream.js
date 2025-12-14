@@ -1,11 +1,8 @@
 import type Express from "express";
-import { Router } from "express";
 
 import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
-import type { Middleware } from "../middleware.js";
-import type { Resource } from "../resource.js";
-
+import type { Resource } from "../resource.ts";
 import { ExpressHttpContext } from "./express-http-context.js";
 
 export class ExpressApp implements Application {
@@ -16,32 +13,16 @@ export class ExpressApp implements Application {
 	}
 
 	get(path: string, handler: Handler) {
-		this.#express.get(path, (req, res, next) =>
-			handler(new ExpressHttpContext(req, res, next)),
+		this.#express.get(path, (req, res) =>
+			handler(new ExpressHttpContext(req, res)),
 		);
 
 		return this;
 	}
 
 	post(path: string, handler: Handler) {
-		this.#express.post(path, (req, res, next) =>
-			handler(new ExpressHttpContext(req, res, next)),
-		);
-
-		return this;
-	}
-
-	patch(path: string, handler: Handler) {
-		this.#express.patch(path, (req, res, next) =>
-			handler(new ExpressHttpContext(req, res, next)),
-		);
-
-		return this;
-	}
-
-	delete(path: string, handler: Handler) {
-		this.#express.delete(path, (req, res, next) =>
-			handler(new ExpressHttpContext(req, res, next)),
+		this.#express.post(path, (req, res) =>
+			handler(new ExpressHttpContext(req, res)),
 		);
 
 		return this;
@@ -51,54 +32,13 @@ export class ExpressApp implements Application {
 		return this.#express.listen(port, cb);
 	}
 
-	use(middleware: Middleware) {
-		this.#express.use((req, res, next) =>
-			middleware(new ExpressHttpContext(req, res, next)),
-		);
-
-		return this;
-	}
-
 	resource(path: string, resource: Readonly<Resource>) {
-		const router = Router();
-
-		router.get("/", (req, res, next) => {
-			const context = new ExpressHttpContext(req, res, next);
-			resource.index(context);
-		});
-
-		router.get("/create", (req, res, next) => {
-			const context = new ExpressHttpContext(req, res, next);
-			resource.create(context);
-		});
-
-		router.post("/create", (req, res, next) => {
-			const context = new ExpressHttpContext(req, res, next);
-			resource.store(context);
-		});
-
-		router.get("/:id/edit", (req, res, next) => {
-			const context = new ExpressHttpContext(req, res, next);
-			resource.edit(context);
-		});
-
-		router.get("/:id", (req, res, next) => {
-			const context = new ExpressHttpContext(req, res, next);
-			resource.show(context);
-		});
-
-		router.post("/:id/edit", (req, res, next) => {
-			const context = new ExpressHttpContext(req, res, next);
-			resource.update(context);
-		});
-
-		router.post("/:id/delete", (req, res, next) => {
-			const context = new ExpressHttpContext(req, res, next);
-			resource.delete(context);
-		});
-
-		this.#express.use(path, router);
-
-		return this;
+		return this.get(path, (ctx) => resource.index(ctx))
+			.get(`${path}/create`, (ctx) => resource.create(ctx))
+			.post(`${path}/create`, (ctx) => resource.store(ctx))
+			.get(`${path}/:id/edit`, (ctx) => resource.edit(ctx))
+			.get(`${path}/:id`, (ctx) => resource.show(ctx))
+			.post(`${path}/:id/edit`, (ctx) => resource.update(ctx))
+			.post(`${path}/:id/delete`, (ctx) => resource.delete(ctx));
 	}
 }

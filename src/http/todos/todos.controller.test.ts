@@ -103,14 +103,14 @@ describe("server", { concurrency: true }, () => {
 		}
 	});
 
-	it("PUT /todos/:id with missing or invalid id returns 500", async (t: TestContext) => {
+	it("POST /todos/:id with missing or invalid id returns 500", async (t: TestContext) => {
 		t.plan(2);
 		const { port, cleanup } = await setupServer();
 		try {
 			const res = await fetch(`http://localhost:${port}/todos/99999`, {
 				body: "title=SomeTitle",
 				headers: { "Content-Type": "application/x-www-form-urlencoded" },
-				method: "PUT",
+				method: "POST",
 				signal: t.signal,
 			});
 			t.assert.deepStrictEqual<number>(res.status, 404);

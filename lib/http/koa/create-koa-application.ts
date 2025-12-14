@@ -20,7 +20,7 @@ export const createKoaApp: () => Application = () => {
 	const nunjucksEnv = new nunjucks.Environment(
 		new nunjucks.FileSystemLoader(viewsPath, {
 			noCache: true,
-			watch: true,
+			watch: process.env["NODE_ENV"] === "development",
 		}),
 	).addGlobal("viteScripts", () => {
 		return `
