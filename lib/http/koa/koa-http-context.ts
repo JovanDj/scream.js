@@ -17,43 +17,19 @@ export class KoaHttpContext implements HttpContext {
 		return this.#ctx["params"];
 	}
 
-	body() {
+	#body() {
 		return this.#ctx.request.body;
-	}
-
-	method() {
-		return this.#ctx.method;
-	}
-
-	headers() {
-		return this.#ctx.headers;
-	}
-
-	url() {
-		return this.#ctx.url;
-	}
-
-	onClose(cb: () => void) {
-		this.#ctx.res.on("close", cb);
-	}
-
-	hasHeader(header: string) {
-		return !!this.#ctx.headers[header.toLowerCase()];
 	}
 
 	acceptsLanguages(languages: string[]) {
 		return this.#ctx.acceptsLanguages(...languages) || "";
 	}
 
-	json(data: object) {
-		this.#ctx.body = data;
-	}
-
-	end(chunk?: unknown) {
+	#end(chunk?: unknown) {
 		this.#ctx.res.end(chunk);
 	}
 
-	status(code: number) {
+	#status(code: number) {
 		this.#ctx.status = code;
 		return this;
 	}
@@ -62,37 +38,15 @@ export class KoaHttpContext implements HttpContext {
 		return this.#ctx.render(template, locals);
 	}
 
-	location(url: string) {
-		this.#ctx.set("Location", url);
-	}
-
 	redirect(url: string) {
 		this.#ctx.redirect(url);
 	}
 
-	back() {
-		const referrer = this.#ctx.headers.referer ?? "/";
-		this.#ctx.redirect(referrer);
-	}
-
-	text(message: string) {
-		this.#ctx.body = message;
-		this.#ctx.type = "text/plain";
-	}
-
 	notFound() {
-		this.status(404).end();
-	}
-
-	handleError(error: unknown) {
-		this.#ctx.app.emit("error", error, this.#ctx);
-	}
-
-	internalServerError(message: string) {
-		this.status(500).end(message);
+		this.#status(404).#end("Not Found");
 	}
 
 	validate<T>(validator: Validator<T>) {
-		return validator.validate(this.body());
+		return validator.validate(this.#body());
 	}
 }
