@@ -1,16 +1,11 @@
 import { ZodValidator } from "@scream.js/validator/zod-validator.js";
-import type { CreateTodo } from "src/core/todos/todo.js";
 import z from "zod/v4";
 
-export const createTodoSchema = z.strictObject({
+export const todoSchema = z.strictObject({
+	completed: z.stringbool().default(false),
 	title: z.string().nonempty(),
-	userId: z.coerce.number(),
-}) satisfies z.ZodType<CreateTodo>;
+});
 
-const todoSchema = createTodoSchema.safeExtend({ id: z.coerce.number() });
+export const todoValidator = new ZodValidator(todoSchema);
 
-export const createTodoValidator = new ZodValidator(createTodoSchema);
-
-export type TodoSchema = z.core.output<typeof todoSchema>;
-export type CreateTodoInput = z.core.output<typeof createTodoSchema>;
-export type UpdateTodoInput = Partial<CreateTodoInput>;
+export type TodoInput = z.core.output<typeof todoSchema>;

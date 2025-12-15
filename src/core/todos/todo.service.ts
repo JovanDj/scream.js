@@ -1,4 +1,4 @@
-import type { CreateTodo, Todo, UpdateTodo } from "./todo.js";
+import type { Todo, TodoDto } from "./todo.js";
 import type { TodoRepository } from "./todo.repository.js";
 
 export class TodoService {
@@ -16,11 +16,11 @@ export class TodoService {
 		return this.#todoRepository.findById(id);
 	}
 
-	async create(input: CreateTodo) {
+	async create(input: TodoDto) {
 		return this.#todoRepository.insert(input);
 	}
 
-	async update(id: Todo["id"], input: UpdateTodo) {
+	async update(id: Todo["id"], input: TodoDto) {
 		return this.#todoRepository.update(id, input);
 	}
 

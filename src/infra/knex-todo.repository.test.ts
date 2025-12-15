@@ -30,36 +30,38 @@ describe("KnexTodoRepository", { concurrency: true }, () => {
 	});
 
 	it("inserts a todo and returns the persisted record", async (t: TestContext) => {
-		t.plan(3);
+		t.plan(4);
 		const { cleanup, knexTodoRepository } = await setupTestDatabase();
 
 		try {
 			const todo = await knexTodoRepository.insert({
+				completed: false,
 				title: "Write more tests",
-				userId: 1,
 			});
 
 			t.assert.ok(todo.id);
 			t.assert.deepStrictEqual<Todo["title"]>(todo.title, "Write more tests");
 			t.assert.deepStrictEqual<Todo["userId"]>(todo.userId, 1);
+			t.assert.deepStrictEqual<Todo["completed"]>(todo.completed, false);
 		} finally {
 			await cleanup();
 		}
 	});
 
 	it("finds a todo by id", async (t: TestContext) => {
-		t.plan(1);
+		t.plan(2);
 		const { cleanup, knexTodoRepository } = await setupTestDatabase();
 
 		try {
 			const created = await knexTodoRepository.insert({
+				completed: false,
 				title: "Find me",
-				userId: 1,
 			});
 
 			const found = await knexTodoRepository.findById(created.id);
 
 			t.assert.deepStrictEqual<Todo | undefined>(found, created);
+			t.assert.deepStrictEqual<boolean>(created.completed, false);
 		} finally {
 			await cleanup();
 		}
@@ -84,12 +86,12 @@ describe("KnexTodoRepository", { concurrency: true }, () => {
 
 		try {
 			const first = await knexTodoRepository.insert({
+				completed: false,
 				title: "First todo",
-				userId: 1,
 			});
 			const second = await knexTodoRepository.insert({
+				completed: false,
 				title: "Second todo",
-				userId: 1,
 			});
 
 			const todos = await knexTodoRepository.findAll();
@@ -101,20 +103,46 @@ describe("KnexTodoRepository", { concurrency: true }, () => {
 	});
 
 	it("updates a todo title", async (t: TestContext) => {
+		t.plan(3);
+		const { cleanup, knexTodoRepository } = await setupTestDatabase();
+
+		try {
+			const created = await knexTodoRepository.insert({
+				completed: false,
+				title: "Old title",
+			});
+
+			const updated = await knexTodoRepository.update(created.id, {
+				completed: false,
+				title: "New title",
+			});
+
+			t.assert.deepStrictEqual<Todo["title"]>(updated.title, "New title");
+			t.assert.deepStrictEqual<Todo["completed"]>(updated.completed, false);
+
+			const found = await knexTodoRepository.findById(created.id);
+			t.assert.deepStrictEqual<Todo | undefined>(found, updated);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("updates completion status", async (t: TestContext) => {
 		t.plan(2);
 		const { cleanup, knexTodoRepository } = await setupTestDatabase();
 
 		try {
 			const created = await knexTodoRepository.insert({
-				title: "Old title",
-				userId: 1,
+				completed: false,
+				title: "Complete me",
 			});
 
 			const updated = await knexTodoRepository.update(created.id, {
-				title: "New title",
+				completed: true,
+				title: "Complete me",
 			});
 
-			t.assert.deepStrictEqual<Todo["title"]>(updated.title, "New title");
+			t.assert.deepStrictEqual<Todo["completed"]>(updated.completed, true);
 
 			const found = await knexTodoRepository.findById(created.id);
 			t.assert.deepStrictEqual<Todo | undefined>(found, updated);
@@ -129,7 +157,11 @@ describe("KnexTodoRepository", { concurrency: true }, () => {
 
 		try {
 			await t.assert.rejects(
-				() => knexTodoRepository.update(12345, { title: "ghost" }),
+				() =>
+					knexTodoRepository.update(12345, {
+						completed: false,
+						title: "ghost",
+					}),
 				/Todo was updated but could not be found/i,
 			);
 		} finally {
@@ -143,8 +175,8 @@ describe("KnexTodoRepository", { concurrency: true }, () => {
 
 		try {
 			const created = await knexTodoRepository.insert({
+				completed: false,
 				title: "To delete",
-				userId: 1,
 			});
 
 			const affectedRows = await knexTodoRepository.delete(created.id);
@@ -169,4 +201,6 @@ describe("KnexTodoRepository", { concurrency: true }, () => {
 			await cleanup();
 		}
 	});
+
+	// With a single hardcoded user, ownership is enforced inside the repository.
 });

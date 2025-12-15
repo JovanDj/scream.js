@@ -6,12 +6,19 @@
             <thead class="thead-dark">
                 <tr>
                     <th>Title</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td>{{ todoTitle }}</td>
                     <td>
+                        <span data-testid="todo-title-show">{{ todoTitle }}</span>
+                        {% if todoCompleted %}
+                            <span class="badge text-bg-success ms-2" data-testid="todo-status">Completed</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a class="btn btn-outline-primary me-2" href="/todos/{{ todoId }}/edit">Edit</a>
                         <form action="/todos/{{ todoId }}/delete" method="POST">
                             <button type="submit" class="btn btn-danger">Delete</button>
                         </form>

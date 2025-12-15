@@ -1,9 +1,9 @@
-import type { CreateTodo, Todo, UpdateTodo } from "./todo.js";
+import type { Todo, TodoDto } from "./todo.js";
 
 export interface TodoRepository {
 	findById(id: number): Promise<Todo | undefined>;
 	findAll(): Promise<Todo[]>;
-	insert(input: CreateTodo): Promise<Todo>;
-	update(id: number, input: UpdateTodo): Promise<Todo>;
+	insert(input: TodoDto): Promise<Todo>;
+	update(id: number, input: TodoDto): Promise<Todo>;
 	delete(id: number): Promise<number>;
 }

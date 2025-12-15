@@ -1,8 +1,7 @@
-import type { FlatObject } from "@scream.js/flat-object.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Resource } from "@scream.js/http/resource.js";
 import type { TodoService } from "../../core/todos/todo.service.js";
-import { createTodoValidator } from "./todo.schema.js";
+import { todoValidator } from "./todo.schema.js";
 
 export class TodosController implements Resource {
 	readonly #todoService: TodoService;
@@ -33,10 +32,11 @@ export class TodosController implements Resource {
 			lang: ctx.acceptsLanguages(["en-US", "sr-Latn-RS"]),
 
 			pageTitle: `Todo | ${todo.id}`,
+			todoCompleted: todo.completed,
 
 			todoId: todo.id,
 			todoTitle: todo.title,
-		} satisfies FlatObject);
+		});
 	}
 
 	async create(ctx: HttpContext) {
@@ -44,15 +44,13 @@ export class TodosController implements Resource {
 	}
 
 	async store(ctx: HttpContext) {
-		const { value, errors } = ctx.validate(createTodoValidator);
-
-		console.log({ errors, value });
+		const { value, errors } = ctx.validate(todoValidator);
 
 		if (!value) {
 			return ctx.render("create", { errors });
 		}
 
-		const todo = await this.#todoService.create(value);
+		const todo = await this.#todoService.create({ ...value });
 
 		return ctx.redirect(`/todos/${todo.id}`);
 	}
@@ -68,29 +66,41 @@ export class TodosController implements Resource {
 		return ctx.render("edit", {
 			action: `/todos/${todo.id}/edit`,
 			errors: {},
-			fields: { title: todo.title, userId: todo.userId },
+			fields: {
+				completed: todo.completed,
+				title: todo.title,
+			},
 			pageTitle: `Edit Todo #${todo.id}`,
 			submitLabel: "Update",
+			todoId: todo.id,
 		});
 	}
 
 	async update(ctx: HttpContext) {
-		const { value, errors } = ctx.validate(createTodoValidator);
+		const { value, errors } = ctx.validate(todoValidator);
 
 		if (!value) {
+			const existing = await this.#todoService.findById(+ctx.param("id"));
+
+			if (!existing) {
+				return ctx.notFound();
+			}
+
 			return ctx.render("edit", {
-				action: `/todos/${ctx.param("id")}/edit`,
+				action: `/todos/${existing.id}/edit`,
 				errors,
 				fields: {
-					title: "",
-					userId: 1,
+					completed: existing.completed,
+					title: existing.title,
 				},
-				pageTitle: `Edit Todo #${ctx.param("id")}`,
-				submitLabel: "Submit",
+				pageTitle: `Edit Todo #${existing.id}`,
+				submitLabel: "Update",
 			});
 		}
 
-		const todo = await this.#todoService.update(+ctx.param("id"), value);
+		const todo = await this.#todoService.update(+ctx.param("id"), {
+			...value,
+		});
 		return ctx.redirect(`/todos/${todo.id}`);
 	}
 
