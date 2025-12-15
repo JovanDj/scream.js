@@ -6,8 +6,6 @@
     <h1>{{ pageTitle }}</h1>
 
     <form action="{{ action }}" method="POST">
-        <input hidden required value="{{ fields.userId }}" type="number" name="userId" class="form-control" id="userId">
-
         <div class="mb-3">
             <label for="title" class="form-label">Title</label>
             <input 
@@ -25,7 +23,18 @@
             {% endif %}
         </div>
 
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="completed" value="true" id="completed" {% if fields.completed %}checked{% endif %} data-testid="completed-checkbox">
+            <label class="form-check-label" for="completed">
+                Completed
+            </label>
+        </div>
+
         <button type="submit" class="btn btn-primary">{{ submitLabel }}</button>
+    </form>
+
+    <form action="/todos/{{ todoId }}/delete" method="POST" class="mt-3">
+        <button type="submit" class="btn btn-danger">Delete</button>
     </form>
 </div>
 

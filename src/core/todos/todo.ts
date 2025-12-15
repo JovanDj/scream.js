@@ -2,8 +2,7 @@ export type Todo = {
 	id: number;
 	title: string;
 	userId: number;
+	completed: boolean;
 };
 
-export type CreateTodo = Pick<Todo, "title" | "userId">;
-
-export type UpdateTodo = Partial<CreateTodo>;
+export type TodoDto = Pick<Todo, "title" | "completed">;

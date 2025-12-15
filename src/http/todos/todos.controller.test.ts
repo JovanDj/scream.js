@@ -87,7 +87,7 @@ describe("server", { concurrency: true }, () => {
 		const { port, cleanup } = await setupServer();
 		try {
 			const res = await fetch(`http://localhost:${port}/todos/create`, {
-				body: "title=&userId=1",
+				body: "title=",
 				headers: { "Content-Type": "application/x-www-form-urlencoded" },
 				method: "POST",
 				signal: t.signal,
@@ -127,7 +127,7 @@ describe("server", { concurrency: true }, () => {
 		const { port, cleanup } = await setupServer();
 		try {
 			const createRes = await fetch(`http://localhost:${port}/todos/create`, {
-				body: "title=SomeTitle&userId=1",
+				body: "title=SomeTitle",
 				headers: { "Content-Type": "application/x-www-form-urlencoded" },
 				method: "POST",
 				redirect: "manual",

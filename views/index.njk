@@ -17,11 +17,13 @@
                 </thead>
                 <tbody>
                     {% for todo in todos %}
-                        <tr>
+                        <tr data-testid="todo-row">
                             <td>
-                                <a href="/todos/{{ todo.id }}">{{todo.title}}</a>
+                                <a data-testid="todo-title" href="/todos/{{ todo.id }}">{{todo.title}}</a>
+                                {% if todo.completed %}
+                                    <span class="badge text-bg-success ms-2" data-testid="todo-status">Completed</span>
+                                {% endif %}
                             </td>
-
                         </tr>
                     {% endfor %}
                 </tbody>

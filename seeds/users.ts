@@ -3,6 +3,7 @@ import type { Knex } from "knex";
 export function seed(knex: Knex): Promise<void> {
 	return knex.transaction(
 		async (trx) => {
+			await trx("todos").del();
 			await trx("users").del();
 
 			await trx("users").insert([

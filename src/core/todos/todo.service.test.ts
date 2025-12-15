@@ -31,14 +31,18 @@ describe("TodoService", { concurrency: true }, () => {
 	});
 
 	it("inserts a todo", async (t: TestContext) => {
-		t.plan(3);
+		t.plan(4);
 		const { todoService, cleanup } = await setupTodoService();
 
 		try {
-			const todo = await todoService.create({ title: "Test Todo", userId: 1 });
+			const todo = await todoService.create({
+				completed: false,
+				title: "Test Todo",
+			});
 			t.assert.ok(todo.id);
 			t.assert.deepStrictEqual<Todo["title"]>(todo.title, "Test Todo");
 			t.assert.deepStrictEqual<Todo["userId"]>(todo.userId, 1);
+			t.assert.deepStrictEqual<Todo["completed"]>(todo.completed, false);
 		} finally {
 			await cleanup();
 		}
@@ -48,7 +52,10 @@ describe("TodoService", { concurrency: true }, () => {
 		t.plan(1);
 		const { todoService, cleanup } = await setupTodoService();
 		try {
-			const created = await todoService.create({ title: "Find Me", userId: 1 });
+			const created = await todoService.create({
+				completed: false,
+				title: "Find Me",
+			});
 			const found = await todoService.findById(created.id);
 			t.assert.deepStrictEqual<Todo>(found, created);
 		} finally {
@@ -57,18 +64,40 @@ describe("TodoService", { concurrency: true }, () => {
 	});
 
 	it("updates a todo", async (t: TestContext) => {
-		t.plan(2);
+		t.plan(3);
 		const { todoService, cleanup } = await setupTodoService();
 		try {
 			const created = await todoService.create({
+				completed: false,
 				title: "Old Title",
-				userId: 1,
 			});
 			const updated = await todoService.update(created.id, {
+				completed: created.completed,
 				title: "New Title",
 			});
 			t.assert.deepStrictEqual<Todo["title"]>(updated.title, "New Title");
 			t.assert.deepStrictEqual<Todo["userId"]>(updated.userId, 1);
+			t.assert.deepStrictEqual<Todo["completed"]>(updated.completed, false);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("marks a todo as completed", async (t: TestContext) => {
+		t.plan(1);
+		const { todoService, cleanup } = await setupTodoService();
+		try {
+			const created = await todoService.create({
+				completed: false,
+				title: "Complete me",
+			});
+
+			const updated = await todoService.update(created.id, {
+				completed: true,
+				title: "Complete me",
+			});
+
+			t.assert.deepStrictEqual<Todo["completed"]>(updated.completed, true);
 		} finally {
 			await cleanup();
 		}
@@ -79,13 +108,13 @@ describe("TodoService", { concurrency: true }, () => {
 		const { todoService, cleanup } = await setupTodoService();
 		try {
 			const created = await todoService.create({
+				completed: false,
 				title: "To Be Deleted",
-				userId: 1,
 			});
 			const result = await todoService.delete(created.id);
 			const todos = await todoService.findAll();
 
-			t.assert.deepStrictEqual<Todo["userId"]>(result, 1);
+			t.assert.deepStrictEqual<number>(result, 1);
 			t.assert.deepStrictEqual<Todo[]>(todos, []);
 		} finally {
 			await cleanup();

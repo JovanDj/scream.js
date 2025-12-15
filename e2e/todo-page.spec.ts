@@ -34,5 +34,7 @@ test("deletes a todo and redirects to index", async ({ page }) => {
 	await page.getByRole("button", { name: /delete/i }).click();
 
 	await expect(page).toHaveURL("/todos");
-	await expect(page.getByText(title)).not.toBeVisible();
+	await expect(
+		page.getByTestId("todo-title").filter({ hasText: title }),
+	).toHaveCount(0);
 });

@@ -47,7 +47,10 @@ test("creates a todo with valid title and redirects", async ({ page }) => {
 
 	await expect(page).not.toHaveURL(/\/todos\/create$/);
 
-	await expect(page.getByText(title, { exact: true })).toBeVisible();
+	await expect(page.getByTestId("todo-title-show")).toHaveText(title);
+	await page.goto("/todos");
+	const row = page.getByTestId("todo-row").filter({ hasText: title }).first();
+	await expect(row.getByTestId("todo-status")).toHaveCount(0);
 });
 
 test("creating via Enter key works with a filled title", async ({ page }) => {
@@ -58,5 +61,5 @@ test("creating via Enter key works with a filled title", async ({ page }) => {
 	await page.keyboard.press("Enter");
 
 	await expect(page).not.toHaveURL(/\/todos\/create$/);
-	await expect(page.getByText(title, { exact: true })).toBeVisible();
+	await expect(page.getByTestId("todo-title-show")).toHaveText(title);
 });
