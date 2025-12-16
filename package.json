@@ -81,7 +81,7 @@
 		"node": "^24"
 	},
 	"files": [
-		"/dist"
+		"dist/lib"
 	],
 	"husky": {
 		"hooks": {
@@ -92,34 +92,35 @@
 	"license": "MIT",
 	"lint-staged": {
 		".ts": [
-			"tsc --noEmit",
+			"tsc --noEmit -p tsconfig.lib.json && tsc --noEmit -p tsconfig.app.json",
 			"biome check --write --no-errors-on-unmatched",
 			"npm test"
 		],
 		"*": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
 	},
-	"main": "dist/index.js",
+	"main": "dist/lib/index.js",
 	"name": "scream.js",
 	"scripts": {
-		"build": "tsc && tsc-alias",
+		"build": "tsc -b && tsc-alias -p tsconfig.lib.json && tsc-alias -p tsconfig.app.json",
+		"build:lib": "tsc -b tsconfig.lib.json",
 		"check": "run-p typecheck lint:fix test",
-		"db:migrate": "npm run scream -- db:migrate",
-		"db:reset": "npm run scream -- db:reset --force",
-		"db:seed": "knex seed:run --knexfile lib/database/knexfile.ts",
+		"db:migrate": "cross-env APP_ROOT=apps/todo npm run scream -- db:migrate",
+		"db:reset": "cross-env APP_ROOT=apps/todo npm run scream -- db:reset --force",
+		"db:seed": "cross-env APP_ROOT=apps/todo knex seed:run --knexfile lib/database/knexfile.ts",
 		"dev": "run-p start vite",
 		"lint": "biome check",
 		"lint:fix": "biome check --write",
 		"prepare": "husky",
 		"scream": "tsx lib/cli/index.ts",
-		"start": "tsx --watch server.ts",
-		"test": "cross-env NODE_ENV=test run-p test:integration test:e2e",
-		"test:e2e": "cross-env NODE_ENV=e2e playwright test",
-		"test:integration": "cross-env NODE_ENV=integration tsx --test",
-		"typecheck": "tsc --noEmit",
-		"vite": "vite"
+		"start": "cross-env APP_ROOT=apps/todo tsx --watch apps/todo/server.ts",
+		"test": "cross-env APP_ROOT=apps/todo tsc -b && cross-env APP_ROOT=apps/todo NODE_ENV=test run-p test:integration test:e2e",
+		"test:e2e": "cross-env APP_ROOT=apps/todo NODE_ENV=e2e playwright test -c apps/todo/playwright.config.ts",
+		"test:integration": "cross-env APP_ROOT=apps/todo TSX_IGNORE=dist NODE_ENV=integration tsx --test \"lib/**/*.test.ts\" \"apps/todo/src/**/*.test.ts\"",
+		"typecheck": "tsc --noEmit -p tsconfig.lib.json && tsc --noEmit -p tsconfig.app.json",
+		"vite": "vite --config apps/todo/vite.config.mts"
 	},
 	"type": "module",
-	"types": "dist/index.d.ts",
+	"types": "dist/lib/index.d.ts",
 	"version": "0.1.0",
 	"volta": {
 		"node": "24.11.1"

@@ -2,8 +2,8 @@ import { expect, type Page, test } from "@playwright/test";
 
 async function createTodo(page: Page, title: string) {
 	await page.goto("/todos/create");
-	await page.locator("#title").fill(title);
-	await page.getByRole("button", { name: /submit/i }).click();
+	await page.getByTestId("title-input").fill(title);
+	await page.getByTestId("submit-button").click();
 	await page.waitForURL(/\/todos\/\d+$/);
 	return page.url().split("/").pop();
 }
@@ -17,12 +17,12 @@ test("has title", async ({ page }) => {
 test("has a heading", async ({ page }) => {
 	await page.goto("/todos");
 
-	await expect(page.getByText("Todos")).toBeVisible();
+	await expect(page.getByTestId("todos-heading")).toBeVisible();
 });
 
 test("opens a create todo page", async ({ page }) => {
 	await page.goto("/todos");
-	await page.getByRole("link", { name: "Create todo" }).click();
+	await page.getByTestId("create-link").click();
 	await expect(page).toHaveURL(/\/todos\/create/);
 });
 
@@ -31,7 +31,7 @@ test("deletes a todo and redirects to index", async ({ page }) => {
 	const id = await createTodo(page, title);
 
 	await page.goto(`/todos/${id}`);
-	await page.getByRole("button", { name: /delete/i }).click();
+	await page.getByTestId("delete-button").click();
 
 	await expect(page).toHaveURL("/todos");
 	await expect(

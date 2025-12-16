@@ -1,13 +1,14 @@
 import { describe, it, type TestContext } from "node:test";
 import { testDatabase } from "@scream.js/database/test-helpers.js";
-import type { Todo } from "src/core/todos/todo.js";
+import type { Todo } from "@todo/core/todos/todo.js";
+import type { Knex } from "knex";
 import type { TodoRepository } from "../core/todos/todo.repository.js";
 import { KnexTodoRepository } from "./knex-todo.repository.js";
 
 describe("KnexTodoRepository", { concurrency: true }, () => {
 	const setupTestDatabase = async () => {
 		const { cleanup, db } = await testDatabase.setup({
-			prepare: async (database) => {
+			prepare: async (database: Knex) => {
 				await database("users").insert({ username: "test user" });
 			},
 		});

@@ -13,11 +13,23 @@ import { createProxyMiddleware } from "http-proxy-middleware";
 import type { Application } from "../application.js";
 import { ExpressApp } from "./express-application.js";
 
-export const createExpressApp: () => Application = () => {
+type ExpressAppOptions = {
+	appRoot?: string;
+	assetsProxyTarget?: string;
+	staticDir?: string;
+	viewsDir?: string;
+};
+
+export const createExpressApp = ({
+	appRoot = process.cwd(),
+	assetsProxyTarget = "http://localhost:5173",
+	staticDir,
+	viewsDir,
+}: ExpressAppOptions = {}): Application => {
 	const app = express();
 	const templateEngine = new ScreamTemplateEngine(
 		new Resolver(
-			new SystemFileLoader(),
+			new SystemFileLoader(viewsDir ?? path.join(appRoot, "views")),
 			new Tokenizer(),
 			new Parser(),
 			new Transformer(),
@@ -26,7 +38,8 @@ export const createExpressApp: () => Application = () => {
 		new Generator(),
 	);
 
-	const viewsPath = path.join(process.cwd(), "views");
+	const resolvedViewsDir = viewsDir ?? path.join(appRoot, "views");
+	const resolvedStaticDir = staticDir ?? path.join(appRoot, "resources");
 
 	app.engine("njk", async (filePath, options, callback) => {
 		try {
@@ -39,17 +52,17 @@ export const createExpressApp: () => Application = () => {
 		}
 	});
 
-	app.set("views", viewsPath);
+	app.set("views", resolvedViewsDir);
 	app.set("view engine", "njk");
 
 	app.use(express.urlencoded({ extended: true }));
-	app.use(express.static(path.join(process.cwd(), "resources")));
+	app.use(express.static(resolvedStaticDir));
 
 	app.use(
 		"/assets",
 		createProxyMiddleware({
 			changeOrigin: true,
-			target: "http://localhost:5173",
+			target: assetsProxyTarget,
 		}),
 	);
 

@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"composite": true,
+		"declaration": true,
+		"declarationMap": true,
+		"outDir": "dist/apps/todo",
+		"rootDir": "apps/todo",
+		"tsBuildInfoFile": "dist/apps/todo/.tsbuildinfo"
+	},
+	"extends": "./tsconfig.base.json",
+	"include": [
+		"apps/todo/src/**/*",
+		"apps/todo/e2e/**/*",
+		"apps/todo/migrations/**/*",
+		"apps/todo/seeds/**/*",
+		"apps/todo/index.ts",
+		"apps/todo/main.ts",
+		"apps/todo/server.ts",
+		"apps/todo/playwright.config.ts",
+		"apps/todo/vite.config.mts"
+	],
+	"references": [{ "path": "./tsconfig.lib.json" }]
+}

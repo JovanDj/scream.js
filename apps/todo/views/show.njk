@@ -18,9 +18,9 @@
                         {% endif %}
                     </td>
                     <td>
-                        <a class="btn btn-outline-primary me-2" href="/todos/{{ todoId }}/edit">Edit</a>
+                        <a class="btn btn-outline-primary me-2" href="/todos/{{ todoId }}/edit" data-testid="edit-link">Edit</a>
                         <form action="/todos/{{ todoId }}/delete" method="POST">
-                            <button type="submit" class="btn btn-danger">Delete</button>
+                            <button type="submit" class="btn btn-danger" data-testid="delete-button">Delete</button>
                         </form>
                     </td>
                 </tr>

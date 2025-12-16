@@ -1,19 +1,8 @@
 {
-	"compilerOptions": {
-		"baseUrl": ".",
-		"emitDecoratorMetadata": false,
-		"experimentalDecorators": false,
-		"inlineSourceMap": true,
-		"inlineSources": true,
-		"outDir": "dist",
-		"paths": {
-			"@scream.js/*": ["./lib/*"]
-		}
-	},
-	"extends": [
-		"@tsconfig/recommended/tsconfig.json",
-		"@tsconfig/node24/tsconfig.json",
-		"@tsconfig/node-ts/tsconfig.json",
-		"@tsconfig/strictest/tsconfig.json"
+	"extends": "./tsconfig.base.json",
+	"files": [],
+	"references": [
+		{ "path": "./tsconfig.lib.json" },
+		{ "path": "./tsconfig.app.json" }
 	]
 }

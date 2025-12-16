@@ -2,6 +2,6 @@
 	"compilerOptions": {
 		"lib": ["ES6", "DOM"]
 	},
-	"extends": ["../tsconfig.json"],
+	"extends": "../../../tsconfig.base.json",
 	"include": ["./**/*.ts"]
 }

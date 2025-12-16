@@ -1,0 +1,6 @@
+apps/
+dist/apps/
+tmp/
+test-results/
+db.sqlite
+*.log

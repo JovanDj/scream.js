@@ -2,9 +2,9 @@
 
 {% block content %}
     <div class="container py-4 px-3 mx-auto">
-        <h1>Todos</h1>
+        <h1 data-testid="todos-heading">Todos</h1>
         <p>
-            <a href="/todos/create">Create todo</a>
+            <a href="/todos/create" data-testid="create-link">Create todo</a>
         </p>
 
         {% if todos.length %}

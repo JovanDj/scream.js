@@ -1,10 +1,11 @@
+import path from "node:path";
 import { describe, it, type TestContext } from "node:test";
 import { testDatabase } from "@scream.js/database/test-helpers.js";
 import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
 import { startTestServer } from "@scream.js/http/server.js";
-import { createCoreServices } from "index.js";
-import { createHttpApp, createHttpControllers } from "main.js";
-import { KnexTodoRepository } from "src/infra/knex-todo.repository.js";
+import { KnexTodoRepository } from "@todo/infra/knex-todo.repository.js";
+import { createCoreServices } from "../../../index.js";
+import { createHttpApp, createHttpControllers } from "../../../main.js";
 
 describe("server", { concurrency: true }, () => {
 	const setupServer = async () => {
@@ -15,7 +16,9 @@ describe("server", { concurrency: true }, () => {
 		});
 		const { todosController } = createHttpControllers({ todoService });
 
-		const app = createExpressApp();
+		const app = createExpressApp({
+			appRoot: path.join(process.cwd(), "apps", "todo"),
+		});
 		createHttpApp({ app, todosController });
 
 		const { port, shutdown } = await startTestServer(app);

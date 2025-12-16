@@ -4,6 +4,10 @@ import type { Knex } from "knex";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../../");
+const appRoot = path.resolve(root, process.env["APP_ROOT"] ?? ".");
+const migrationsDir =
+	process.env["KNEX_MIGRATIONS_DIR"] ?? path.join(appRoot, "migrations");
+const seedsDir = process.env["KNEX_SEEDS_DIR"] ?? path.join(appRoot, "seeds");
 
 const config: Record<string, Knex.Config> = {
 	development: {
@@ -13,11 +17,11 @@ const config: Record<string, Knex.Config> = {
 		},
 		debug: true,
 		migrations: {
-			directory: path.join(root, "migrations"),
+			directory: migrationsDir,
 			extension: "ts",
 			tableName: "knex_migrations",
 		},
-		seeds: { directory: path.join(root, "seeds") },
+		seeds: { directory: seedsDir },
 		useNullAsDefault: true,
 	},
 
@@ -27,11 +31,11 @@ const config: Record<string, Knex.Config> = {
 			filename: "tmp/e2e.sqlite",
 		},
 		migrations: {
-			directory: path.join(root, "migrations"),
+			directory: migrationsDir,
 			extension: "ts",
 			tableName: "knex_migrations",
 		},
-		seeds: { directory: path.join(root, "seeds") },
+		seeds: { directory: seedsDir },
 
 		useNullAsDefault: true,
 	},
@@ -42,11 +46,11 @@ const config: Record<string, Knex.Config> = {
 			filename: ":memory:",
 		},
 		migrations: {
-			directory: path.join(root, "migrations"),
+			directory: migrationsDir,
 			extension: "ts",
 			tableName: "knex_migrations",
 		},
-		seeds: { directory: path.join(root, "seeds") },
+		seeds: { directory: seedsDir },
 
 		useNullAsDefault: true,
 	},
