@@ -99,9 +99,15 @@ export class Parser {
 		index: number,
 		token: { type: "extends"; template: string },
 	): NodeResult {
+		const raw = token.template.trim();
+		const match = raw.match(/^(['"])([^'"]+)\1$/);
+		if (!match || !match[2]) {
+			throw new Error("Extends target must be a quoted string literal");
+		}
+
 		return {
 			nextIndex: index + 1,
-			node: { type: "extends", value: token.template },
+			node: { type: "extends", value: match[2] },
 		};
 	}
 

@@ -12,6 +12,9 @@ describe("Resolver", { concurrency: true }, () => {
 	let parser: Parser;
 	let transformer: Transformer;
 	let resolver: Resolver;
+	const resolveTemplate = (template: string, name = "template") => {
+		return resolver.resolve(template, name);
+	};
 
 	beforeEach(() => {
 		fileLoader = new InMemoryFileLoader();
@@ -24,7 +27,7 @@ describe("Resolver", { concurrency: true }, () => {
 	it("resolves a template without inheritance", (t: TestContext) => {
 		t.plan(1);
 		const template = "<h1>Hello</h1>";
-		const ast = resolver.resolve(template);
+		const ast = resolveTemplate(template);
 
 		t.assert.deepStrictEqual<ASTNode[]>(ast, [
 			{ type: "text", value: "<h1>Hello</h1>" },
@@ -44,7 +47,7 @@ describe("Resolver", { concurrency: true }, () => {
         {% block header %}Custom Header{% endblock header %}
         {% block content %}Custom Content{% endblock content %}`;
 
-		const ast = resolver.resolve(template);
+		const ast = resolveTemplate(template);
 
 		t.assert.deepStrictEqual<ASTNode[]>(ast, [
 			{
@@ -100,7 +103,7 @@ describe("Resolver", { concurrency: true }, () => {
 		const template = `{% extends "mid.html" %}
         {% block content %}Leaf Content{% endblock content %}`;
 
-		const ast = resolver.resolve(template);
+		const ast = resolveTemplate(template);
 
 		t.assert.deepStrictEqual<ASTNode[]>(ast, [
 			{
@@ -135,7 +138,7 @@ describe("Resolver", { concurrency: true }, () => {
 
 		const template = `{% extends "layout.html" %}`;
 
-		const ast = resolver.resolve(template);
+		const ast = resolveTemplate(template);
 
 		t.assert.deepStrictEqual<ASTNode[]>(ast, [
 			{ type: "text", value: "\n        <nav>" },
@@ -154,7 +157,7 @@ describe("Resolver", { concurrency: true }, () => {
 		fileLoader.setTemplate("b.html", `{% extends "a.html" %}`);
 
 		t.assert.throws(
-			() => resolver.resolve(`{% extends "a.html" %}`),
+			() => resolveTemplate(`{% extends "a.html" %}`),
 			/ cyclic extends /i,
 		);
 	});

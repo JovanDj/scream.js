@@ -25,6 +25,8 @@ export class ScreamTemplateEngine {
 
 	async compileFile(filePath: string, options: TemplateContext) {
 		const content = await readFile(filePath, { encoding: "utf-8" });
-		return this.compile(content, { ...options });
+		const ast = this.#resolver.resolve(content, filePath);
+		const evaluatedAst = this.#evaluator.evaluate(ast, { ...options });
+		return this.#generator.generate(evaluatedAst);
 	}
 }

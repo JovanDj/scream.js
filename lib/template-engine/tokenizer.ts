@@ -51,8 +51,35 @@ export const TOKENS = {
 
 export type Token = ReturnType<(typeof TOKENS)[keyof typeof TOKENS]>;
 
+export class TokenizerError extends Error {
+	override readonly name = "TokenizerError";
+	readonly templateName: string;
+	readonly line: number;
+	readonly column: number;
+	readonly snippet: string;
+
+	constructor(options: {
+		message: string;
+		templateName: string;
+		line: number;
+		column: number;
+		snippet: string;
+	}) {
+		super(options.message);
+		Object.setPrototypeOf(this, new.target.prototype);
+		this.templateName = options.templateName;
+		this.line = options.line;
+		this.column = options.column;
+		this.snippet = options.snippet;
+
+		if (Error.captureStackTrace) {
+			Error.captureStackTrace(this, TokenizerError);
+		}
+	}
+}
+
 export class Tokenizer {
-	tokenize(template: string): readonly Token[] {
+	tokenize(template: string, templateName: string): readonly Token[] {
 		const tokens: Token[] = [];
 		let index = 0;
 
@@ -61,17 +88,18 @@ export class Tokenizer {
 				const endIndex = template.indexOf("%}", index);
 
 				if (endIndex === -1) {
-					throw new Error(
-						`Unclosed {% extends %} tag starting at index ${index}`,
+					this.#fail(
+						"Unclosed {% extends %} tag",
+						template,
+						templateName,
+						index,
 					);
 				}
 
-				const layoutName = template
-					.slice(index + "{% extends".length, endIndex)
-					.trim()
-					.replaceAll('"', "")
-
-					.replaceAll("'", "");
+				const layoutName = template.slice(
+					index + "{% extends".length,
+					endIndex,
+				);
 
 				tokens.push({ template: layoutName, type: "extends" });
 
@@ -83,9 +111,7 @@ export class Tokenizer {
 				const endIndex = template.indexOf("%}", index);
 
 				if (endIndex === -1) {
-					throw new Error(
-						`Unclosed {% block %} tag starting at index ${index}`,
-					);
+					this.#fail("Unclosed {% block %} tag", template, templateName, index);
 				}
 
 				const blockName = template
@@ -102,8 +128,11 @@ export class Tokenizer {
 				const endIndex = template.indexOf("%}", index);
 
 				if (endIndex === -1) {
-					throw new Error(
-						`Unclosed {% endblock %} tag starting at index ${index}`,
+					this.#fail(
+						"Unclosed {% endblock %} tag",
+						template,
+						templateName,
+						index,
 					);
 				}
 
@@ -117,7 +146,7 @@ export class Tokenizer {
 				const endIndex = template.indexOf("%}", index);
 
 				if (endIndex === -1) {
-					throw new Error(`Unclosed {% if %} tag starting at index ${index}`);
+					this.#fail("Unclosed {% if %} tag", template, templateName, index);
 				}
 
 				const condition = template.slice(index + 5, endIndex).trim();
@@ -131,7 +160,7 @@ export class Tokenizer {
 				const endIndex = template.indexOf("%}", index);
 
 				if (endIndex === -1) {
-					throw new Error(`Unclosed {% else %} tag starting at index ${index}`);
+					this.#fail("Unclosed {% else %} tag", template, templateName, index);
 				}
 
 				tokens.push({ type: "else" });
@@ -144,9 +173,7 @@ export class Tokenizer {
 				const endIndex = template.indexOf("%}", index);
 
 				if (endIndex === -1) {
-					throw new Error(
-						`Unclosed {% endif %} tag starting at index ${index}`,
-					);
+					this.#fail("Unclosed {% endif %} tag", template, templateName, index);
 				}
 
 				tokens.push({ type: "endif" });
@@ -155,27 +182,11 @@ export class Tokenizer {
 				continue;
 			}
 
-			if (template[index] === "{" && template[index + 1] === "{") {
-				const { token, nextIndex, extraTokens } = this.#extractVariableToken(
-					template,
-					index,
-				);
-
-				tokens.push(token);
-
-				if (extraTokens) {
-					tokens.push(...extraTokens);
-				}
-
-				index = nextIndex;
-				continue;
-			}
-
 			if (template.startsWith("{% for", index)) {
 				const endIndex = template.indexOf("%}", index);
 
 				if (endIndex === -1) {
-					throw new Error("Unclosed {% for %} block in template.");
+					this.#fail("Unclosed {% for %} block", template, templateName, index);
 				}
 
 				const loopContent = template
@@ -185,8 +196,11 @@ export class Tokenizer {
 				const parts = loopContent.split(/\s+/);
 
 				if (parts.length !== 3 || parts[1] !== "in") {
-					throw new Error(
+					this.#fail(
 						"Invalid syntax in {% for %} tag. Use '{% for item in collection %}'.",
+						template,
+						templateName,
+						index,
 					);
 				}
 				const [iterator = "", , collection = ""] = parts;
@@ -200,14 +214,60 @@ export class Tokenizer {
 				const endIndex = template.indexOf("%}", index);
 
 				if (endIndex === -1) {
-					throw new Error(
-						`Unclosed {% endfor %} tag starting at index ${index}`,
+					this.#fail(
+						"Unclosed {% endfor %} tag",
+						template,
+						templateName,
+						index,
 					);
 				}
 
 				tokens.push({ type: "endfor" });
 
 				index = endIndex + 2;
+				continue;
+			}
+
+			if (template.startsWith("{%", index)) {
+				const endIndex = template.indexOf("%}", index);
+				if (endIndex === -1) {
+					this.#fail("Unclosed control tag", template, templateName, index);
+				}
+
+				this.#fail("Unknown control tag", template, templateName, index);
+			}
+
+			if (template.startsWith("}}", index)) {
+				this.#fail(
+					"Unexpected closing variable delimiter '}}'",
+					template,
+					templateName,
+					index,
+				);
+			}
+
+			if (template.startsWith("%}", index)) {
+				this.#fail(
+					"Unexpected closing control delimiter '%}'",
+					template,
+					templateName,
+					index,
+				);
+			}
+
+			if (template[index] === "{" && template[index + 1] === "{") {
+				const { token, nextIndex, extraTokens } = this.#extractVariableToken(
+					template,
+					templateName,
+					index,
+				);
+
+				tokens.push(token);
+				if (extraTokens) {
+					tokens.push(...extraTokens);
+				}
+
+				index = nextIndex;
 				continue;
 			}
 
@@ -223,29 +283,61 @@ export class Tokenizer {
 		return tokens;
 	}
 
-	#extractVariableToken(template: string, startIndex: number) {
+	#fail(
+		message: string,
+		template: string,
+		templateName: string,
+		index: number,
+	): never {
+		const { column, line, snippet } = this.#position(template, index);
+
+		throw new TokenizerError({
+			column,
+			line,
+			message,
+			snippet,
+			templateName,
+		});
+	}
+
+	#extractVariableToken(
+		template: string,
+		templateName: string,
+		startIndex: number,
+	) {
 		const endIndex = template.indexOf("}}", startIndex);
 
 		if (endIndex === -1) {
-			const remainder = template.slice(startIndex);
-
-			const closingCount = (remainder.match(/}/g) ?? []).length;
-
-			if (closingCount === 0) {
-				throw new Error(
-					`Unclosed variable tag starting at index ${startIndex}`,
-				);
-			}
-
-			return {
-				nextIndex: template.length,
-				token: { type: "text", value: remainder } satisfies Token,
-			};
+			this.#fail(
+				`Unclosed variable tag starting at index ${startIndex}`,
+				template,
+				templateName,
+				startIndex,
+			);
 		}
 
-		const variable = template.slice(startIndex + 2, endIndex).trim();
+		const rawExpr = template.slice(startIndex + 2, endIndex);
+		const trimmedStart = rawExpr.trimStart();
+		const leadingWhitespace = rawExpr.length - trimmedStart.length;
+		const variable = trimmedStart.trimEnd();
 
-		const exprTokens = this.#tokenizeExpression(variable);
+		if (variable.length === 0) {
+			this.#fail(
+				"Variable expression cannot be empty",
+				template,
+				templateName,
+				startIndex,
+			);
+		}
+
+		const exprTokens = this.#tokenizeExpression(
+			variable,
+			startIndex + 2 + leadingWhitespace,
+			{
+				template,
+				templateName,
+			},
+		);
 
 		return {
 			extraTokens: exprTokens,
@@ -257,9 +349,13 @@ export class Tokenizer {
 	#extractTextToken(template: string, startIndex: number) {
 		const nextControlIndex = template.indexOf("{%", startIndex);
 		const nextVariableIndex = template.indexOf("{{", startIndex);
+		const nextVariableCloseIndex = template.indexOf("}}", startIndex);
+		const nextControlCloseIndex = template.indexOf("%}", startIndex);
 		const endIndex = Math.min(
 			nextControlIndex === -1 ? template.length : nextControlIndex,
 			nextVariableIndex === -1 ? template.length : nextVariableIndex,
+			nextVariableCloseIndex === -1 ? template.length : nextVariableCloseIndex,
+			nextControlCloseIndex === -1 ? template.length : nextControlCloseIndex,
 		);
 
 		const text = template.slice(startIndex, endIndex);
@@ -268,62 +364,141 @@ export class Tokenizer {
 		return { nextIndex: endIndex, token };
 	}
 
-	#tokenizeExpression(input: string): readonly Token[] {
-		const tokens: Token[] = [];
+	#position(template: string, index: number) {
+		let line = 1;
+		let lineStart = 0;
 		let i = 0;
 
-		while (i < input.length) {
-			const char = input[i];
-
-			if (!char) {
-				throw new Error("Unknown character");
-			}
-
-			if (/\s/.test(char)) {
+		while (i < index) {
+			const char = template[i];
+			if (char === "\r" && template[i + 1] === "\n") {
+				i++;
+				line++;
+				lineStart = i + 1;
 				i++;
 				continue;
 			}
 
-			if (/[a-zA-Z_]/.test(char)) {
+			if (char === "\n") {
+				line++;
+				lineStart = i + 1;
+			}
+
+			i++;
+		}
+
+		let lineEnd = template.indexOf("\n", lineStart);
+		if (lineEnd === -1) {
+			lineEnd = template.length;
+		}
+
+		const snippet = template.slice(lineStart, lineEnd).replace(/\r$/, "");
+		const column = index - lineStart + 1;
+
+		return { column, line, snippet };
+	}
+
+	#tokenizeExpression(
+		input: string,
+		baseIndex: number,
+		options: { readonly template: string; readonly templateName: string },
+	): readonly Token[] {
+		const tokens: Token[] = [];
+		let i = 0;
+
+		while (i < input.length) {
+			const currentChar = input[i];
+
+			if (currentChar === undefined) {
+				this.#fail(
+					"Unexpected end of expression",
+					options.template,
+					options.templateName,
+					baseIndex + i,
+				);
+			}
+
+			if (/\s/.test(currentChar)) {
+				i++;
+				continue;
+			}
+
+			if (/[a-zA-Z_]/.test(currentChar)) {
 				let ident = "";
 
 				while (i < input.length && /[a-zA-Z0-9_]/.test(input[i] ?? "")) {
-					ident += input[i++];
+					const current = input[i];
+					if (current === undefined) {
+						break;
+					}
+
+					ident += current;
+					i++;
 				}
 
 				tokens.push({ name: ident, type: "identifier" });
 				continue;
 			}
 
-			if (char === ".") {
+			if (currentChar === ".") {
 				tokens.push({ type: "dot" });
 				i++;
-
 				continue;
 			}
 
-			if (char === "[") {
+			if (currentChar === "[") {
 				i++;
 				if (i >= input.length) {
-					throw new Error(`Unclosed bracket expression: ${input}`);
+					this.#fail(
+						"Unclosed bracket expression",
+						options.template,
+						options.templateName,
+						baseIndex + i,
+					);
 				}
 
 				if (input[i] === "'" || input[i] === '"') {
-					const quote = input[i++];
+					const quote = input[i];
+					if (quote === undefined) {
+						this.#fail(
+							"Unclosed bracket expression",
+							options.template,
+							options.templateName,
+							baseIndex + i,
+						);
+					}
+
+					i++;
 					let str = "";
 
 					while (i < input.length && input[i] !== quote) {
-						str += input[i++];
+						const charInString = input[i];
+						if (charInString === undefined) {
+							break;
+						}
+
+						str += charInString;
+						i++;
 					}
 
 					if (i >= input.length) {
-						throw new Error(`Unclosed string in bracket: ${input}`);
+						this.#fail(
+							"Unclosed string in bracket",
+							options.template,
+							options.templateName,
+							baseIndex + i,
+						);
 					}
 
 					i++;
 
 					if (input[i] !== "]") {
-						throw new Error(`Missing closing bracket in: ${input}`);
+						this.#fail(
+							"Missing closing bracket",
+							options.template,
+							options.templateName,
+							baseIndex + i,
+						);
 					}
 
 					i++;
@@ -336,11 +511,22 @@ export class Tokenizer {
 					let num = "";
 
 					while (i < input.length && /[0-9]/.test(input[i] ?? "")) {
-						num += input[i++];
+						const digit = input[i];
+						if (digit === undefined) {
+							break;
+						}
+
+						num += digit;
+						i++;
 					}
 
 					if (input[i] !== "]") {
-						throw new Error(`Missing closing bracket in: ${input}`);
+						this.#fail(
+							"Missing closing bracket",
+							options.template,
+							options.templateName,
+							baseIndex + i,
+						);
 					}
 
 					i++;
@@ -349,30 +535,62 @@ export class Tokenizer {
 					continue;
 				}
 
-				throw new Error(`Unexpected bracket content in: ${input}`);
+				this.#fail(
+					"Unexpected bracket content",
+					options.template,
+					options.templateName,
+					baseIndex + i,
+				);
 			}
 
-			if (/[0-9]/.test(char)) {
+			if (/[0-9]/.test(currentChar)) {
 				let num = "";
 
 				while (i < input.length && /[0-9]/.test(input[i] ?? "")) {
-					num += input[i++];
+					const digit = input[i];
+					if (digit === undefined) {
+						break;
+					}
+
+					num += digit;
+					i++;
 				}
 
 				tokens.push({ type: "number", value: Number(num) });
 				continue;
 			}
 
-			if (char === "'" || char === '"') {
-				const quote = input[i++];
+			if (currentChar === "'" || currentChar === '"') {
+				const quote = input[i];
+				if (quote === undefined) {
+					this.#fail(
+						"Unclosed string literal",
+						options.template,
+						options.templateName,
+						baseIndex + i,
+					);
+				}
+
+				i++;
 				let str = "";
 
 				while (i < input.length && input[i] !== quote) {
-					str += input[i++];
+					const charInString = input[i];
+					if (charInString === undefined) {
+						break;
+					}
+
+					str += charInString;
+					i++;
 				}
 
 				if (i >= input.length) {
-					throw new Error(`Unclosed string literal: ${input}`);
+					this.#fail(
+						"Unclosed string literal",
+						options.template,
+						options.templateName,
+						baseIndex + i,
+					);
 				}
 
 				i++;
@@ -380,7 +598,12 @@ export class Tokenizer {
 				continue;
 			}
 
-			throw new Error(`Unexpected character '${char}' in expression: ${input}`);
+			this.#fail(
+				`Unexpected character '${currentChar}' in expression`,
+				options.template,
+				options.templateName,
+				baseIndex + i,
+			);
 		}
 
 		return tokens;

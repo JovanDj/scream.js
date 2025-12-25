@@ -21,8 +21,8 @@ export class Resolver {
 		this.#transformer = transformer;
 	}
 
-	resolve(template: string) {
-		const tokens = this.#tokenizer.tokenize(template);
+	resolve(template: string, templateName = "anonymous") {
+		const tokens = this.#tokenizer.tokenize(template, templateName);
 		const ast = this.#parser.parse(tokens);
 		return this.#resolveRecursive(ast, []);
 	}
@@ -52,7 +52,7 @@ export class Resolver {
 		}
 
 		const parentTemplate = this.#fileLoader.loadFile(name);
-		const parentTokens = this.#tokenizer.tokenize(parentTemplate);
+		const parentTokens = this.#tokenizer.tokenize(parentTemplate, name);
 		const parentAst = this.#parser.parse(parentTokens);
 
 		const resolvedParent = this.#resolveRecursive(parentAst, [...chain, name]);

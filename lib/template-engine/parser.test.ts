@@ -199,7 +199,7 @@ describe("Parser", { concurrency: true }, () => {
 	describe("Layouts", () => {
 		it("should parse an extends directive", (t: TestContext) => {
 			t.plan(1);
-			const tokens: Token[] = [{ template: "layout", type: "extends" }];
+			const tokens: Token[] = [{ template: ' "layout" ', type: "extends" }];
 			const ast = parser.parse(tokens);
 
 			t.assert.deepStrictEqual<ASTNode[]>(ast, [
@@ -709,7 +709,7 @@ describe("Parser", { concurrency: true }, () => {
 		it("should parse a complex nested template", (t: TestContext) => {
 			t.plan(1);
 			const tokens: Token[] = [
-				{ template: "layout", type: "extends" },
+				{ template: ' "layout" ', type: "extends" },
 				{ name: "content", type: "block" },
 				{ condition: "user", type: "if" },
 				{ type: "text", value: "Hello, " },

@@ -153,15 +153,19 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<string>(result, "This is {{nested}} example.");
 		});
 
-		it("should handle empty variable names gracefully", (t: TestContext) => {
+		it("throws on empty variable expression", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
 			const template = "Hello, {{ }}!";
-			const context: TemplateContext = { "": "" };
 
-			const result = templateEngine.compile(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Hello, !");
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				column: 8,
+				line: 1,
+				message: "Variable expression cannot be empty",
+				name: "TokenizerError",
+				snippet: "Hello, {{ }}!",
+				templateName: "anonymous",
+			});
 		});
 
 		it("should return the template unchanged if no variables exist", (t: TestContext) => {
@@ -191,20 +195,6 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<string>(
 				result,
 				"Array: 1, 2, Object: , Function: .",
-			);
-		});
-
-		it("should ignore malformed placeholders", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, { name }} and {{ place }";
-			const context: TemplateContext = { name: "John", place: "Serbia" };
-
-			const result = templateEngine.compile(template, context);
-
-			t.assert.deepStrictEqual<string>(
-				result,
-				"Hello, { name }} and {{ place }",
 			);
 		});
 
@@ -390,6 +380,220 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const result = templateEngine.compile(template, context);
 
 			t.assert.deepStrictEqual<string>(result, "Value: &lt;script&gt;");
+		});
+	});
+
+	describe("Errors", () => {
+		it("throws on malformed placeholders", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "Hello, { name }} and {{ place }";
+			const context: TemplateContext = { name: "John", place: "Serbia" };
+
+			t.assert.throws(() => templateEngine.compile(template, context), {
+				column: 15,
+				line: 1,
+				name: "TokenizerError",
+				templateName: "anonymous",
+			});
+		});
+
+		it("throws on unclosed for block", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% for item in items";
+
+			t.assert.throws(
+				() => templateEngine.compile(template, {}),
+				/Unclosed {% for %}/,
+			);
+		});
+
+		it("throws on malformed for missing 'in'", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% for item items %}";
+
+			t.assert.throws(
+				() => templateEngine.compile(template, {}),
+				/Invalid syntax in {% for %} tag/,
+			);
+		});
+
+		it("throws on unclosed block", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% block content";
+
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				column: 1,
+				line: 1,
+				message: "Unclosed {% block %} tag",
+				name: "TokenizerError",
+				snippet: "{% block content",
+				templateName: "anonymous",
+			});
+		});
+
+		it("throws on unclosed variable tag", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ user.name";
+
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				column: 1,
+				line: 1,
+				message: "Unclosed variable tag starting at index 0",
+				name: "TokenizerError",
+				snippet: "{{ user.name",
+				templateName: "anonymous",
+			});
+		});
+
+		it("throws on unclosed extends tag", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% extends 'layout'";
+
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				column: 1,
+				line: 1,
+				message: "Unclosed {% extends %} tag",
+				name: "TokenizerError",
+				snippet: "{% extends 'layout'",
+				templateName: "anonymous",
+			});
+		});
+
+		it("throws when extends target is unquoted", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% extends layout %}";
+
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				message: "Extends target must be a quoted string literal",
+				name: "Error",
+			});
+		});
+
+		it("throws on unclosed if tag", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% if condition";
+
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				column: 1,
+				line: 1,
+				message: "Unclosed {% if %} tag",
+				name: "TokenizerError",
+				snippet: "{% if condition",
+				templateName: "anonymous",
+			});
+		});
+
+		it("throws on unclosed else tag", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% else";
+
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				column: 1,
+				line: 1,
+				message: "Unclosed {% else %} tag",
+				name: "TokenizerError",
+				snippet: "{% else",
+				templateName: "anonymous",
+			});
+		});
+
+		it("throws on unclosed endif tag", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% endif";
+
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				column: 1,
+				line: 1,
+				message: "Unclosed {% endif %} tag",
+				name: "TokenizerError",
+				snippet: "{% endif",
+				templateName: "anonymous",
+			});
+		});
+
+		it("throws on unclosed endfor tag", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% endfor";
+
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				column: 1,
+				line: 1,
+				message: "Unclosed {% endfor %} tag",
+				name: "TokenizerError",
+				snippet: "{% endfor",
+				templateName: "anonymous",
+			});
+		});
+
+		it("throws on unclosed endblock tag", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% endblock";
+
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				column: 1,
+				line: 1,
+				message: "Unclosed {% endblock %} tag",
+				name: "TokenizerError",
+				snippet: "{% endblock",
+				templateName: "anonymous",
+			});
+		});
+
+		it("throws on stray variable closing delimiter", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "Oops }}";
+
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				column: 6,
+				line: 1,
+				message: "Unexpected closing variable delimiter '}}'",
+				name: "TokenizerError",
+				snippet: "Oops }}",
+				templateName: "anonymous",
+			});
+		});
+
+		it("throws on stray control closing delimiter", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "Oops %}";
+
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				column: 6,
+				line: 1,
+				message: "Unexpected closing control delimiter '%}'",
+				name: "TokenizerError",
+				snippet: "Oops %}",
+				templateName: "anonymous",
+			});
+		});
+
+		it("throws on unknown control tag", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% foo %}";
+
+			t.assert.throws(() => templateEngine.compile(template, {}), {
+				column: 1,
+				line: 1,
+				message: "Unknown control tag",
+				name: "TokenizerError",
+				snippet: "{% foo %}",
+				templateName: "anonymous",
+			});
 		});
 	});
 

@@ -4,7 +4,8 @@ import type { Knex } from "knex";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../../");
-const appRoot = path.resolve(root, process.env["APP_ROOT"] ?? ".");
+const defaultAppRoot = path.join(root, "apps", "todo");
+const appRoot = path.resolve(root, process.env["APP_ROOT"] ?? defaultAppRoot);
 const migrationsDir =
 	process.env["KNEX_MIGRATIONS_DIR"] ?? path.join(appRoot, "migrations");
 const seedsDir = process.env["KNEX_SEEDS_DIR"] ?? path.join(appRoot, "seeds");
