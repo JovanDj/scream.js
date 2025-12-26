@@ -1,18 +1,15 @@
-import { beforeEach, describe, it, type TestContext } from "node:test";
+import { describe, it, type TestContext } from "node:test";
 
 import { type ASTNode, Parser } from "./parser.js";
 import type { Token } from "./tokenizer.js";
 
 describe("Parser", { concurrency: true }, () => {
-	let parser: Parser;
-
-	beforeEach(() => {
-		parser = new Parser();
-	});
+	const setupParser = () => new Parser();
 
 	describe("Variable replacement", () => {
 		it("should parse a single variable", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ type: "variable" },
 				{ name: "name", type: "identifier" },
@@ -26,6 +23,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse multiple variables", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ type: "variable" },
 				{ name: "firstName", type: "identifier" },
@@ -44,6 +42,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse variable with dot notation path", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ type: "variable" },
 				{ name: "user", type: "identifier" },
@@ -59,6 +58,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse variable with bracket notation path", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ type: "variable" },
 				{ name: "errors", type: "identifier" },
@@ -75,6 +75,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse variable with mixed dot and bracket notation", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ type: "variable" },
 				{ name: "foo", type: "identifier" },
@@ -95,6 +96,7 @@ describe("Parser", { concurrency: true }, () => {
 	describe("Conditionals", () => {
 		it("should parse a simple conditional", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ condition: "isLoggedIn", type: "if" },
 				{ type: "text", value: "Welcome!" },
@@ -113,6 +115,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse a conditional with else", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ condition: "isAdmin", type: "if" },
 				{ type: "text", value: "Admin Panel" },
@@ -136,6 +139,7 @@ describe("Parser", { concurrency: true }, () => {
 	describe("Iterations", () => {
 		it("should parse a simple for loop", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ collection: "letters", iterator: "letter", type: "for" },
 				{ type: "variable" },
@@ -161,6 +165,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse nested loops", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ collection: "users", iterator: "user", type: "for" },
 				{ collection: "user.tasks", iterator: "task", type: "for" },
@@ -199,6 +204,7 @@ describe("Parser", { concurrency: true }, () => {
 	describe("Layouts", () => {
 		it("should parse an extends directive", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [{ template: ' "layout" ', type: "extends" }];
 			const ast = parser.parse(tokens);
 
@@ -209,6 +215,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse a block with content", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ type: "text", value: "Hello" },
@@ -227,6 +234,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse a nested if inside a block", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ condition: "user.isAdmin", type: "if" },
@@ -266,6 +274,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse multiple blocks", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ name: "header", type: "block" },
 				{ type: "text", value: "Header Content" },
@@ -302,6 +311,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse a block with loops and conditionals", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ collection: "items", iterator: "item", type: "for" },
@@ -329,6 +339,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should not insert the block node as its own child", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ type: "text", value: "Inside block" },
@@ -352,6 +363,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should not nest a block inside another block's children", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ name: "outer", type: "block" },
 				{ name: "inner", type: "block" },
@@ -386,18 +398,21 @@ describe("Parser", { concurrency: true }, () => {
 	describe("Parser - Edge Cases & Errors", () => {
 		it("should throw on endif without if", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [{ type: "endif" }];
 			t.assert.throws(() => parser.parse(tokens), /Unexpected token: endif/);
 		});
 
 		it("should throw on else without if", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [{ type: "else" }];
 			t.assert.throws(() => parser.parse(tokens), /Unexpected token: else/);
 		});
 
 		it("should not descend past an unexpected else", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const forbiddenToken = {} as Token;
 			Object.defineProperty(forbiddenToken, "type", {
 				get() {
@@ -416,6 +431,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw on dangling else after a closed if", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ condition: "isAdmin", type: "if" },
 				{ type: "text", value: "admin" },
@@ -427,6 +443,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw on stray endif surrounded by text", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ type: "text", value: "Hello " },
 				{ type: "endif" },
@@ -437,6 +454,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw on stray else surrounded by text", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ type: "text", value: "before " },
 				{ type: "else" },
@@ -447,6 +465,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw on endfor without for", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ type: "endfor" },
@@ -457,6 +476,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw on endblock without block", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ type: "endblock" },
@@ -467,6 +487,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw when if is closed with endfor", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ type: "endfor" },
@@ -476,6 +497,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw when for is closed with endif", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ collection: "xs", iterator: "x", type: "for" },
 				{ type: "endif" },
@@ -485,6 +507,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw when else appears inside a for loop", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ collection: "xs", iterator: "x", type: "for" },
 				{ type: "else" },
@@ -495,6 +518,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw when else appears inside a block", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ type: "else" },
@@ -505,6 +529,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw on multiple else branches in a single if", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ type: "text", value: "A" },
@@ -519,6 +544,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw on unclosed if", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ type: "text", value: "inside" },
@@ -531,6 +557,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw on unclosed for", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ collection: "xs", iterator: "x", type: "for" },
@@ -544,6 +571,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should throw on unexpected endblock inside if", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ condition: "x", type: "if" },
 				{ type: "endblock" },
@@ -554,6 +582,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should bind else to the nearest if", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ condition: "a", type: "if" },
 				{ condition: "b", type: "if" },
@@ -584,6 +613,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should preserve text around an if/else/endif sequence", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ type: "text", value: "before " },
 				{ condition: "x", type: "if" },
@@ -610,6 +640,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse interleaved tags and text", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ type: "text", value: "A " },
 				{ condition: "x", type: "if" },
@@ -647,6 +678,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse block with nested if and for", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ name: "content", type: "block" },
 				{ condition: "x", type: "if" },
@@ -692,6 +724,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should handle empty input", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [];
 			const ast = parser.parse(tokens);
 			t.assert.deepStrictEqual<ASTNode[]>(ast, []);
@@ -699,6 +732,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should handle template with only whitespace text", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [{ type: "text", value: "   \n\t  " }];
 			const ast = parser.parse(tokens);
 			t.assert.deepStrictEqual<ASTNode[]>(ast, [
@@ -708,6 +742,7 @@ describe("Parser", { concurrency: true }, () => {
 
 		it("should parse a complex nested template", (t: TestContext) => {
 			t.plan(1);
+			const parser = setupParser();
 			const tokens: Token[] = [
 				{ template: ' "layout" ', type: "extends" },
 				{ name: "content", type: "block" },
@@ -749,3 +784,4 @@ describe("Parser", { concurrency: true }, () => {
 		});
 	});
 });
+
