@@ -784,4 +784,3 @@ describe("Parser", { concurrency: true }, () => {
 		});
 	});
 });
-

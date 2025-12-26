@@ -215,21 +215,17 @@ export class Parser {
 		};
 	}
 
-	#loopStack: string[] = [];
-
 	#parseFor(tokens: readonly Token[], index: number): NodeResult {
 		const startToken = tokens[index];
 		if (!startToken || startToken.type !== "for") {
 			throw new Error("Invalid for token");
 		}
 
-		this.#loopStack.push(startToken.iterator);
 		const { ast: children, nextIndex } = this.#parseTemplate(
 			tokens,
 			index + 1,
 			["endfor"],
 		);
-		this.#loopStack.pop();
 
 		if (tokens[nextIndex]?.type !== "endfor") {
 			throw new Error("Missing endfor for loop");
