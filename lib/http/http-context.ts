@@ -4,7 +4,6 @@ import type {
 } from "@scream.js/validator/validator.js";
 export interface HttpContext {
 	param(key: string): unknown;
-	acceptsLanguages(languages: string[]): string;
 	render(template: unknown, locals?: Record<string, unknown>): Promise<void>;
 	redirect(url: string): void;
 	notFound(): void;

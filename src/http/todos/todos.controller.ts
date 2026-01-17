@@ -29,8 +29,6 @@ export class TodosController implements Resource {
 		}
 
 		return ctx.render("show", {
-			lang: ctx.acceptsLanguages(["en-US", "sr-Latn-RS"]),
-
 			pageTitle: `Todo | ${todo.id}`,
 			todoCompleted: todo.completed,
 

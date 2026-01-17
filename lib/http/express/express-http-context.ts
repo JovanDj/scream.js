@@ -36,10 +36,6 @@ export class ExpressHttpContext implements HttpContext {
 		this.#response.redirect(url);
 	}
 
-	acceptsLanguages(languages: string[]) {
-		return this.#request.acceptsLanguages(languages) || "en-US";
-	}
-
 	notFound() {
 		this.#response.status(404).end(STATUS_CODES[404]);
 	}
