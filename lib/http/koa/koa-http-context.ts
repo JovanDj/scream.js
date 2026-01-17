@@ -21,10 +21,6 @@ export class KoaHttpContext implements HttpContext {
 		return this.#ctx.request.body;
 	}
 
-	acceptsLanguages(languages: string[]) {
-		return this.#ctx.acceptsLanguages(...languages) || "";
-	}
-
 	#end(chunk?: unknown) {
 		this.#ctx.res.end(chunk);
 	}

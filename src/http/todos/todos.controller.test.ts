@@ -123,7 +123,7 @@ describe("server", { concurrency: true }, () => {
 	});
 
 	it("renders todo details with actual data", async (t: TestContext) => {
-		t.plan(4);
+		t.plan(3);
 		const { port, cleanup } = await setupServer();
 		try {
 			const createRes = await fetch(`http://localhost:${port}/todos/create`, {
@@ -143,7 +143,6 @@ describe("server", { concurrency: true }, () => {
 
 			t.assert.match(html, /SomeTitle/);
 			t.assert.match(html, new RegExp(`Todo \\| ${todoId}`));
-			t.assert.match(html, /en-US/);
 		} finally {
 			await cleanup();
 		}

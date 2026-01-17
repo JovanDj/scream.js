@@ -10,7 +10,6 @@ import nunjucks from "nunjucks";
 import type { HttpContext } from "../http-context.js";
 
 export class ScreamHttpContext implements HttpContext {
-	readonly #req: Readonly<IncomingMessage>;
 	readonly #res: ServerResponse;
 	readonly #parsedUrl: ReturnType<typeof parse>;
 	#bodyData: unknown | undefined = undefined;
@@ -23,7 +22,6 @@ export class ScreamHttpContext implements HttpContext {
 	);
 
 	constructor(req: Readonly<IncomingMessage>, res: ServerResponse) {
-		this.#req = req;
 		this.#res = res;
 		this.#parsedUrl = parse(req.url || "", true);
 	}
@@ -47,22 +45,6 @@ export class ScreamHttpContext implements HttpContext {
 
 	#body() {
 		return this.#bodyData;
-	}
-
-	acceptsLanguages(languages: readonly string[]) {
-		const acceptLang = this.#req.headers["accept-language"];
-
-		if (!acceptLang) {
-			return "en";
-		}
-
-		for (const lang of languages) {
-			if (acceptLang.includes(lang)) {
-				return lang;
-			}
-		}
-
-		return "en";
 	}
 
 	redirect(url: string): void {

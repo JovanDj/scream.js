@@ -73,4 +73,4 @@ const startTestServer = async (app: Application) => {
 	return { port, server, shutdown };
 };
 
-export { startHttpServer, startTestServer, closeServer };
+export { closeServer, startHttpServer, startTestServer };
