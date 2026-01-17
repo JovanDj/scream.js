@@ -2,9 +2,11 @@ import type {
 	ValidationResult,
 	Validator,
 } from "@scream.js/validator/validator.js";
-import type { Request } from "./request.js";
-import type { Response } from "./response.js";
-
-export interface HttpContext extends Request, Response {
+export interface HttpContext {
+	param(key: string): unknown;
+	acceptsLanguages(languages: string[]): string;
+	render(template: unknown, locals?: Record<string, unknown>): Promise<void>;
+	redirect(url: string): void;
+	notFound(): void;
 	validate<T>(validator: Validator<T>): ValidationResult<T>;
 }
