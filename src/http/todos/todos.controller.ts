@@ -17,7 +17,7 @@ export class TodosController implements Resource {
 	}
 
 	async show(ctx: HttpContext) {
-		const { id } = ctx.params();
+		const id = ctx.param("id");
 
 		if (!id) {
 			return ctx.notFound();
@@ -56,8 +56,13 @@ export class TodosController implements Resource {
 	}
 
 	async edit(ctx: HttpContext) {
-		const id = +ctx.param("id");
-		const todo = await this.#todoService.findById(id);
+		const id = ctx.param("id");
+
+		if (!id) {
+			return ctx.notFound();
+		}
+
+		const todo = await this.#todoService.findById(+id);
 
 		if (!todo) {
 			return ctx.notFound();
@@ -77,10 +82,16 @@ export class TodosController implements Resource {
 	}
 
 	async update(ctx: HttpContext) {
+		const id = ctx.param("id");
+
+		if (!id) {
+			return ctx.notFound();
+		}
+
 		const { value, errors } = ctx.validate(todoValidator);
 
 		if (!value) {
-			const existing = await this.#todoService.findById(+ctx.param("id"));
+			const existing = await this.#todoService.findById(+id);
 
 			if (!existing) {
 				return ctx.notFound();
@@ -98,19 +109,20 @@ export class TodosController implements Resource {
 			});
 		}
 
-		const todo = await this.#todoService.update(+ctx.param("id"), {
+		const todo = await this.#todoService.update(+id, {
 			...value,
 		});
 		return ctx.redirect(`/todos/${todo.id}`);
 	}
 
 	async delete(ctx: HttpContext) {
-		if (!ctx.param("id")) {
+		const id = ctx.param("id");
+
+		if (!id) {
 			return ctx.notFound();
 		}
 
-		const id = +ctx.param("id");
-		await this.#todoService.delete(id);
+		await this.#todoService.delete(+id);
 
 		return ctx.redirect("/todos");
 	}

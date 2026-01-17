@@ -1,5 +1,4 @@
 export interface Request {
-	params(): Record<string, string>;
-	param(key: string): string;
+	param(key: string): unknown;
 	acceptsLanguages(languages: string[]): string;
 }

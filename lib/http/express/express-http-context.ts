@@ -16,12 +16,8 @@ export class ExpressHttpContext implements HttpContext {
 		return { ...this.#request.body };
 	}
 
-	params() {
-		return { ...this.#request.params };
-	}
-
 	param(key: string) {
-		return this.params()[key] ?? "";
+		return this.#request.params[key];
 	}
 
 	render(template: string, locals = {}) {
