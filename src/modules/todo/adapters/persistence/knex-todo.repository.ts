@@ -1,7 +1,7 @@
 import type { Knex } from "knex";
 import { z } from "zod/v4";
-import type { Todo, TodoDto } from "../core/todos/todo.js";
-import type { TodoRepository } from "../core/todos/todo.repository.js";
+import type { TodoRepository } from "../../application/todo.repository.js";
+import type { Todo, TodoDto } from "../../domain/todo.js";
 
 export class KnexTodoRepository implements TodoRepository {
 	readonly #db: Knex;

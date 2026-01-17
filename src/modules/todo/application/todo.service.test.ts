@@ -1,23 +1,24 @@
 import { describe, it, type TestContext } from "node:test";
 import { testDatabase } from "@scream.js/database/test-helpers.js";
-import { KnexTodoRepository } from "src/infra/knex-todo.repository.js";
+import { KnexTodoRepository } from "../adapters/persistence/knex-todo.repository.js";
+import type { Todo } from "../domain/todo.js";
 import { createTodoModule } from "./index.js";
-import type { Todo } from "./todo.js";
-
-const setupTodoService = async () => {
-	const { cleanup, db } = await testDatabase.setup({
-		prepare: async (database) => {
-			await database("users").insert({ username: "test user" });
-		},
-	});
-
-	const todoRepository = new KnexTodoRepository(db);
-	const { todoService } = createTodoModule(todoRepository);
-
-	return { cleanup, todoService };
-};
+import type { TodoRepository } from "./todo.repository.ts";
 
 describe("TodoService", { concurrency: true }, () => {
+	const setupTodoService = async () => {
+		const { cleanup, db } = await testDatabase.setup({
+			prepare: async (database) => {
+				await database("users").insert({ username: "test user" });
+			},
+		});
+
+		const todoRepository: TodoRepository = new KnexTodoRepository(db);
+		const { todoService } = createTodoModule(todoRepository);
+
+		return { cleanup, todoService };
+	};
+
 	it("fetches todos", async (t: TestContext) => {
 		t.plan(1);
 		const { todoService, cleanup } = await setupTodoService();

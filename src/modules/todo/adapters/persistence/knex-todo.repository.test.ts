@@ -1,7 +1,7 @@
 import { describe, it, type TestContext } from "node:test";
 import { testDatabase } from "@scream.js/database/test-helpers.js";
-import type { Todo } from "src/core/todos/todo.js";
-import type { TodoRepository } from "../core/todos/todo.repository.js";
+import type { TodoRepository } from "src/modules/todo/application/todo.repository.js";
+import type { Todo } from "src/modules/todo/domain/todo.js";
 import { KnexTodoRepository } from "./knex-todo.repository.js";
 
 describe("KnexTodoRepository", { concurrency: true }, () => {

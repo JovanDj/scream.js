@@ -1,4 +1,4 @@
-import type { Todo, TodoDto } from "./todo.js";
+import type { Todo, TodoDto } from "../domain/todo.js";
 
 export interface TodoRepository {
 	findById(id: number): Promise<Todo | undefined>;
