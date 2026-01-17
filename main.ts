@@ -1,6 +1,6 @@
 import type { Application } from "@scream.js/http/application.js";
-import type { TodoService } from "src/core/todos/todo.service.js";
-import { TodosController } from "src/http/todos/todos.controller.js";
+import { TodosController } from "src/modules/todo/adapters/http/todos.controller.js";
+import type { TodoService } from "src/modules/todo/application/todo.service.js";
 
 export const createHttpControllers = ({
 	todoService,

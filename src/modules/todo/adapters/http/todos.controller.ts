@@ -1,6 +1,6 @@
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Resource } from "@scream.js/http/resource.js";
-import type { TodoService } from "../../core/todos/todo.service.js";
+import type { TodoService } from "../../application/todo.service.js";
 import { todoValidator } from "./todo.schema.js";
 
 export class TodosController implements Resource {

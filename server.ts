@@ -6,7 +6,7 @@ import { startHttpServer } from "@scream.js/http/server.js";
 import { createLogger } from "@scream.js/logger/logger-factory.js";
 import { createCoreServices } from "index.js";
 import { createHttpApp, createHttpControllers } from "main.js";
-import { KnexTodoRepository } from "src/infra/knex-todo.repository.js";
+import { KnexTodoRepository } from "src/modules/todo/adapters/persistence/knex-todo.repository.js";
 
 const logger = createLogger();
 const db = createDB();

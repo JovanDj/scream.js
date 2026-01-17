@@ -1,4 +1,4 @@
-import type { Todo, TodoDto } from "./todo.js";
+import type { Todo, TodoDto } from "../domain/todo.js";
 import type { TodoRepository } from "./todo.repository.js";
 
 export class TodoService {
