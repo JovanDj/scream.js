@@ -1,5 +1,5 @@
-import type { Validator } from "@scream.js/validator/validator.js";
 import type Koa from "koa";
+import { z } from "zod/v4";
 import type { HttpContext } from "../http-context.js";
 
 export class KoaHttpContext implements HttpContext {
@@ -9,12 +9,12 @@ export class KoaHttpContext implements HttpContext {
 		this.#ctx = ctx;
 	}
 
-	param(key: string) {
-		return this.params()[key] ?? "";
-	}
-
 	params() {
 		return this.#ctx["params"];
+	}
+
+	#paramValue(key: string) {
+		return this.params()[key] ?? "";
 	}
 
 	#body() {
@@ -38,11 +38,22 @@ export class KoaHttpContext implements HttpContext {
 		this.#ctx.redirect(url);
 	}
 
+	unprocessableEntity(body?: string) {
+		this.#status(422);
+		if (body) {
+			this.#end(body);
+		}
+	}
+
 	notFound() {
 		this.#status(404).#end("Not Found");
 	}
 
-	validate<T>(validator: Validator<T>) {
-		return validator.validate(this.#body());
+	param<S extends z.ZodType>(key: string, schema: (zod: typeof z) => S) {
+		return schema(z).safeParse(this.#paramValue(key));
+	}
+
+	body<S extends z.ZodType>(schema: (zod: typeof z) => S) {
+		return schema(z).safeParse(this.#body());
 	}
 }

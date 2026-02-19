@@ -1,22 +1,32 @@
 import "source-map-support/register";
+import { pathToFileURL } from "node:url";
 import { createDB } from "@scream.js/database/db.js";
 import type { Application } from "@scream.js/http/application.js";
 import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
 import { startHttpServer } from "@scream.js/http/server.js";
 import { createLogger } from "@scream.js/logger/logger-factory.js";
-import { createCoreServices } from "index.js";
-import { createHttpApp, createHttpControllers } from "main.js";
-import { KnexTodoRepository } from "src/modules/todo/adapters/persistence/knex-todo.repository.js";
+import { createHttpApp } from "main.js";
+import { createTodoModule } from "@/modules/todo";
 
-const logger = createLogger();
-const db = createDB();
-const todoRepository = new KnexTodoRepository(db);
-const { todoService } = createCoreServices({
-	todoRepository,
-});
-const { todosController } = createHttpControllers({ todoService });
+export const createServer = () => {
+	const logger = createLogger();
+	const db = createDB();
+	const { todosController } = createTodoModule({ db });
 
-const app: Application = createExpressApp();
-createHttpApp({ app, todosController });
+	const app: Application = createExpressApp();
+	createHttpApp({ app, todosController });
 
-startHttpServer({ app, db, logger, port: 3000 });
+	return { app, db, logger };
+};
+
+export const startServer = () => {
+	const { app, db, logger } = createServer();
+	return startHttpServer({ app, db, logger, port: 3000 });
+};
+
+if (process.argv[1]) {
+	const currentFileUrl = pathToFileURL(process.argv[1]).href;
+	if (import.meta.url === currentFileUrl) {
+		startServer();
+	}
+}

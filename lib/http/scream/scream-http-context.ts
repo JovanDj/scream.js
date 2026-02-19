@@ -5,14 +5,15 @@ import {
 } from "node:http";
 import path from "node:path";
 import { parse } from "node:url";
-import type { Validator } from "@scream.js/validator/validator.js";
 import nunjucks from "nunjucks";
+import { z } from "zod/v4";
 import type { HttpContext } from "../http-context.js";
 
 export class ScreamHttpContext implements HttpContext {
 	readonly #res: ServerResponse;
 	readonly #parsedUrl: ReturnType<typeof parse>;
 	#bodyData: unknown | undefined = undefined;
+	#statusCode = 200;
 
 	readonly #nunjucks = new nunjucks.Environment(
 		new nunjucks.FileSystemLoader(path.join(process.cwd(), "views"), {
@@ -32,6 +33,15 @@ export class ScreamHttpContext implements HttpContext {
 			.end(STATUS_CODES[404]);
 	}
 
+	unprocessableEntity(body?: string) {
+		this.#statusCode = 422;
+		if (body) {
+			this.#res
+				.writeHead(422, STATUS_CODES[422], { "Content-Type": "text/plain" })
+				.end(body);
+		}
+	}
+
 	params() {
 		const path = this.#parsedUrl.pathname || "";
 		const paramRegex = /\/(?<id>\d+)/;
@@ -39,7 +49,7 @@ export class ScreamHttpContext implements HttpContext {
 		return match?.groups || {};
 	}
 
-	param(key: string): string {
+	#paramValue(key: string): string {
 		return this.params()[key] ?? "";
 	}
 
@@ -60,13 +70,21 @@ export class ScreamHttpContext implements HttpContext {
 				}
 
 				// Set HTML content type and send the rendered HTML
-				this.#res.setHeader("Content-Type", "text/html").end(result);
+				this.#res
+					.writeHead(this.#statusCode, {
+						"Content-Type": "text/html",
+					})
+					.end(result);
 				resolve();
 			});
 		});
 	}
 
-	validate<T>(validator: Validator<T>) {
-		return validator.validate(this.#body());
+	param<S extends z.ZodType>(key: string, schema: (zod: typeof z) => S) {
+		return schema(z).safeParse(this.#paramValue(key));
+	}
+
+	body<S extends z.ZodType>(schema: (zod: typeof z) => S) {
+		return schema(z).safeParse(this.#body());
 	}
 }

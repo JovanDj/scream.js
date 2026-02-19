@@ -7,6 +7,8 @@
 		"inlineSources": true,
 		"outDir": "dist",
 		"paths": {
+			"@/*": ["./src/*"],
+			"@/modules/*": ["./src/modules/*/index.ts"],
 			"@scream.js/*": ["./lib/*"]
 		}
 	},

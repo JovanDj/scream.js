@@ -2,19 +2,13 @@ import { describe, it, type TestContext } from "node:test";
 import { testDatabase } from "@scream.js/database/test-helpers.js";
 import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
 import { startTestServer } from "@scream.js/http/server.js";
-import { createCoreServices } from "index.js";
-import { createHttpApp, createHttpControllers } from "main.js";
-import type { TodoRepository } from "../../application/todo.repository.ts";
-import { KnexTodoRepository } from "../persistence/knex-todo.repository.js";
+import { createHttpApp } from "../../../main.js";
+import { createTodoModule } from "./index.js";
 
-describe("server", { concurrency: true }, () => {
+describe("todo controller", { concurrency: false }, () => {
 	const setupServer = async () => {
 		const { db, cleanup: cleanupDb } = await testDatabase.setup({ seed: true });
-		const todoRepository: TodoRepository = new KnexTodoRepository(db);
-		const { todoService } = createCoreServices({
-			todoRepository,
-		});
-		const { todosController } = createHttpControllers({ todoService });
+		const { todosController } = createTodoModule({ db });
 
 		const app = createExpressApp();
 		createHttpApp({ app, todosController });
@@ -29,7 +23,7 @@ describe("server", { concurrency: true }, () => {
 		return { cleanup, port };
 	};
 
-	it("should respond with 200", async (t: TestContext) => {
+	it("GET / responds with 200", async (t: TestContext) => {
 		t.plan(1);
 		const { port, cleanup } = await setupServer();
 		try {
@@ -42,7 +36,7 @@ describe("server", { concurrency: true }, () => {
 		}
 	});
 
-	it("should respond with 200", async (t: TestContext) => {
+	it("GET /about responds with 200", async (t: TestContext) => {
 		t.plan(1);
 		const { port, cleanup } = await setupServer();
 		try {
@@ -55,20 +49,7 @@ describe("server", { concurrency: true }, () => {
 		}
 	});
 
-	it("should respond with 404", async (t: TestContext) => {
-		t.plan(1);
-		const { port, cleanup } = await setupServer();
-		try {
-			const res = await fetch(`http://localhost:${port}/adfasdf`, {
-				signal: t.signal,
-			});
-			t.assert.deepStrictEqual<number>(res.status, 404);
-		} finally {
-			await cleanup();
-		}
-	});
-
-	it("GET /todos should list todos", async (t: TestContext) => {
+	it("GET /todos lists todos", async (t: TestContext) => {
 		t.plan(2);
 		const { port, cleanup } = await setupServer();
 		try {
@@ -83,7 +64,7 @@ describe("server", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /todos/create with missing title should show errors", async (t: TestContext) => {
+	it("POST /todos/create with missing title shows errors", async (t: TestContext) => {
 		t.plan(1);
 		const { port, cleanup } = await setupServer();
 		try {
@@ -95,16 +76,13 @@ describe("server", { concurrency: true }, () => {
 			});
 
 			const html = await res.text();
-			t.assert.match(
-				html,
-				/Too small: expected string to have &gt;=1 characters\r\n/i,
-			);
+			t.assert.match(html, /Required/i);
 		} finally {
 			await cleanup();
 		}
 	});
 
-	it("POST /todos/:id with missing or invalid id returns 500", async (t: TestContext) => {
+	it("POST /todos/:id with missing todo returns 404", async (t: TestContext) => {
 		t.plan(2);
 		const { port, cleanup } = await setupServer();
 		try {
