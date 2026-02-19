@@ -1,6 +1,6 @@
 import { STATUS_CODES } from "node:http";
-import type { Validator } from "@scream.js/validator/validator.js";
 import type express from "express";
+import { z } from "zod/v4";
 import type { HttpContext } from "../http-context.js";
 
 export class ExpressHttpContext implements HttpContext {
@@ -10,14 +10,6 @@ export class ExpressHttpContext implements HttpContext {
 	constructor(request: express.Request, response: express.Response) {
 		this.#request = request;
 		this.#response = response;
-	}
-
-	#body() {
-		return { ...this.#request.body };
-	}
-
-	param(key: string) {
-		return this.#request.params[key];
 	}
 
 	render(template: string, locals = {}) {
@@ -36,11 +28,22 @@ export class ExpressHttpContext implements HttpContext {
 		this.#response.redirect(url);
 	}
 
+	unprocessableEntity(body?: string) {
+		this.#response.status(422);
+		if (body) {
+			this.#response.end(body);
+		}
+	}
+
 	notFound() {
 		this.#response.status(404).end(STATUS_CODES[404]);
 	}
 
-	validate<T>(validator: Validator<T>) {
-		return validator.validate(this.#body());
+	param<S extends z.ZodType>(key: string, schema: (zod: typeof z) => S) {
+		return schema(z).safeParse(this.#request.params[key]);
+	}
+
+	body<S extends z.ZodType>(schema: (zod: typeof z) => S) {
+		return schema(z).safeParse(this.#request.body);
 	}
 }

@@ -1,12 +1,8 @@
-import { createTodoModule } from "./src/modules/todo/application/index.js";
-import type { TodoRepository } from "./src/modules/todo/application/todo.repository.js";
+import type { Knex } from "knex";
+import { createTodoModule } from "@/modules/todo";
 
-export const createCoreServices = ({
-	todoRepository,
-}: {
-	todoRepository: TodoRepository;
-}) => {
-	const { todoService } = createTodoModule(todoRepository);
+export const createCoreServices = ({ db }: { db: Knex }) => {
+	const { todoService } = createTodoModule({ db });
 
 	return { todoService };
 };
