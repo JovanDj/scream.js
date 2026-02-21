@@ -62,6 +62,9 @@ src/modules/todo/
 * Model behavior **must not require DB** parameters
 * Model persistence methods **must accept** either `Knex` or `Knex.Transaction`
 * External I/O (email/webhooks/pubsub) **must not run inside** DB transactions
+* Framework code in `lib/**` **must not import** from `src/**`
+* Framework code in `lib/**` **must not import** app aliases like `@/**` or `@/modules/**`
+* Only the application composition layer may wire framework components to app modules
 
 ---
 
@@ -201,6 +204,19 @@ DB invariants are mandatory backstops:
 
 ---
 
+## 11.1) Auth Contract (Framework vs App)
+
+* Framework adapters **must not own** app auth routes, app auth views, or app credential policy.
+* Application modules own auth/session policy and route behavior.
+* Framework auth/session primitives, when present, must remain app-agnostic and reusable across apps.
+
+### Cross-adapter parity checklist
+
+* Express/Koa/Scream adapters expose equivalent HTTP context primitives (params/body/query/render/redirect/error responses).
+* No adapter leaks app-specific persistence or policy assumptions through `HttpContext`.
+
+---
+
 ## 12) Leaving Step 1 triggers
 
 Introduce shared helpers/repositories later when:
@@ -209,6 +225,16 @@ Introduce shared helpers/repositories later when:
 * validation repeated in 2+ places
 * services hit 5+ queries + branching complexity
 * value objects needed (`Money`, `TimeRange`, etc.)
+
+## 12.1) No Premature or Speculative Abstraction
+
+* Do not introduce abstractions before at least 2 concrete call sites or a demonstrated complexity trigger from Section 12.
+* Forbidden by default: generic base classes, generic helper wrappers, indirection-only adapters, and "future-proof" interfaces not required by current behavior.
+* Allowed only when one of these is true:
+  * duplication exists in 2+ production call sites,
+  * complexity threshold in Section 12 is met,
+  * framework boundary requires a contract for decoupling.
+* When an abstraction is kept with fewer than 2 concrete usages, add a short in-file comment explaining the trigger that justifies it.
 
 ---
 

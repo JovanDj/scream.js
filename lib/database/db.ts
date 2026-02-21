@@ -7,6 +7,9 @@ export const createDB = () => {
 };
 
 export const setupDb = async (db: Knex) => {
+	// E2E uses a file-backed SQLite DB, so reset before seeding to avoid
+	// unique constraint collisions from leftover data between runs.
+	await db.migrate.rollback(undefined, true);
 	await db.migrate.latest();
 	await db.seed.run();
 	await db.destroy();

@@ -57,6 +57,10 @@ export class ScreamHttpContext implements HttpContext {
 		return this.#bodyData;
 	}
 
+	#query() {
+		return this.#parsedUrl.query;
+	}
+
 	redirect(url: string): void {
 		this.#res.writeHead(302, { Location: url });
 		this.#res.end();
@@ -86,5 +90,9 @@ export class ScreamHttpContext implements HttpContext {
 
 	body<S extends z.ZodType>(schema: (zod: typeof z) => S) {
 		return schema(z).safeParse(this.#body());
+	}
+
+	query<S extends z.ZodType>(schema: (zod: typeof z) => S) {
+		return schema(z).safeParse(this.#query());
 	}
 }

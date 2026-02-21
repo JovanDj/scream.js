@@ -3,7 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 async function createTodo(page: Page, title: string) {
 	await page.goto("/todos/create");
 	await page.locator("#title").fill(title);
-	await page.getByRole("button", { name: /submit/i }).click();
+	await page.locator('button[type="submit"]').click();
 	await page.waitForURL(/\/todos\/\d+$/);
 	return page.url().split("/").pop();
 }
@@ -17,7 +17,7 @@ test("has title", async ({ page }) => {
 test("has a heading", async ({ page }) => {
 	await page.goto("/todos");
 
-	await expect(page.getByText("Todos")).toBeVisible();
+	await expect(page.getByRole("heading", { name: /^Todos$/ })).toBeVisible();
 });
 
 test("opens a create todo page", async ({ page }) => {

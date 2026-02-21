@@ -1,0 +1,15 @@
+{% extends "layout.njk" %}
+
+{% block content %}
+    <div class="container py-4 px-3 mx-auto">
+        <section class="page-shell">
+            <h1 class="page-title mb-2">Simple Personal Todo</h1>
+            <p class="muted mb-4">Track tasks, organize projects, and tag items without extra complexity.</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="/todos" class="btn btn-primary">Open Todos</a>
+                <a href="/projects" class="btn btn-outline-primary">View Projects</a>
+                <a href="/tags" class="btn btn-outline-secondary">Manage Tags</a>
+            </div>
+        </section>
+    </div>
+{% endblock content %}

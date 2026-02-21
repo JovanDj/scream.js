@@ -2,3 +2,90 @@ $enable-gradients: true;
 $enable-shadows: true;
 
 @import "bootstrap/scss/bootstrap";
+
+:root {
+	--app-bg: #f5f7fb;
+	--app-panel: #ffffff;
+	--app-border: #e3e8ef;
+	--app-text: #0f172a;
+	--app-muted: #5b6475;
+	--app-accent: #1d4ed8;
+}
+
+body.app-shell {
+	background: radial-gradient(1200px 500px at 20% -10%, #dbeafe, transparent),
+		radial-gradient(1000px 500px at 100% 0%, #e2e8f0, transparent), var(--app-bg);
+	color: var(--app-text);
+	min-height: 100vh;
+}
+
+.app-header {
+	background: rgba(255, 255, 255, 0.8);
+	backdrop-filter: blur(6px);
+	border-bottom: 1px solid var(--app-border);
+	position: sticky;
+	top: 0;
+	z-index: 10;
+}
+
+.app-brand {
+	color: var(--app-text);
+	font-weight: 700;
+	letter-spacing: 0.01em;
+	text-decoration: none;
+}
+
+.app-brand:hover {
+	color: var(--app-accent);
+}
+
+.app-nav a {
+	color: var(--app-muted);
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.app-nav a:hover {
+	color: var(--app-accent);
+}
+
+.app-main {
+	padding: 1.5rem 0;
+}
+
+.page-shell {
+	background: var(--app-panel);
+	border: 1px solid var(--app-border);
+	border-radius: 14px;
+	box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+	padding: 1.25rem;
+}
+
+.page-head {
+	align-items: center;
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: 1rem;
+}
+
+.page-title {
+	font-size: 1.4rem;
+	font-weight: 700;
+	margin: 0;
+}
+
+.muted {
+	color: var(--app-muted);
+}
+
+.table {
+	margin-bottom: 0;
+}
+
+.table thead th {
+	background: #f8fafc;
+	border-bottom-width: 1px;
+	font-size: 0.9rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}

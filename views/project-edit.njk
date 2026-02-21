@@ -1,0 +1,38 @@
+{% extends "layout.njk" %}
+
+{% block content %}
+<div class="container py-4 px-3 mx-auto">
+    <section class="page-shell">
+        <h1 class="page-title mb-3">{{ pageTitle }}</h1>
+        <form action="{{ action }}" method="POST">
+            <div class="mb-3">
+                <label class="form-label" for="name">Name</label>
+                <input id="name" name="name" type="text" class="form-control {% if errors.name %} is-invalid {% endif %}" value="{{ fields.name }}">
+                {% if errors.name %}
+                <div class="invalid-feedback">{{ errors.name }}</div>
+                {% endif %}
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary" type="submit">{{ submitLabel }}</button>
+                <a href="/projects/{{ project.id }}" class="btn btn-outline-secondary">Back</a>
+            </div>
+        </form>
+
+        <div class="d-flex gap-2 flex-wrap mt-3">
+            <form action="/projects/{{ project.id }}/delete" method="POST" class="d-inline">
+                <button class="btn btn-danger" type="submit">Delete</button>
+            </form>
+
+            {% if project.statusCode == "archived" %}
+            <form action="/projects/{{ project.id }}/unarchive" method="POST" class="d-inline">
+                <button class="btn btn-outline-secondary" type="submit">Unarchive</button>
+            </form>
+            {% else %}
+            <form action="/projects/{{ project.id }}/archive" method="POST" class="d-inline">
+                <button class="btn btn-outline-secondary" type="submit">Archive</button>
+            </form>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock content %}

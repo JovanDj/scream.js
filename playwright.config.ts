@@ -32,7 +32,7 @@ export default defineConfig({
 	webServer: {
 		command: "cross-env NODE_ENV=e2e npm run dev",
 		port: 3000,
-		reuseExistingServer: !process.env["CI"],
+		reuseExistingServer: false,
 	},
 	workers: process.env["CI"] ? 1 : "50%",
 });
