@@ -1,0 +1,22 @@
+{% extends "layout.njk" %}
+
+{% block content %}
+<div class="container py-4 px-3 mx-auto">
+    <section class="page-shell">
+        <h1 class="page-title mb-3">Create Project</h1>
+        <form action="/projects/create" method="POST">
+            <div class="mb-3">
+                <label class="form-label" for="name">Name</label>
+                <input id="name" name="name" type="text" class="form-control {% if errors.name %} is-invalid {% endif %}" value="{{ fields.name }}">
+                {% if errors.name %}
+                <div class="invalid-feedback">{{ errors.name }}</div>
+                {% endif %}
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" type="submit">Create</button>
+                <a href="/projects" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock content %}

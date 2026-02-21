@@ -21,6 +21,10 @@ export class KoaHttpContext implements HttpContext {
 		return this.#ctx.request.body;
 	}
 
+	#query() {
+		return this.#ctx.query;
+	}
+
 	#end(chunk?: unknown) {
 		this.#ctx.res.end(chunk);
 	}
@@ -55,5 +59,9 @@ export class KoaHttpContext implements HttpContext {
 
 	body<S extends z.ZodType>(schema: (zod: typeof z) => S) {
 		return schema(z).safeParse(this.#body());
+	}
+
+	query<S extends z.ZodType>(schema: (zod: typeof z) => S) {
+		return schema(z).safeParse(this.#query());
 	}
 }

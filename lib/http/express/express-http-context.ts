@@ -46,4 +46,8 @@ export class ExpressHttpContext implements HttpContext {
 	body<S extends z.ZodType>(schema: (zod: typeof z) => S) {
 		return schema(z).safeParse(this.#request.body);
 	}
+
+	query<S extends z.ZodType>(schema: (zod: typeof z) => S) {
+		return schema(z).safeParse(this.#request.query);
+	}
 }

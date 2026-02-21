@@ -3,7 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 async function createTodo(page: Page, title: string) {
 	await page.goto("/todos/create");
 	await page.locator("#title").fill(title);
-	await page.getByRole("button", { name: /submit/i }).click();
+	await page.locator('button[type="submit"]').click();
 	await page.waitForURL(/\/todos\/\d+$/);
 	const id = new URL(page.url()).pathname.split("/").pop();
 	if (!id) {
@@ -92,7 +92,7 @@ test("marks a todo as completed from the edit page", async ({ page }) => {
 	const id = await createTodo(page, `Complete Me`);
 	await page.goto(`/todos/${id}/edit`);
 
-	await page.getByTestId("completed-checkbox").check();
+	await page.locator("#statusCode").selectOption("completed");
 	await page.getByRole("button", { name: /update/i }).click();
 
 	await expect(page).toHaveURL(new RegExp(`/todos/${id}$`));
@@ -112,16 +112,16 @@ test("unchecking completed saves the todo as not completed", async ({
 	const id = await createTodo(page, `Toggle Me`);
 	await page.goto(`/todos/${id}/edit`);
 
-	await page.getByTestId("completed-checkbox").check();
+	await page.locator("#statusCode").selectOption("completed");
 	await page.getByRole("button", { name: /update/i }).click();
 	await expect(page.getByTestId("todo-status")).toContainText(/completed/i);
 
 	await page.goto(`/todos/${id}/edit`);
-	await page.getByTestId("completed-checkbox").uncheck();
+	await page.locator("#statusCode").selectOption("open");
 	await page.getByRole("button", { name: /update/i }).click();
 
 	await expect(page).toHaveURL(new RegExp(`/todos/${id}$`));
-	await expect(page.getByTestId("todo-status")).toHaveCount(0);
+	await expect(page.getByTestId("todo-status")).toContainText(/open/i);
 
 	await page.goto("/todos");
 	const row = page

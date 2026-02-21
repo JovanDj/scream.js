@@ -5,6 +5,10 @@ import { startTestServer } from "@scream.js/http/server.js";
 import { createHttpApp } from "../../../main.js";
 import { createTodoModule } from "./index.js";
 
+if (!process.env["NODE_ENV"]) {
+	process.env["NODE_ENV"] = "integration";
+}
+
 describe("todo controller", { concurrency: false }, () => {
 	const setupServer = async () => {
 		const { db, cleanup: cleanupDb } = await testDatabase.setup({ seed: true });
@@ -70,7 +74,9 @@ describe("todo controller", { concurrency: false }, () => {
 		try {
 			const res = await fetch(`http://localhost:${port}/todos/create`, {
 				body: "title=",
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
 				method: "POST",
 				signal: t.signal,
 			});
@@ -82,14 +88,11 @@ describe("todo controller", { concurrency: false }, () => {
 		}
 	});
 
-	it("POST /todos/:id with missing todo returns 404", async (t: TestContext) => {
+	it("GET /todos/:id with missing todo returns 404", async (t: TestContext) => {
 		t.plan(2);
 		const { port, cleanup } = await setupServer();
 		try {
 			const res = await fetch(`http://localhost:${port}/todos/99999`, {
-				body: "title=SomeTitle",
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
-				method: "POST",
 				signal: t.signal,
 			});
 			t.assert.deepStrictEqual<number>(res.status, 404);
@@ -107,7 +110,9 @@ describe("todo controller", { concurrency: false }, () => {
 		try {
 			const createRes = await fetch(`http://localhost:${port}/todos/create`, {
 				body: "title=SomeTitle",
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
 				method: "POST",
 				redirect: "manual",
 				signal: t.signal,
@@ -117,7 +122,9 @@ describe("todo controller", { concurrency: false }, () => {
 			t.assert.ok(location, "Location header should be present");
 			const todoId = location.split("/").pop();
 
-			const res = await fetch(`http://localhost:${port}/todos/${todoId}`);
+			const res = await fetch(`http://localhost:${port}/todos/${todoId}`, {
+				signal: t.signal,
+			});
 			const html = await res.text();
 
 			t.assert.match(html, /SomeTitle/);

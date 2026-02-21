@@ -6,15 +6,24 @@ import { createExpressApp } from "@scream.js/http/express/create-express-applica
 import { startHttpServer } from "@scream.js/http/server.js";
 import { createLogger } from "@scream.js/logger/logger-factory.js";
 import { createHttpApp } from "main.js";
+import { createProjectModule } from "@/modules/project";
+import { createTagModule } from "@/modules/tag";
 import { createTodoModule } from "@/modules/todo";
 
 export const createServer = () => {
 	const logger = createLogger();
 	const db = createDB();
+	const { projectController } = createProjectModule({ db });
+	const { tagController } = createTagModule({ db });
 	const { todosController } = createTodoModule({ db });
 
 	const app: Application = createExpressApp();
-	createHttpApp({ app, todosController });
+	createHttpApp({
+		app,
+		projectController,
+		tagController,
+		todosController,
+	});
 
 	return { app, db, logger };
 };

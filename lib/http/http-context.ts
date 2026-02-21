@@ -15,4 +15,7 @@ export interface HttpContext {
 	body<S extends z.ZodType>(
 		schema: (zod: typeof z) => S,
 	): z.ZodSafeParseResult<z.output<S>>;
+	query<S extends z.ZodType>(
+		schema: (zod: typeof z) => S,
+	): z.ZodSafeParseResult<z.output<S>>;
 }

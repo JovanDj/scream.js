@@ -2,29 +2,32 @@
 
 {% block content %}
     <div class="container py-4 px-3 mx-auto">
-        <table class="table table-bordered table-striped">
-            <thead class="thead-dark">
-                <tr>
-                    <th>Title</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>
-                        <span data-testid="todo-title-show">{{ todoTitle }}</span>
-                        {% if todoCompleted %}
-                            <span class="badge text-bg-success ms-2" data-testid="todo-status">Completed</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a class="btn btn-outline-primary me-2" href="/todos/{{ todoId }}/edit">Edit</a>
-                        <form action="/todos/{{ todoId }}/delete" method="POST">
-                            <button type="submit" class="btn btn-danger">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <section class="page-shell">
+            <h1 class="page-title mb-3">Todo Details</h1>
+            <div class="mb-3">
+                <span data-testid="todo-title-show" class="h5 d-inline">{{ todoTitle }}</span>
+                <span class="badge text-bg-secondary ms-2" data-testid="todo-status">{{ todoStatusCode }}</span>
+            </div>
+            {% if todoDescription %}
+                <p class="muted mb-2">{{ todoDescription }}</p>
+            {% endif %}
+            <p class="mb-3">
+                <span class="badge text-bg-secondary">{{ todoPriority }}</span>
+                {% if todoDueAt %}
+                <span class="ms-2 muted">Due: {{ todoDueAt }}</span>
+                {% endif %}
+            </p>
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-primary" href="/todos/{{ todoId }}/edit">Edit</a>
+                <form action="/todos/{{ todoId }}/delete" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+                <form action="/todos/{{ todoId }}/toggle" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-outline-secondary">
+                        {% if todoStatusCode == "completed" %}Reopen{% else %}Complete{% endif %}
+                    </button>
+                </form>
+            </div>
+        </section>
     </div>
 {% endblock content %}

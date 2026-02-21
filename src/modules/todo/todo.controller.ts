@@ -2,6 +2,40 @@ import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Resource } from "@scream.js/http/resource.js";
 import type { TodoService } from "./todo.service.js";
 
+type TodoScope = "all" | "completed" | "dueToday" | "open" | "overdue";
+
+const emptyFields = {
+	description: "",
+	dueAt: "",
+	priority: "medium",
+	projectId: "",
+	statusCode: "open",
+	title: "",
+	version: 0,
+} as const;
+
+const toDateInputValue = (value: string | null) => {
+	if (!value) {
+		return "";
+	}
+
+	return value.slice(0, 10);
+};
+
+const normalizeDueAt = (value: string) => {
+	const trimmed = value.trim();
+	if (trimmed.length < 1) {
+		return null;
+	}
+
+	const parsed = new Date(trimmed);
+	if (Number.isNaN(parsed.getTime())) {
+		return undefined;
+	}
+
+	return parsed.toISOString();
+};
+
 export class TodosController implements Resource {
 	readonly #todoService: TodoService;
 
@@ -9,44 +43,135 @@ export class TodosController implements Resource {
 		this.#todoService = todoService;
 	}
 
-	async index(ctx: HttpContext) {
-		const todos = await this.#todoService.findAll();
+	#parseTodoId(ctx: HttpContext) {
+		const parsedId = ctx.param("id", (z) => z.coerce.number().int().positive());
+		if (!parsedId.success) {
+			return undefined;
+		}
 
-		return ctx.render("index", {
-			pageTitle: "Todos",
-			todos,
-		});
+		return parsedId.data;
 	}
 
-	async show(ctx: HttpContext) {
-		const parsedId = ctx.param("id", (z) => z.coerce.number().int().positive());
+	async #renderIndexForScope(ctx: HttpContext, scope: TodoScope) {
+		const parsedQuery = ctx.query((z) =>
+			z.object({
+				projectId: z.coerce.number().int().positive().optional(),
+				search: z
+					.string()
+					.optional()
+					.default("")
+					.transform((value) => value.trim()),
+			}),
+		);
 
-		if (!parsedId.success) {
+		if (!parsedQuery.success) {
 			return ctx.notFound();
 		}
 
-		const todo = await this.#todoService.findById(parsedId.data);
+		const options: {
+			projectId?: number;
+			scope: TodoScope;
+			search: string;
+		} = {
+			scope,
+			search: parsedQuery.data.search,
+		};
 
+		if (parsedQuery.data.projectId !== undefined) {
+			options.projectId = parsedQuery.data.projectId;
+		}
+
+		const todos = await this.#todoService.findAll(options);
+		const todoViews = todos.map((todo) => ({
+			dueDate: toDateInputValue(todo.dueAt),
+			id: todo.id,
+			priority: todo.priority,
+			statusCode: todo.statusCode,
+			title: todo.title,
+		}));
+
+		return ctx.render("index", {
+			filters: {
+				base: "/todos",
+				completed: "/todos/completed",
+				dueToday: "/todos/due-today",
+				open: "/todos/open",
+				overdue: "/todos/overdue",
+			},
+			pageTitle: "Todos",
+			scope,
+			search: parsedQuery.data.search,
+			todos: todoViews,
+		});
+	}
+
+	async index(ctx: HttpContext) {
+		return this.#renderIndexForScope(ctx, "all");
+	}
+
+	async open(ctx: HttpContext) {
+		return this.#renderIndexForScope(ctx, "open");
+	}
+
+	async completed(ctx: HttpContext) {
+		return this.#renderIndexForScope(ctx, "completed");
+	}
+
+	async dueToday(ctx: HttpContext) {
+		return this.#renderIndexForScope(ctx, "dueToday");
+	}
+
+	async overdue(ctx: HttpContext) {
+		return this.#renderIndexForScope(ctx, "overdue");
+	}
+
+	async show(ctx: HttpContext) {
+		const todoId = this.#parseTodoId(ctx);
+		if (!todoId) {
+			return ctx.notFound();
+		}
+
+		const todo = await this.#todoService.findById(todoId);
 		if (!todo) {
 			return ctx.notFound();
 		}
 
 		return ctx.render("show", {
 			pageTitle: `Todo | ${todo.id}`,
-			todoCompleted: todo.completed,
+			todo,
+			todoDescription: todo.description,
+			todoDueAt: toDateInputValue(todo.dueAt),
 			todoId: todo.id,
+			todoPriority: todo.priority,
+			todoProjectId: todo.projectId,
+			todoStatusCode: todo.statusCode,
 			todoTitle: todo.title,
+			todoVersion: todo.version,
 		});
 	}
 
 	async create(ctx: HttpContext) {
-		return ctx.render("create", { errors: {} });
+		return ctx.render("create", { errors: {}, fields: emptyFields });
 	}
 
 	async store(ctx: HttpContext) {
 		const parsed = ctx.body((z) =>
 			z.strictObject({
-				completed: z.union([z.boolean(), z.stringbool()]).default(false),
+				description: z
+					.string()
+					.default("")
+					.transform((value) => value.trim()),
+				dueAt: z
+					.string()
+					.optional()
+					.default("")
+					.transform((value) => value.trim()),
+				priority: z.enum(["low", "medium", "high"]).default("medium"),
+				projectId: z.preprocess(
+					(value) => (value === "" ? undefined : value),
+					z.coerce.number().int().positive().optional(),
+				),
+				statusCode: z.enum(["open", "completed"]).default("open"),
 				title: z
 					.string()
 					.default("")
@@ -56,24 +181,62 @@ export class TodosController implements Resource {
 
 		if (!parsed.success || parsed.data.title.length < 1) {
 			ctx.unprocessableEntity();
-			return ctx.render("create", { errors: { title: ["Required"] } });
+			return ctx.render("create", {
+				errors: { title: ["Required"] },
+				fields: parsed.success
+					? {
+							description: parsed.data.description,
+							dueAt: parsed.data.dueAt,
+							priority: parsed.data.priority,
+							projectId: parsed.data.projectId ?? "",
+							statusCode: parsed.data.statusCode,
+							title: parsed.data.title,
+							version: 0,
+						}
+					: emptyFields,
+			});
 		}
 
-		const input: Readonly<{ title: string; completed: boolean }> = {
-			completed: parsed.data.completed,
+		const dueAt = normalizeDueAt(parsed.data.dueAt);
+		if (dueAt === undefined) {
+			ctx.unprocessableEntity();
+			return ctx.render("create", {
+				errors: { dueAt: ["Invalid date"] },
+				fields: {
+					description: parsed.data.description,
+					dueAt: parsed.data.dueAt,
+					priority: parsed.data.priority,
+					projectId: parsed.data.projectId ?? "",
+					statusCode: parsed.data.statusCode,
+					title: parsed.data.title,
+					version: 0,
+				},
+			});
+		}
+
+		const todo = await this.#todoService.create({
+			description: parsed.data.description,
+			dueAt,
+			priority: parsed.data.priority,
+			projectId: parsed.data.projectId ?? null,
+			statusCode: parsed.data.statusCode,
 			title: parsed.data.title,
-		};
-		const todo = await this.#todoService.create(input);
+		});
+
+		if (!todo) {
+			return ctx.notFound();
+		}
+
 		return ctx.redirect(`/todos/${todo.id}`);
 	}
 
 	async edit(ctx: HttpContext) {
-		const parsedId = ctx.param("id", (z) => z.coerce.number().int().positive());
-		if (!parsedId.success) {
+		const todoId = this.#parseTodoId(ctx);
+		if (!todoId) {
 			return ctx.notFound();
 		}
 
-		const todo = await this.#todoService.findById(parsedId.data);
+		const todo = await this.#todoService.findById(todoId);
 		if (!todo) {
 			return ctx.notFound();
 		}
@@ -82,8 +245,13 @@ export class TodosController implements Resource {
 			action: `/todos/${todo.id}/edit`,
 			errors: {},
 			fields: {
-				completed: todo.completed,
+				description: todo.description,
+				dueAt: toDateInputValue(todo.dueAt),
+				priority: todo.priority,
+				projectId: todo.projectId ?? "",
+				statusCode: todo.statusCode,
 				title: todo.title,
+				version: todo.version,
 			},
 			pageTitle: `Edit Todo #${todo.id}`,
 			submitLabel: "Update",
@@ -92,19 +260,33 @@ export class TodosController implements Resource {
 	}
 
 	async update(ctx: HttpContext) {
-		const parsedId = ctx.param("id", (z) => z.coerce.number().int().positive());
-		if (!parsedId.success) {
+		const todoId = this.#parseTodoId(ctx);
+		if (!todoId) {
 			return ctx.notFound();
 		}
 
-		const todoId = parsedId.data;
 		const parsed = ctx.body((z) =>
 			z.strictObject({
-				completed: z.union([z.boolean(), z.stringbool()]).default(false),
+				description: z
+					.string()
+					.default("")
+					.transform((value) => value.trim()),
+				dueAt: z
+					.string()
+					.optional()
+					.default("")
+					.transform((value) => value.trim()),
+				priority: z.enum(["low", "medium", "high"]).default("medium"),
+				projectId: z.preprocess(
+					(value) => (value === "" ? undefined : value),
+					z.coerce.number().int().positive().optional(),
+				),
+				statusCode: z.enum(["open", "completed"]).default("open"),
 				title: z
 					.string()
 					.default("")
 					.transform((value) => value.trim()),
+				version: z.coerce.number().int().min(0),
 			}),
 		);
 
@@ -113,9 +295,37 @@ export class TodosController implements Resource {
 			return ctx.render("edit", {
 				action: `/todos/${todoId}/edit`,
 				errors: { title: ["Required"] },
+				fields: parsed.success
+					? {
+							description: parsed.data.description,
+							dueAt: parsed.data.dueAt,
+							priority: parsed.data.priority,
+							projectId: parsed.data.projectId ?? "",
+							statusCode: parsed.data.statusCode,
+							title: parsed.data.title,
+							version: parsed.data.version,
+						}
+					: emptyFields,
+				pageTitle: `Edit Todo #${todoId}`,
+				submitLabel: "Update",
+				todoId,
+			});
+		}
+
+		const dueAt = normalizeDueAt(parsed.data.dueAt);
+		if (dueAt === undefined) {
+			ctx.unprocessableEntity();
+			return ctx.render("edit", {
+				action: `/todos/${todoId}/edit`,
+				errors: { dueAt: ["Invalid date"] },
 				fields: {
-					completed: parsed.success ? parsed.data.completed : false,
-					title: parsed.success ? parsed.data.title : "",
+					description: parsed.data.description,
+					dueAt: parsed.data.dueAt,
+					priority: parsed.data.priority,
+					projectId: parsed.data.projectId ?? "",
+					statusCode: parsed.data.statusCode,
+					title: parsed.data.title,
+					version: parsed.data.version,
 				},
 				pageTitle: `Edit Todo #${todoId}`,
 				submitLabel: "Update",
@@ -123,11 +333,15 @@ export class TodosController implements Resource {
 			});
 		}
 
-		const input: Readonly<{ title: string; completed: boolean }> = {
-			completed: parsed.data.completed,
+		const todo = await this.#todoService.update(todoId, {
+			description: parsed.data.description,
+			dueAt,
+			priority: parsed.data.priority,
+			projectId: parsed.data.projectId ?? null,
+			statusCode: parsed.data.statusCode,
 			title: parsed.data.title,
-		};
-		const todo = await this.#todoService.update(todoId, input);
+			version: parsed.data.version,
+		});
 
 		if (!todo) {
 			return ctx.notFound();
@@ -137,17 +351,30 @@ export class TodosController implements Resource {
 	}
 
 	async delete(ctx: HttpContext) {
-		const parsedId = ctx.param("id", (z) => z.coerce.number().int().positive());
-		if (!parsedId.success) {
+		const todoId = this.#parseTodoId(ctx);
+		if (!todoId) {
 			return ctx.notFound();
 		}
 
-		const deleted = await this.#todoService.delete(parsedId.data);
-
+		const deleted = await this.#todoService.delete(todoId);
 		if (!deleted) {
 			return ctx.notFound();
 		}
 
 		return ctx.redirect("/todos");
+	}
+
+	async toggle(ctx: HttpContext) {
+		const todoId = this.#parseTodoId(ctx);
+		if (!todoId) {
+			return ctx.notFound();
+		}
+
+		const todo = await this.#todoService.toggle(todoId);
+		if (!todo) {
+			return ctx.notFound();
+		}
+
+		return ctx.redirect(`/todos/${todo.id}`);
 	}
 }

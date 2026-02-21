@@ -11,7 +11,7 @@ test("shows validation error when submitting empty form", async ({ page }) => {
 	const feedback = page.locator(".invalid-feedback");
 	await expect(feedback).toHaveCount(0);
 
-	await page.getByRole("button", { name: /submit/i }).click();
+	await page.locator('button[type="submit"]').click();
 
 	await expect(page.locator(".invalid-feedback")).toBeVisible();
 	await expect(page.locator("#title")).toHaveClass(/is-invalid/);
@@ -43,7 +43,7 @@ test("creates a todo with valid title and redirects", async ({ page }) => {
 
 	const title = `Buy milk`;
 	await page.locator("#title").fill(title);
-	await page.getByRole("button", { name: /submit/i }).click();
+	await page.locator('button[type="submit"]').click();
 
 	await expect(page).not.toHaveURL(/\/todos\/create$/);
 

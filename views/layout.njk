@@ -11,16 +11,26 @@
 		<script type="module" src="http://localhost:5173/main.js"></script>
 		<script type="module" src="http://localhost:5173/@vite/client"></script>
     </head>
-    <body>
-        <nav>Navbar</nav>
+    <body class="app-shell">
+        <header class="app-header">
+            <div class="container py-3 d-flex justify-content-between align-items-center">
+                <a href="/" class="app-brand">ScreamJS Todo</a>
+                <nav class="app-nav d-flex gap-3">
+                    <a href="/todos">Todos</a>
+                    <a href="/projects">Projects</a>
+                    <a href="/tags">Tags</a>
+                </nav>
+            </div>
+        </header>
 
-        <main>
+        <main class="app-main">
             {% block content %}{% endblock content %}
         </main>
 
-        <aside></aside>
-
-        <footer>Footer</footer>
-
+        <footer class="app-footer">
+            <div class="container py-3 text-center text-muted small">
+                Built with ScreamJS
+            </div>
+        </footer>
     </body>
 </html>

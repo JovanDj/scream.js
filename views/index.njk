@@ -2,32 +2,66 @@
 
 {% block content %}
     <div class="container py-4 px-3 mx-auto">
-        <h1>Todos</h1>
-        <p>
-            <a href="/todos/create">Create todo</a>
-        </p>
+        <section class="page-shell">
+            <div class="page-head">
+                <h1 class="page-title">Todos</h1>
+                <a class="btn btn-primary btn-sm" href="/todos/create">Create Todo</a>
+            </div>
 
-        {% if todos.length %}
-            <table class="table table-bordered table-striped">
-                <thead class="thead-dark">
-                    <tr>
-                        <th>Title</th>
+            <form method="GET" action="/todos" class="mb-3">
+                <div class="row g-2">
+                    <div class="col-8">
+                        <input class="form-control" name="search" placeholder="Search todos" value="{{ search }}" type="text">
+                    </div>
+                    <div class="col-4">
+                        <button class="btn btn-outline-primary w-100" type="submit">Search</button>
+                    </div>
+                </div>
+            </form>
 
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for todo in todos %}
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <a class="btn btn-sm btn-outline-secondary" href="{{ filters.base }}">All</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ filters.open }}">Open</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ filters.completed }}">Completed</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ filters.dueToday }}">Due Today</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ filters.overdue }}">Overdue</a>
+            </div>
+
+            {% if todos.length %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Due</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for todo in todos %}
                         <tr data-testid="todo-row">
-                            <td>
-                                <a data-testid="todo-title" href="/todos/{{ todo.id }}">{{todo.title}}</a>
-                                {% if todo.completed %}
-                                    <span class="badge text-bg-success ms-2" data-testid="todo-status">Completed</span>
-                                {% endif %}
+                            <td><a data-testid="todo-title" href="/todos/{{ todo.id }}">{{ todo.title }}</a></td>
+                            <td>{{ todo.priority }}</td>
+                            <td><span class="badge text-bg-secondary">{{ todo.statusCode }}</span></td>
+                            <td>{% if todo.dueDate %}{{ todo.dueDate }}{% else %}-{% endif %}</td>
+                            <td class="d-flex gap-1">
+                                <a class="btn btn-sm btn-outline-primary" href="/todos/{{ todo.id }}/edit">Edit</a>
+                                <form action="/todos/{{ todo.id }}/toggle" method="POST" class="d-inline">
+                                    <button class="btn btn-sm btn-outline-secondary" type="submit">
+                                        {% if todo.statusCode == "completed" %}Reopen{% else %}Complete{% endif %}
+                                    </button>
+                                </form>
                             </td>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <p class="muted mb-0">No todos yet.</p>
+            {% endif %}
+        </section>
     </div>
 {% endblock content %}

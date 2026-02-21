@@ -1,0 +1,51 @@
+{% extends "layout.njk" %}
+
+{% block content %}
+<div class="container py-4 px-3 mx-auto">
+    <section class="page-shell">
+        <div class="page-head">
+            <h1 class="page-title">Projects</h1>
+            <a href="/projects/create" class="btn btn-primary btn-sm">Create Project</a>
+        </div>
+
+        {% if projects.length %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                    <tr>
+                        <td><a href="/projects/{{ project.id }}">{{ project.name }}</a></td>
+                        <td>{{ project.statusCode }}</td>
+                        <td class="d-flex gap-1">
+                            <a class="btn btn-sm btn-outline-primary" href="/projects/{{ project.id }}/edit">Edit</a>
+                            <form action="/projects/{{ project.id }}/delete" method="POST" class="d-inline">
+                                <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+                            </form>
+                            {% if project.statusCode == "archived" %}
+                            <form action="/projects/{{ project.id }}/unarchive" method="POST" class="d-inline">
+                                <button class="btn btn-sm btn-outline-secondary" type="submit">Unarchive</button>
+                            </form>
+                            {% else %}
+                            <form action="/projects/{{ project.id }}/archive" method="POST" class="d-inline">
+                                <button class="btn btn-sm btn-outline-secondary" type="submit">Archive</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="muted mb-0">No projects yet.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock content %}
