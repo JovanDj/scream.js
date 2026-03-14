@@ -1,11 +1,14 @@
-import type { Knex } from "knex";
 import { TodosController } from "./todo.controller.js";
+import type { TodoRepository } from "./todo.service.js";
 import { TodoService } from "./todo.service.js";
 
-export const createTodoModule = ({ db }: { db: Knex }) => {
-	// Single-use composition seam is kept intentionally for app bootstrap boundaries.
-	const todoService = new TodoService(db);
+export const createTodoModule = ({
+	todoRepository,
+}: {
+	todoRepository: TodoRepository;
+}) => {
+	const todoService = new TodoService(todoRepository);
 	const todosController = new TodosController(todoService);
 
-	return { todoService, todosController };
+	return { todoRepository, todoService, todosController };
 };

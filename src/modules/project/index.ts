@@ -1,11 +1,15 @@
-import type { Knex } from "knex";
 import { ProjectController } from "./project.controller.js";
+import type { ProjectRepository } from "./project.service.js";
+
 import { ProjectService } from "./project.service.js";
 
-export const createProjectModule = ({ db }: { db: Knex }) => {
-	// Single-use composition seam is kept intentionally for app bootstrap boundaries.
-	const projectService = new ProjectService(db);
+export const createProjectModule = ({
+	projectRepository,
+}: {
+	projectRepository: ProjectRepository;
+}) => {
+	const projectService = new ProjectService(projectRepository);
 	const projectController = new ProjectController(projectService);
 
-	return { projectController, projectService };
+	return { projectController, projectRepository, projectService };
 };

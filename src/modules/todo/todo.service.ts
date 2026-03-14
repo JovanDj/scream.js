@@ -1,64 +1,45 @@
-import type { Knex } from "knex";
-import { Todo } from "./todo.js";
+import type {
+	Todo,
+	TodoFindAllOptions,
+	TodoUpdateInput,
+	TodoWriteInput,
+} from "./todo.js";
 
-type TodoScope = "all" | "completed" | "dueToday" | "open" | "overdue";
-type TodoStatusCode = "open" | "completed";
+export interface TodoRepository {
+	delete(id: number): Promise<boolean>;
+	findAll(options?: Readonly<TodoFindAllOptions>): Promise<Todo[]>;
+	findById(id: number): Promise<Todo | undefined>;
+	insert(input: Readonly<TodoWriteInput>): Promise<Todo>;
+	save(todo: Todo): Promise<Todo | undefined>;
+	transaction<T>(
+		callback: (repository: TodoRepository) => Promise<T>,
+	): Promise<T>;
+}
 
 export class TodoService {
-	readonly #db: Knex;
+	readonly #repository: TodoRepository;
 
-	constructor(db: Knex) {
-		this.#db = db;
+	constructor(repository: TodoRepository) {
+		this.#repository = repository;
 	}
 
-	async findAll(options?: {
-		projectId?: number;
-		scope?: TodoScope;
-		search?: string;
-	}) {
-		return Todo.findAll(this.#db, options);
+	async findAll(options?: Readonly<TodoFindAllOptions>) {
+		return this.#repository.findAll(options);
 	}
 
 	async findById(id: number) {
-		return Todo.findById(this.#db, id);
+		return this.#repository.findById(id);
 	}
 
-	async create(
-		input: Readonly<{
-			description: string;
-			dueAt: string | null;
-			priority: "low" | "medium" | "high";
-			projectId: number | null;
-			statusCode: TodoStatusCode;
-			title: string;
-		}>,
-	) {
-		return this.#db.transaction(async (tx) => {
-			return Todo.create(tx, {
-				description: input.description,
-				dueAt: input.dueAt,
-				priority: input.priority,
-				projectId: input.projectId,
-				statusCode: input.statusCode,
-				title: input.title,
-			});
+	async create(input: Readonly<TodoWriteInput>) {
+		return this.#repository.transaction(async (repository) => {
+			return repository.insert(input);
 		});
 	}
 
-	async update(
-		id: number,
-		input: Readonly<{
-			description: string;
-			dueAt: string | null;
-			priority: "low" | "medium" | "high";
-			projectId: number | null;
-			statusCode: TodoStatusCode;
-			title: string;
-			version: number;
-		}>,
-	) {
-		return this.#db.transaction(async (tx) => {
-			const todo = await Todo.findById(tx, id);
+	async update(id: number, input: Readonly<TodoUpdateInput>) {
+		return this.#repository.transaction(async (repository) => {
+			const todo = await repository.findById(id);
 			if (!todo) {
 				return undefined;
 			}
@@ -67,51 +48,22 @@ export class TodoService {
 				return undefined;
 			}
 
-			try {
-				return await todo
-					.apply({
-						description: input.description,
-						dueAt: input.dueAt,
-						priority: input.priority,
-						projectId: input.projectId,
-						statusCode: input.statusCode,
-						title: input.title,
-					})
-					.save(tx);
-			} catch {
-				return undefined;
-			}
+			return repository.save(todo.apply(input));
 		});
 	}
 
 	async toggle(id: number) {
-		return this.#db.transaction(async (tx) => {
-			const todo = await Todo.findById(tx, id);
+		return this.#repository.transaction(async (repository) => {
+			const todo = await repository.findById(id);
 			if (!todo) {
 				return undefined;
 			}
 
-			const nextStatus: TodoStatusCode =
-				todo.statusCode === "completed" ? "open" : "completed";
-
-			try {
-				return await todo
-					.apply({
-						description: todo.description,
-						dueAt: todo.dueAt,
-						priority: todo.priority,
-						projectId: todo.projectId,
-						statusCode: nextStatus,
-						title: todo.title,
-					})
-					.save(tx);
-			} catch {
-				return undefined;
-			}
+			return repository.save(todo.toggle());
 		});
 	}
 
 	async delete(id: number) {
-		return Todo.deleteById(this.#db, id);
+		return this.#repository.delete(id);
 	}
 }

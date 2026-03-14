@@ -9,13 +9,22 @@ import { createHttpApp } from "main.js";
 import { createProjectModule } from "@/modules/project";
 import { createTagModule } from "@/modules/tag";
 import { createTodoModule } from "@/modules/todo";
+import { KnexProjectRepository } from "./src/modules/project/project.repository.js";
+import { KnexTagRepository } from "./src/modules/tag/tag.repository.js";
+import { KnexTodoRepository } from "./src/modules/todo/todo.repository.js";
 
 export const createServer = () => {
 	const logger = createLogger();
 	const db = createDB();
-	const { projectController } = createProjectModule({ db });
-	const { tagController } = createTagModule({ db });
-	const { todosController } = createTodoModule({ db });
+	const { projectController } = createProjectModule({
+		projectRepository: KnexProjectRepository.create(db),
+	});
+	const { tagController } = createTagModule({
+		tagRepository: KnexTagRepository.create(db),
+	});
+	const { todosController } = createTodoModule({
+		todoRepository: KnexTodoRepository.create(db),
+	});
 
 	const app: Application = createExpressApp();
 	createHttpApp({

@@ -1,10 +1,12 @@
-import type { z } from "zod/v4";
+import type {
+	ValidationResult,
+	Validator,
+} from "@scream.js/validator/validator.js";
 
 export interface HttpContext {
-	param<S extends z.ZodType>(
-		key: string,
-		schema: (zod: typeof z) => S,
-	): z.ZodSafeParseResult<z.output<S>>;
+	validateParam<T>(key: string, validator: Validator<T>): ValidationResult<T>;
+	validateBody<T>(validator: Validator<T>): ValidationResult<T>;
+	validateQuery<T>(validator: Validator<T>): ValidationResult<T>;
 	render(
 		template: string,
 		locals?: Record<PropertyKey, unknown>,
@@ -12,10 +14,4 @@ export interface HttpContext {
 	redirect(url: string): void;
 	unprocessableEntity(body?: string): void;
 	notFound(): void;
-	body<S extends z.ZodType>(
-		schema: (zod: typeof z) => S,
-	): z.ZodSafeParseResult<z.output<S>>;
-	query<S extends z.ZodType>(
-		schema: (zod: typeof z) => S,
-	): z.ZodSafeParseResult<z.output<S>>;
 }

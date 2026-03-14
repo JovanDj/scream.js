@@ -8,10 +8,6 @@ type ProjectRoutes = Resource & {
 };
 
 type TodoRoutes = Resource & {
-	completed(ctx: Readonly<HttpContext>): Promise<void>;
-	dueToday(ctx: Readonly<HttpContext>): Promise<void>;
-	open(ctx: Readonly<HttpContext>): Promise<void>;
-	overdue(ctx: Readonly<HttpContext>): Promise<void>;
 	toggle(ctx: Readonly<HttpContext>): Promise<void>;
 };
 
@@ -51,10 +47,6 @@ export const createHttpApp = ({
 
 	app.resource("/todos", todosController);
 	app.post("/todos/:id/toggle", (ctx) => todosController.toggle(ctx));
-	app.get("/todos/open", (ctx) => todosController.open(ctx));
-	app.get("/todos/completed", (ctx) => todosController.completed(ctx));
-	app.get("/todos/due-today", (ctx) => todosController.dueToday(ctx));
-	app.get("/todos/overdue", (ctx) => todosController.overdue(ctx));
 
 	if (tagController) {
 		app.get("/tags", (ctx) => tagController.index(ctx));

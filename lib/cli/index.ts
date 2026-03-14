@@ -1,10 +1,9 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createDB } from "@scream.js/database/db.js";
+import { createDB, type Database } from "@scream.js/database/db.js";
 import { Command } from "commander";
-import type { Knex } from "knex";
 
-export const createProgram = ({ db }: { db: Knex }) => {
+export const createProgram = ({ db }: { db: Database }) => {
 	const program = new Command();
 
 	program.name("scream");

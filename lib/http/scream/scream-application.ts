@@ -32,13 +32,13 @@ export class ScreamApp implements Application {
 	}
 
 	resource(path: string, resource: Readonly<Resource>) {
-		this.get(`${path}`, resource.index.bind(resource));
-		this.get(`${path}/create`, resource.create.bind(resource));
-		this.post(`${path}`, resource.store.bind(resource));
-		this.get(`${path}/:id`, resource.show.bind(resource));
-		this.get(`${path}/:id/edit`, resource.edit.bind(resource));
-		this.post(`${path}/:id/edit`, resource.update.bind(resource));
-		this.post(`${path}/:id/delete`, resource.delete.bind(resource));
+		this.get(`${path}`, async (ctx) => resource.index(ctx));
+		this.get(`${path}/create`, async (ctx) => resource.create(ctx));
+		this.post(`${path}`, async (ctx) => resource.store(ctx));
+		this.get(`${path}/:id`, async (ctx) => resource.show(ctx));
+		this.get(`${path}/:id/edit`, async (ctx) => resource.edit(ctx));
+		this.post(`${path}/:id/edit`, async (ctx) => resource.update(ctx));
+		this.post(`${path}/:id/delete`, async (ctx) => resource.delete(ctx));
 		return this;
 	}
 
@@ -52,7 +52,7 @@ export class ScreamApp implements Application {
 		const handler = methodRoutes ? methodRoutes.get(path) : undefined;
 
 		if (handler) {
-			handler(context);
+			await handler(context);
 		} else {
 			context.notFound();
 		}

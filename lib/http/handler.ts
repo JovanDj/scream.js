@@ -1,3 +1,3 @@
 import type { HttpContext } from "./http-context.js";
 
-export type Handler = (context: HttpContext) => void;
+export type Handler = (context: HttpContext) => Promise<void>;

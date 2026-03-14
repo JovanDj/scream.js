@@ -1,37 +1,45 @@
-import type { Knex } from "knex";
-import { Tag } from "./tag.js";
+import type { Tag, TagWriteInput } from "./tag.js";
+
+export interface TagRepository {
+	delete(id: number): Promise<boolean>;
+	findAll(): Promise<Tag[]>;
+	findTodoTagIds(todoId: number): Promise<number[] | undefined>;
+	insert(input: Readonly<TagWriteInput>): Promise<Tag>;
+	replaceTodoTags(
+		todoId: number,
+		input: Readonly<{ tagIds: number[] }>,
+	): Promise<boolean>;
+	transaction<T>(
+		callback: (repository: TagRepository) => Promise<T>,
+	): Promise<T>;
+}
 
 export class TagService {
-	readonly #db: Knex;
+	readonly #repository: TagRepository;
 
-	constructor(db: Knex) {
-		this.#db = db;
+	constructor(repository: TagRepository) {
+		this.#repository = repository;
 	}
 
 	async findAll() {
-		return Tag.findAll(this.#db);
+		return this.#repository.findAll();
 	}
 
-	async create(input: Readonly<{ name: string }>) {
-		return Tag.create(this.#db, {
-			name: input.name,
-		});
+	async create(input: Readonly<TagWriteInput>) {
+		return this.#repository.insert(input);
 	}
 
 	async delete(id: number) {
-		return Tag.deleteById(this.#db, id);
+		return this.#repository.delete(id);
 	}
 
 	async replaceTodoTags(todoId: number, input: Readonly<{ tagIds: number[] }>) {
-		return this.#db.transaction(async (tx) => {
-			return Tag.replaceTodoTags(tx, {
-				tagIds: input.tagIds,
-				todoId,
-			});
+		return this.#repository.transaction(async (repository) => {
+			return repository.replaceTodoTags(todoId, input);
 		});
 	}
 
 	async findTodoTagIds(todoId: number) {
-		return Tag.findTodoTagIds(this.#db, todoId);
+		return this.#repository.findTodoTagIds(todoId);
 	}
 }

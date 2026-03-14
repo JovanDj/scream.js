@@ -1,6 +1,6 @@
 import { STATUS_CODES } from "node:http";
+import type { Validator } from "@scream.js/validator/validator.js";
 import type express from "express";
-import { z } from "zod/v4";
 import type { HttpContext } from "../http-context.js";
 
 export class ExpressHttpContext implements HttpContext {
@@ -39,15 +39,15 @@ export class ExpressHttpContext implements HttpContext {
 		this.#response.status(404).end(STATUS_CODES[404]);
 	}
 
-	param<S extends z.ZodType>(key: string, schema: (zod: typeof z) => S) {
-		return schema(z).safeParse(this.#request.params[key]);
+	validateParam<T>(key: string, validator: Validator<T>) {
+		return validator.validate(this.#request.params[key]);
 	}
 
-	body<S extends z.ZodType>(schema: (zod: typeof z) => S) {
-		return schema(z).safeParse(this.#request.body);
+	validateBody<T>(validator: Validator<T>) {
+		return validator.validate(this.#request.body);
 	}
 
-	query<S extends z.ZodType>(schema: (zod: typeof z) => S) {
-		return schema(z).safeParse(this.#request.query);
+	validateQuery<T>(validator: Validator<T>) {
+		return validator.validate(this.#request.query);
 	}
 }

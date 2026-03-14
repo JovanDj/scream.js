@@ -1,0 +1,161 @@
+import { describe, it, type TestContext } from "node:test";
+import { createProjectHttpFixture } from "./project.test-fixture.js";
+
+describe("project controller", { concurrency: true }, () => {
+	const setupServer = async () => createProjectHttpFixture();
+
+	it("GET /projects lists projects", async (t: TestContext) => {
+		const { cleanup, modules, port } = await setupServer();
+		try {
+			await modules.projectService.create({ name: "Alpha" });
+			const response = await fetch(`http://localhost:${port}/projects`, {
+				signal: t.signal,
+			});
+			const html = await response.text();
+
+			t.assert.deepStrictEqual(response.status, 200);
+			t.assert.match(html, /Projects/);
+			t.assert.match(html, /Alpha/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /projects/:id shows a project", async (t: TestContext) => {
+		const { cleanup, modules, port } = await setupServer();
+		try {
+			const project = await modules.projectService.create({ name: "Show Me" });
+			const response = await fetch(
+				`http://localhost:${port}/projects/${project.id}`,
+				{ signal: t.signal },
+			);
+			const html = await response.text();
+
+			t.assert.deepStrictEqual(response.status, 200);
+			t.assert.match(html, /Show Me/);
+			t.assert.match(html, /Status:\s*active/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /projects/create shows validation errors for a missing name", async (t: TestContext) => {
+		const { cleanup, port } = await setupServer();
+		try {
+			const response = await fetch(`http://localhost:${port}/projects/create`, {
+				body: "name=",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				signal: t.signal,
+			});
+			const html = await response.text();
+
+			t.assert.deepStrictEqual(response.status, 422);
+			t.assert.match(html, /Required/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /projects/create redirects to the created project", async (t: TestContext) => {
+		const { cleanup, port } = await setupServer();
+		try {
+			const response = await fetch(`http://localhost:${port}/projects/create`, {
+				body: "name=Created+Project",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+
+			t.assert.deepStrictEqual(response.status, 302);
+			t.assert.deepStrictEqual(response.headers.get("Location"), "/projects/1");
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /projects/create renders the form when the name is duplicated", async (t: TestContext) => {
+		const { cleanup, modules, port } = await setupServer();
+		try {
+			await modules.projectService.create({ name: "Duplicate" });
+			const response = await fetch(`http://localhost:${port}/projects/create`, {
+				body: "name=Duplicate",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				signal: t.signal,
+			});
+			const html = await response.text();
+
+			t.assert.deepStrictEqual(response.status, 422);
+			t.assert.match(html, /Project name must be unique/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /projects/:id/edit returns 404 for a missing project", async (t: TestContext) => {
+		const { cleanup, port } = await setupServer();
+		try {
+			const response = await fetch(
+				`http://localhost:${port}/projects/99999/edit`,
+				{
+					body: "name=Missing",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+					},
+					method: "POST",
+					signal: t.signal,
+				},
+			);
+
+			t.assert.deepStrictEqual(response.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST archive and unarchive redirect to the project page", async (t: TestContext) => {
+		const { cleanup, modules, port } = await setupServer();
+		try {
+			const project = await modules.projectService.create({
+				name: "Archive Me",
+			});
+			const archived = await fetch(
+				`http://localhost:${port}/projects/${project.id}/archive`,
+				{
+					method: "POST",
+					redirect: "manual",
+					signal: t.signal,
+				},
+			);
+			const unarchived = await fetch(
+				`http://localhost:${port}/projects/${project.id}/unarchive`,
+				{
+					method: "POST",
+					redirect: "manual",
+					signal: t.signal,
+				},
+			);
+
+			t.assert.deepStrictEqual(archived.status, 302);
+			t.assert.deepStrictEqual(
+				archived.headers.get("Location"),
+				`/projects/${project.id}`,
+			);
+			t.assert.deepStrictEqual(unarchived.status, 302);
+			t.assert.deepStrictEqual(
+				unarchived.headers.get("Location"),
+				`/projects/${project.id}`,
+			);
+		} finally {
+			await cleanup();
+		}
+	});
+});
