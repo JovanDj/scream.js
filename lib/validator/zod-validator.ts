@@ -15,7 +15,16 @@ export class ZodValidator<S extends z.core.$ZodType>
 		const parsed = z.safeParse(this.#schema, input);
 
 		if (parsed.success) {
-			return { errors: {}, value: parsed.data };
+			return {
+				data: parsed.data,
+				errors: {},
+				success: true,
+				value: parsed.data,
+			} satisfies Validator<z.output<S>>["validate"] extends (
+				input: unknown,
+			) => infer R
+				? R
+				: never;
 		}
 
 		return {
@@ -27,6 +36,11 @@ export class ZodValidator<S extends z.core.$ZodType>
 				acc[key].push(e.message);
 				return acc;
 			}, {}),
-		};
+			success: false,
+		} satisfies Validator<z.output<S>>["validate"] extends (
+			input: unknown,
+		) => infer R
+			? R
+			: never;
 	}
 }

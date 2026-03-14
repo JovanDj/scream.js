@@ -16,46 +16,27 @@ export class KoaApp implements Application {
 	}
 
 	get(path: string, handler: Handler) {
-		this.#router.get(path, async (ctx) => {
-			return handler(this.#createContext(ctx));
-		});
+		this.#router.get(path, (ctx) => handler(this.#createContext(ctx)));
 		return this;
 	}
 
 	post(path: string, handler: Handler) {
-		this.#router.post(path, async (ctx) => {
-			return handler(this.#createContext(ctx));
-		});
+		this.#router.post(path, (ctx) => handler(this.#createContext(ctx)));
 		return this;
 	}
 
 	resource(path: string, resource: Resource) {
 		const router = new Router({ prefix: path });
 
-		router.get("/", async (ctx) => {
-			const context = this.#createContext(ctx);
-			await resource.index(context);
-		});
+		router.get("/", (ctx) => resource.index(this.#createContext(ctx)));
 
-		router.get("/create", async (ctx) => {
-			const context = this.#createContext(ctx);
-			await resource.create(context);
-		});
+		router.get("/create", (ctx) => resource.create(this.#createContext(ctx)));
 
-		router.post("/create", async (ctx) => {
-			const context = this.#createContext(ctx);
-			await resource.store(context);
-		});
+		router.post("/create", (ctx) => resource.store(this.#createContext(ctx)));
 
-		router.get("/:id/edit", async (ctx) => {
-			const context = this.#createContext(ctx);
-			await resource.edit(context);
-		});
+		router.get("/:id/edit", (ctx) => resource.edit(this.#createContext(ctx)));
 
-		router.get("/:id", async (ctx) => {
-			const context = this.#createContext(ctx);
-			await resource.show(context);
-		});
+		router.get("/:id", (ctx) => resource.show(this.#createContext(ctx)));
 
 		router.post("/:id/edit", async (ctx) => {
 			const context = this.#createContext(ctx);

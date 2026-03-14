@@ -1,31 +1,8 @@
 import { describe, it, type TestContext } from "node:test";
-import { testDatabase } from "@scream.js/database/test-helpers.js";
-import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
-import { startTestServer } from "@scream.js/http/server.js";
-import { createHttpApp } from "../../../main.js";
-import { createTodoModule } from "./index.js";
+import { createTodoHttpFixture } from "./todo.test-fixture.js";
 
-if (!process.env["NODE_ENV"]) {
-	process.env["NODE_ENV"] = "integration";
-}
-
-describe("todo controller", { concurrency: false }, () => {
-	const setupServer = async () => {
-		const { db, cleanup: cleanupDb } = await testDatabase.setup({ seed: true });
-		const { todosController } = createTodoModule({ db });
-
-		const app = createExpressApp();
-		createHttpApp({ app, todosController });
-
-		const { port, shutdown } = await startTestServer(app);
-
-		const cleanup = async () => {
-			await shutdown();
-			await cleanupDb();
-		};
-
-		return { cleanup, port };
-	};
+describe("todo controller", { concurrency: true }, () => {
+	const setupServer = async () => createTodoHttpFixture({ seed: true });
 
 	it("GET / responds with 200", async (t: TestContext) => {
 		t.plan(1);
@@ -68,6 +45,87 @@ describe("todo controller", { concurrency: false }, () => {
 		}
 	});
 
+	it("GET /todos?status=open returns 200", async (t: TestContext) => {
+		t.plan(1);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(`http://localhost:${port}/todos?status=open`, {
+				signal: t.signal,
+			});
+			t.assert.deepStrictEqual<number>(res.status, 200);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /todos?status=completed returns 200", async (t: TestContext) => {
+		t.plan(1);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(
+				`http://localhost:${port}/todos?status=completed`,
+				{
+					signal: t.signal,
+				},
+			);
+			t.assert.deepStrictEqual<number>(res.status, 200);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /todos?status=dueToday returns 200", async (t: TestContext) => {
+		t.plan(1);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(
+				`http://localhost:${port}/todos?status=dueToday`,
+				{
+					signal: t.signal,
+				},
+			);
+			t.assert.deepStrictEqual<number>(res.status, 200);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /todos with invalid status returns 404", async (t: TestContext) => {
+		t.plan(1);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(
+				`http://localhost:${port}/todos?status=invalid-filter`,
+				{
+					signal: t.signal,
+				},
+			);
+			t.assert.deepStrictEqual<number>(res.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("preserves status in the search form and filter links", async (t: TestContext) => {
+		t.plan(3);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(
+				`http://localhost:${port}/todos?status=open&search=milk`,
+				{
+					signal: t.signal,
+				},
+			);
+			const html = await res.text();
+
+			t.assert.match(html, /name="status" value="open"/);
+			t.assert.match(html, /href="\/todos\?status=completed&amp;search=milk"/);
+			t.assert.match(html, /href="\/todos\?search=milk"/);
+		} finally {
+			await cleanup();
+		}
+	});
+
 	it("POST /todos/create with missing title shows errors", async (t: TestContext) => {
 		t.plan(1);
 		const { port, cleanup } = await setupServer();
@@ -99,6 +157,40 @@ describe("todo controller", { concurrency: false }, () => {
 
 			const body = await res.text();
 			t.assert.match(body, /not found|error|unknown/i);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /todos/:id with an invalid id returns 404", async (t: TestContext) => {
+		t.plan(1);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(`http://localhost:${port}/todos/not-a-number`, {
+				signal: t.signal,
+			});
+			t.assert.deepStrictEqual<number>(res.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/create with invalid dueAt shows errors", async (t: TestContext) => {
+		t.plan(2);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(`http://localhost:${port}/todos/create`, {
+				body: "title=HasDate&dueAt=not-a-date",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				signal: t.signal,
+			});
+
+			const html = await res.text();
+			t.assert.deepStrictEqual<number>(res.status, 422);
+			t.assert.match(html, /Invalid date/i);
 		} finally {
 			await cleanup();
 		}

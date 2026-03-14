@@ -1,12 +1,12 @@
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import type { Knex } from "knex";
+import type { Database } from "@scream.js/database/db.js";
 import type { Logger } from "../logger/logger.interface.js";
 import type { Application } from "./application.js";
 
 type StartHttpServerOptions = {
 	app: Application;
-	db: Knex;
+	db: Database;
 	logger: Logger;
 	port?: number;
 };

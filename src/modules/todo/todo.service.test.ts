@@ -1,16 +1,14 @@
 import { describe, it, type TestContext } from "node:test";
-import { testDatabase } from "@scream.js/database/test-helpers.js";
-import { TodoService } from "./todo.service.js";
+import { createTodoServiceFixture } from "./todo.test-fixture.js";
 
-if (!process.env["NODE_ENV"]) {
-	process.env["NODE_ENV"] = "integration";
-}
-
-describe("TodoService", { concurrency: false }, () => {
+describe("TodoService", { concurrency: true }, () => {
 	const setupService = async () => {
-		const { cleanup, db } = await testDatabase.setup({});
+		const { cleanup, module } = await createTodoServiceFixture();
 
-		return { cleanup, service: new TodoService(db) };
+		return {
+			cleanup,
+			service: module.todoService,
+		};
 	};
 
 	it("should create a todo and return it with persisted fields", async (t: TestContext) => {

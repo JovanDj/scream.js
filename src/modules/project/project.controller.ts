@@ -1,5 +1,6 @@
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Resource } from "@scream.js/http/resource.js";
+import { projectIdValidator, projectWriteValidator } from "./project.schema.js";
 import type { ProjectService } from "./project.service.js";
 
 export class ProjectController implements Resource {
@@ -7,15 +8,6 @@ export class ProjectController implements Resource {
 
 	constructor(projectService: ProjectService) {
 		this.#projectService = projectService;
-	}
-
-	#projectId(ctx: HttpContext) {
-		const parsedId = ctx.param("id", (z) => z.coerce.number().int().positive());
-		if (!parsedId.success) {
-			return undefined;
-		}
-
-		return parsedId.data;
 	}
 
 	async index(ctx: HttpContext) {
@@ -30,11 +22,12 @@ export class ProjectController implements Resource {
 	}
 
 	async show(ctx: HttpContext) {
-		const projectId = this.#projectId(ctx);
-		if (!projectId) {
+		const parsedProjectId = ctx.validateParam("id", projectIdValidator);
+		if (!parsedProjectId.success) {
 			return ctx.notFound();
 		}
 
+		const projectId = parsedProjectId.data;
 		const project = await this.#projectService.findById(projectId);
 		if (!project) {
 			return ctx.notFound();
@@ -57,21 +50,14 @@ export class ProjectController implements Resource {
 	}
 
 	async store(ctx: HttpContext) {
-		const parsed = ctx.body((z) =>
-			z.strictObject({
-				name: z
-					.string()
-					.default("")
-					.transform((value) => value.trim()),
-			}),
-		);
-
-		if (!parsed.success || parsed.data.name.length < 1) {
+		const parsed = ctx.validateBody(projectWriteValidator);
+		if (!parsed.success) {
 			ctx.unprocessableEntity();
-
 			return ctx.render("project-create", {
-				errors: { name: ["Required"] },
-				fields: parsed.success ? parsed.data : { name: "" },
+				errors: parsed.errors,
+				fields: {
+					name: "",
+				},
 				pageTitle: "Create Project",
 			});
 		}
@@ -83,18 +69,21 @@ export class ProjectController implements Resource {
 			ctx.unprocessableEntity();
 			return ctx.render("project-create", {
 				errors: { name: ["Project name must be unique"] },
-				fields: parsed.data,
+				fields: {
+					name: parsed.data.name,
+				},
 				pageTitle: "Create Project",
 			});
 		}
 	}
 
 	async edit(ctx: HttpContext) {
-		const projectId = this.#projectId(ctx);
-		if (!projectId) {
+		const parsedProjectId = ctx.validateParam("id", projectIdValidator);
+		if (!parsedProjectId.success) {
 			return ctx.notFound();
 		}
 
+		const projectId = parsedProjectId.data;
 		const project = await this.#projectService.findById(projectId);
 		if (!project) {
 			return ctx.notFound();
@@ -113,46 +102,56 @@ export class ProjectController implements Resource {
 	}
 
 	async update(ctx: HttpContext) {
-		const projectId = this.#projectId(ctx);
-		if (!projectId) {
+		const parsedProjectId = ctx.validateParam("id", projectIdValidator);
+		if (!parsedProjectId.success) {
 			return ctx.notFound();
 		}
 
-		const parsed = ctx.body((z) =>
-			z.strictObject({
-				name: z
-					.string()
-					.default("")
-					.transform((value) => value.trim()),
-			}),
-		);
-
-		if (!parsed.success || parsed.data.name.length < 1) {
+		const projectId = parsedProjectId.data;
+		const parsed = ctx.validateBody(projectWriteValidator);
+		if (!parsed.success) {
 			ctx.unprocessableEntity();
 			return ctx.render("project-edit", {
 				action: `/projects/${projectId}/edit`,
-				errors: { name: ["Required"] },
-				fields: parsed.success ? parsed.data : { name: "" },
+				errors: parsed.errors,
+				fields: {
+					name: "",
+				},
 				pageTitle: "Edit Project",
 				project: { id: projectId },
 				submitLabel: "Update",
 			});
 		}
 
-		const updated = await this.#projectService.update(projectId, parsed.data);
-		if (!updated) {
-			return ctx.notFound();
-		}
+		try {
+			const updated = await this.#projectService.update(projectId, parsed.data);
+			if (!updated) {
+				return ctx.notFound();
+			}
 
-		return ctx.redirect(`/projects/${updated.id}`);
+			return ctx.redirect(`/projects/${updated.id}`);
+		} catch {
+			ctx.unprocessableEntity();
+			return ctx.render("project-edit", {
+				action: `/projects/${projectId}/edit`,
+				errors: { name: ["Project name must be unique"] },
+				fields: {
+					name: parsed.data.name,
+				},
+				pageTitle: "Edit Project",
+				project: { id: projectId },
+				submitLabel: "Update",
+			});
+		}
 	}
 
 	async delete(ctx: HttpContext) {
-		const projectId = this.#projectId(ctx);
-		if (!projectId) {
+		const parsedProjectId = ctx.validateParam("id", projectIdValidator);
+		if (!parsedProjectId.success) {
 			return ctx.notFound();
 		}
 
+		const projectId = parsedProjectId.data;
 		const deleted = await this.#projectService.delete(projectId);
 		if (!deleted) {
 			return ctx.notFound();
@@ -162,11 +161,12 @@ export class ProjectController implements Resource {
 	}
 
 	async archive(ctx: HttpContext) {
-		const projectId = this.#projectId(ctx);
-		if (!projectId) {
+		const parsedProjectId = ctx.validateParam("id", projectIdValidator);
+		if (!parsedProjectId.success) {
 			return ctx.notFound();
 		}
 
+		const projectId = parsedProjectId.data;
 		const project = await this.#projectService.archive(projectId);
 		if (!project) {
 			return ctx.notFound();
@@ -176,11 +176,12 @@ export class ProjectController implements Resource {
 	}
 
 	async unarchive(ctx: HttpContext) {
-		const projectId = this.#projectId(ctx);
-		if (!projectId) {
+		const parsedProjectId = ctx.validateParam("id", projectIdValidator);
+		if (!parsedProjectId.success) {
 			return ctx.notFound();
 		}
 
+		const projectId = parsedProjectId.data;
 		const project = await this.#projectService.unarchive(projectId);
 		if (!project) {
 			return ctx.notFound();

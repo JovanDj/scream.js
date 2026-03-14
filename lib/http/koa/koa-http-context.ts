@@ -1,5 +1,5 @@
+import type { Validator } from "@scream.js/validator/validator.js";
 import type Koa from "koa";
-import { z } from "zod/v4";
 import type { HttpContext } from "../http-context.js";
 
 export class KoaHttpContext implements HttpContext {
@@ -53,15 +53,15 @@ export class KoaHttpContext implements HttpContext {
 		this.#status(404).#end("Not Found");
 	}
 
-	param<S extends z.ZodType>(key: string, schema: (zod: typeof z) => S) {
-		return schema(z).safeParse(this.#paramValue(key));
+	validateParam<T>(key: string, validator: Validator<T>) {
+		return validator.validate(this.#paramValue(key));
 	}
 
-	body<S extends z.ZodType>(schema: (zod: typeof z) => S) {
-		return schema(z).safeParse(this.#body());
+	validateBody<T>(validator: Validator<T>) {
+		return validator.validate(this.#body());
 	}
 
-	query<S extends z.ZodType>(schema: (zod: typeof z) => S) {
-		return schema(z).safeParse(this.#query());
+	validateQuery<T>(validator: Validator<T>) {
+		return validator.validate(this.#query());
 	}
 }

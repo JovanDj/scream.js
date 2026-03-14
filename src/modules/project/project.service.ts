@@ -1,59 +1,75 @@
-import type { Knex } from "knex";
-import { Project } from "./project.js";
+import type { ProjectWriteInput } from "./project.js";
+
+export interface ProjectRepository {
+	delete(id: number): Promise<boolean>;
+	findAll(
+		options?: Readonly<{ includeArchived?: boolean }>,
+	): Promise<import("./project.js").Project[]>;
+	findById(id: number): Promise<import("./project.js").Project | undefined>;
+	insert(
+		input: Readonly<ProjectWriteInput>,
+	): Promise<import("./project.js").Project>;
+	save(
+		project: import("./project.js").Project,
+	): Promise<import("./project.js").Project | undefined>;
+	transaction<T>(
+		callback: (repository: ProjectRepository) => Promise<T>,
+	): Promise<T>;
+}
 
 export class ProjectService {
-	readonly #db: Knex;
+	readonly #repository: ProjectRepository;
 
-	constructor(db: Knex) {
-		this.#db = db;
+	constructor(repository: ProjectRepository) {
+		this.#repository = repository;
 	}
 
 	async findAll(options?: { includeArchived?: boolean }) {
-		return Project.findAll(this.#db, options);
+		return this.#repository.findAll(options);
 	}
 
 	async findById(id: number) {
-		return Project.findById(this.#db, id);
+		return this.#repository.findById(id);
 	}
 
-	async create(input: Readonly<{ name: string }>) {
-		return Project.create(this.#db, { name: input.name });
+	async create(input: Readonly<ProjectWriteInput>) {
+		return this.#repository.insert(input);
 	}
 
-	async update(id: number, input: Readonly<{ name: string }>) {
-		return this.#db.transaction(async (tx) => {
-			const project = await Project.findById(tx, id);
+	async update(id: number, input: Readonly<ProjectWriteInput>) {
+		return this.#repository.transaction(async (repository) => {
+			const project = await repository.findById(id);
 			if (!project) {
 				return undefined;
 			}
 
-			return project.apply(input).save(tx);
+			return repository.save(project.apply(input));
 		});
 	}
 
 	async delete(id: number) {
-		return Project.deleteById(this.#db, id);
+		return this.#repository.delete(id);
 	}
 
 	async archive(id: number) {
-		return this.#db.transaction(async (tx) => {
-			const project = await Project.findById(tx, id);
+		return this.#repository.transaction(async (repository) => {
+			const project = await repository.findById(id);
 			if (!project) {
 				return undefined;
 			}
 
-			return project.setStatus("archived").save(tx);
+			return repository.save(project.archive());
 		});
 	}
 
 	async unarchive(id: number) {
-		return this.#db.transaction(async (tx) => {
-			const project = await Project.findById(tx, id);
+		return this.#repository.transaction(async (repository) => {
+			const project = await repository.findById(id);
 			if (!project) {
 				return undefined;
 			}
 
-			return project.setStatus("active").save(tx);
+			return repository.save(project.unarchive());
 		});
 	}
 }

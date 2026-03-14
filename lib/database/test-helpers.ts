@@ -1,14 +1,16 @@
-import type { Knex } from "knex";
-import { createDB } from "./db.js";
+import { createDB, type Database } from "./db.js";
 
 export type SetupTestDbOptions = {
 	seed?: boolean;
-	prepare?: (db: Knex) => Promise<void> | void;
+	prepare?: (db: Database) => Promise<void> | void;
 };
 
-export const testDatabase = {
+export const databaseTestFixture = {
 	async setup(options: SetupTestDbOptions = {}) {
-		const db = createDB();
+		// Each setup call provisions a fresh DB instance backed by the in-memory
+		// integration config, which keeps DB-backed tests isolated and safe to run
+		// concurrently without relying on process env mutation.
+		const db = createDB("integration");
 
 		await db.migrate.latest();
 
@@ -28,5 +30,3 @@ export const testDatabase = {
 		return { cleanup, db };
 	},
 };
-
-export const setupTestDb = testDatabase.setup;
