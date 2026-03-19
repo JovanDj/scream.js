@@ -53,15 +53,16 @@ export class KoaHttpContext implements HttpContext {
 		this.#status(404).#end("Not Found");
 	}
 
-	validateParam<T>(key: string, validator: Validator<T>) {
-		return validator.validate(this.#paramValue(key));
+	param<T>(key: string, validator: Validator<T>) {
+		const result = validator.validate(this.#paramValue(key));
+		return result.success ? result.data : undefined;
 	}
 
-	validateBody<T>(validator: Validator<T>) {
+	body<T>(validator: Validator<T>) {
 		return validator.validate(this.#body());
 	}
 
-	validateQuery<T>(validator: Validator<T>) {
+	query<T>(validator: Validator<T>) {
 		return validator.validate(this.#query());
 	}
 }

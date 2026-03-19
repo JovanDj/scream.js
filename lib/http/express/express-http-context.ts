@@ -39,15 +39,16 @@ export class ExpressHttpContext implements HttpContext {
 		this.#response.status(404).end(STATUS_CODES[404]);
 	}
 
-	validateParam<T>(key: string, validator: Validator<T>) {
-		return validator.validate(this.#request.params[key]);
+	param<T>(key: string, validator: Validator<T>) {
+		const result = validator.validate(this.#request.params[key]);
+		return result.success ? result.data : undefined;
 	}
 
-	validateBody<T>(validator: Validator<T>) {
+	body<T>(validator: Validator<T>) {
 		return validator.validate(this.#request.body);
 	}
 
-	validateQuery<T>(validator: Validator<T>) {
+	query<T>(validator: Validator<T>) {
 		return validator.validate(this.#request.query);
 	}
 }

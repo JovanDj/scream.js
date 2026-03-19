@@ -35,7 +35,7 @@ export class TodosController implements Resource {
 	}
 
 	async index(ctx: HttpContext) {
-		const parsedQuery = ctx.validateQuery(todoListQueryValidator);
+		const parsedQuery = ctx.query(todoListQueryValidator);
 		if (!parsedQuery.success) {
 			return ctx.notFound();
 		}
@@ -119,12 +119,11 @@ export class TodosController implements Resource {
 	}
 
 	async show(ctx: HttpContext) {
-		const parsedTodoId = ctx.validateParam("id", todoIdValidator);
-		if (!parsedTodoId.success) {
+		const todoId = ctx.param("id", todoIdValidator);
+		if (!todoId) {
 			return ctx.notFound();
 		}
 
-		const todoId = parsedTodoId.data;
 		const todo = await this.#todoService.findById(todoId);
 		if (!todo) {
 			return ctx.notFound();
@@ -149,7 +148,7 @@ export class TodosController implements Resource {
 	}
 
 	async store(ctx: HttpContext) {
-		const parsed = ctx.validateBody(todoCreateValidator);
+		const parsed = ctx.body(todoCreateValidator);
 		if (!parsed.success) {
 			ctx.unprocessableEntity();
 			return ctx.render("create", {
@@ -175,12 +174,11 @@ export class TodosController implements Resource {
 	}
 
 	async edit(ctx: HttpContext) {
-		const parsedTodoId = ctx.validateParam("id", todoIdValidator);
-		if (!parsedTodoId.success) {
+		const todoId = ctx.param("id", todoIdValidator);
+		if (!todoId) {
 			return ctx.notFound();
 		}
 
-		const todoId = parsedTodoId.data;
 		const todo = await this.#todoService.findById(todoId);
 		if (!todo) {
 			return ctx.notFound();
@@ -205,13 +203,12 @@ export class TodosController implements Resource {
 	}
 
 	async update(ctx: HttpContext) {
-		const parsedTodoId = ctx.validateParam("id", todoIdValidator);
-		if (!parsedTodoId.success) {
+		const todoId = ctx.param("id", todoIdValidator);
+		if (!todoId) {
 			return ctx.notFound();
 		}
 
-		const todoId = parsedTodoId.data;
-		const parsed = ctx.validateBody(todoUpdateValidator);
+		const parsed = ctx.body(todoUpdateValidator);
 		if (!parsed.success) {
 			ctx.unprocessableEntity();
 			return ctx.render("edit", {
@@ -242,12 +239,11 @@ export class TodosController implements Resource {
 	}
 
 	async delete(ctx: HttpContext) {
-		const parsedTodoId = ctx.validateParam("id", todoIdValidator);
-		if (!parsedTodoId.success) {
+		const todoId = ctx.param("id", todoIdValidator);
+		if (!todoId) {
 			return ctx.notFound();
 		}
 
-		const todoId = parsedTodoId.data;
 		const deleted = await this.#todoService.delete(todoId);
 		if (!deleted) {
 			return ctx.notFound();
@@ -257,12 +253,11 @@ export class TodosController implements Resource {
 	}
 
 	async toggle(ctx: HttpContext) {
-		const parsedTodoId = ctx.validateParam("id", todoIdValidator);
-		if (!parsedTodoId.success) {
+		const todoId = ctx.param("id", todoIdValidator);
+		if (!todoId) {
 			return ctx.notFound();
 		}
 
-		const todoId = parsedTodoId.data;
 		const todo = await this.#todoService.toggle(todoId);
 		if (!todo) {
 			return ctx.notFound();
