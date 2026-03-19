@@ -22,7 +22,7 @@ export class TagController {
 	}
 
 	async store(ctx: HttpContext) {
-		const parsed = ctx.validateBody(tagWriteValidator);
+		const parsed = ctx.body(tagWriteValidator);
 		if (!parsed.success) {
 			ctx.unprocessableEntity();
 			return ctx.render("tag-index", {
@@ -46,12 +46,11 @@ export class TagController {
 	}
 
 	async delete(ctx: HttpContext) {
-		const parsedTagId = ctx.validateParam("id", tagIdValidator);
-		if (!parsedTagId.success) {
+		const tagId = ctx.param("id", tagIdValidator);
+		if (!tagId) {
 			return ctx.notFound();
 		}
 
-		const tagId = parsedTagId.data;
 		const deleted = await this.#tagService.delete(tagId);
 		if (!deleted) {
 			return ctx.notFound();
@@ -61,13 +60,12 @@ export class TagController {
 	}
 
 	async assignToTodo(ctx: HttpContext) {
-		const parsedTodoId = ctx.validateParam("id", tagIdValidator);
-		if (!parsedTodoId.success) {
+		const todoId = ctx.param("id", tagIdValidator);
+		if (!todoId) {
 			return ctx.notFound();
 		}
 
-		const todoId = parsedTodoId.data;
-		const parsed = ctx.validateBody(replaceTodoTagsValidator);
+		const parsed = ctx.body(replaceTodoTagsValidator);
 		if (!parsed.success) {
 			ctx.unprocessableEntity();
 			return ctx.redirect(`/todos/${todoId}/edit`);

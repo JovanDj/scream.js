@@ -22,12 +22,11 @@ export class ProjectController implements Resource {
 	}
 
 	async show(ctx: HttpContext) {
-		const parsedProjectId = ctx.validateParam("id", projectIdValidator);
-		if (!parsedProjectId.success) {
+		const projectId = ctx.param("id", projectIdValidator);
+		if (!projectId) {
 			return ctx.notFound();
 		}
 
-		const projectId = parsedProjectId.data;
 		const project = await this.#projectService.findById(projectId);
 		if (!project) {
 			return ctx.notFound();
@@ -50,7 +49,7 @@ export class ProjectController implements Resource {
 	}
 
 	async store(ctx: HttpContext) {
-		const parsed = ctx.validateBody(projectWriteValidator);
+		const parsed = ctx.body(projectWriteValidator);
 		if (!parsed.success) {
 			ctx.unprocessableEntity();
 			return ctx.render("project-create", {
@@ -78,12 +77,11 @@ export class ProjectController implements Resource {
 	}
 
 	async edit(ctx: HttpContext) {
-		const parsedProjectId = ctx.validateParam("id", projectIdValidator);
-		if (!parsedProjectId.success) {
+		const projectId = ctx.param("id", projectIdValidator);
+		if (!projectId) {
 			return ctx.notFound();
 		}
 
-		const projectId = parsedProjectId.data;
 		const project = await this.#projectService.findById(projectId);
 		if (!project) {
 			return ctx.notFound();
@@ -102,13 +100,12 @@ export class ProjectController implements Resource {
 	}
 
 	async update(ctx: HttpContext) {
-		const parsedProjectId = ctx.validateParam("id", projectIdValidator);
-		if (!parsedProjectId.success) {
+		const projectId = ctx.param("id", projectIdValidator);
+		if (!projectId) {
 			return ctx.notFound();
 		}
 
-		const projectId = parsedProjectId.data;
-		const parsed = ctx.validateBody(projectWriteValidator);
+		const parsed = ctx.body(projectWriteValidator);
 		if (!parsed.success) {
 			ctx.unprocessableEntity();
 			return ctx.render("project-edit", {
@@ -146,12 +143,11 @@ export class ProjectController implements Resource {
 	}
 
 	async delete(ctx: HttpContext) {
-		const parsedProjectId = ctx.validateParam("id", projectIdValidator);
-		if (!parsedProjectId.success) {
+		const projectId = ctx.param("id", projectIdValidator);
+		if (!projectId) {
 			return ctx.notFound();
 		}
 
-		const projectId = parsedProjectId.data;
 		const deleted = await this.#projectService.delete(projectId);
 		if (!deleted) {
 			return ctx.notFound();
@@ -161,12 +157,11 @@ export class ProjectController implements Resource {
 	}
 
 	async archive(ctx: HttpContext) {
-		const parsedProjectId = ctx.validateParam("id", projectIdValidator);
-		if (!parsedProjectId.success) {
+		const projectId = ctx.param("id", projectIdValidator);
+		if (!projectId) {
 			return ctx.notFound();
 		}
 
-		const projectId = parsedProjectId.data;
 		const project = await this.#projectService.archive(projectId);
 		if (!project) {
 			return ctx.notFound();
@@ -176,12 +171,11 @@ export class ProjectController implements Resource {
 	}
 
 	async unarchive(ctx: HttpContext) {
-		const parsedProjectId = ctx.validateParam("id", projectIdValidator);
-		if (!parsedProjectId.success) {
+		const projectId = ctx.param("id", projectIdValidator);
+		if (!projectId) {
 			return ctx.notFound();
 		}
 
-		const projectId = parsedProjectId.data;
 		const project = await this.#projectService.unarchive(projectId);
 		if (!project) {
 			return ctx.notFound();
