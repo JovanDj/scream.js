@@ -194,7 +194,7 @@ Application services must not:
 
   * `src/modules/<module>/<module>.controller.test.ts`
   * `src/modules/<module>/<module>.service.test.ts`
-  * `src/modules/<module>/<module>.repository.test.ts`
+  * `src/modules/<module>/<module>.mapper.test.ts`
   * `src/modules/<module>/<module>.test.ts` (domain/model tests)
 
 ### 7.3 Layered testing

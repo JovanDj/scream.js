@@ -1,14 +1,14 @@
 import { describe, it, type TestContext } from "node:test";
 import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
-import { KnexTodoRepository } from "./todo.repository.js";
+import { TodoMapper } from "./todo.mapper.js";
 
-describe("TodoRepository", { concurrency: true }, () => {
+describe("TodoMapper", { concurrency: true }, () => {
 	it("persists and loads a todo through the low-level database fixture", async (t: TestContext) => {
 		const { cleanup, db } = await databaseTestFixture.setup({});
 
 		try {
-			const repository = KnexTodoRepository.create(db);
-			const created = await repository.insert({
+			const mapper = TodoMapper.create(db);
+			const created = await mapper.insert({
 				description: "",
 				dueAt: null,
 				priority: "medium",
@@ -17,7 +17,7 @@ describe("TodoRepository", { concurrency: true }, () => {
 				title: "Repo Todo",
 			});
 
-			const found = await repository.findById(created.id);
+			const found = await mapper.findById(created.id);
 
 			t.assert.deepStrictEqual(found?.title, "Repo Todo");
 		} finally {

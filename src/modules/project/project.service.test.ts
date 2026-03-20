@@ -1,9 +1,11 @@
 import { describe, it, type TestContext } from "node:test";
-import { createProjectServiceFixture } from "./project.test-fixture.js";
+import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
+import { createProjectModule } from "./index.js";
 
 describe("ProjectService", { concurrency: true }, () => {
 	const setupService = async () => {
-		const { cleanup, module } = await createProjectServiceFixture();
+		const { cleanup, db } = await databaseTestFixture.setup({});
+		const module = createProjectModule({ db });
 
 		return {
 			cleanup,

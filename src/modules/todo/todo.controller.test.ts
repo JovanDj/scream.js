@@ -1,8 +1,28 @@
 import { describe, it, type TestContext } from "node:test";
-import { createTodoHttpFixture } from "./todo.test-fixture.js";
+import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
+import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
+import { startTestServer } from "@scream.js/http/server.js";
+import { createHttpApp } from "../../../main.js";
+import { createTodoModule } from "./index.js";
 
 describe("todo controller", { concurrency: true }, () => {
-	const setupServer = async () => createTodoHttpFixture({ seed: true });
+	const setupServer = async () => {
+		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({
+			seed: true,
+		});
+		const modules = createTodoModule({ db });
+		const app = createExpressApp();
+
+		createHttpApp({ app, todosController: modules.todosController });
+
+		const { port, shutdown } = await startTestServer(app);
+		const cleanup = async () => {
+			await shutdown();
+			await cleanupDb();
+		};
+
+		return { cleanup, modules, port };
+	};
 
 	it("GET / responds with 200", async (t: TestContext) => {
 		t.plan(1);

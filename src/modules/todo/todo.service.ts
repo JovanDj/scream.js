@@ -1,65 +1,57 @@
+import type { DatabaseHandle } from "@scream.js/database/db.js";
 import type {
-	Todo,
 	TodoFindAllOptions,
 	TodoUpdateInput,
 	TodoWriteInput,
 } from "./todo.js";
-
-export interface TodoRepository {
-	delete(id: number): Promise<boolean>;
-	findAll(options?: Readonly<TodoFindAllOptions>): Promise<Todo[]>;
-	findById(id: number): Promise<Todo | undefined>;
-	insert(input: Readonly<TodoWriteInput>): Promise<Todo>;
-	save(todo: Todo): Promise<Todo | undefined>;
-	transaction<T>(
-		callback: (repository: TodoRepository) => Promise<T>,
-	): Promise<T>;
-}
+import { TodoMapper } from "./todo.mapper.js";
 
 export class TodoService {
-	readonly #repository: TodoRepository;
+	readonly #db: DatabaseHandle;
 
-	constructor(repository: TodoRepository) {
-		this.#repository = repository;
+	constructor(db: DatabaseHandle) {
+		this.#db = db;
 	}
 
 	async findAll(options?: Readonly<TodoFindAllOptions>) {
-		return this.#repository.findAll(options);
+		return TodoMapper.create(this.#db).findAll(options);
 	}
 
 	async findById(id: number) {
-		return this.#repository.findById(id);
+		return TodoMapper.create(this.#db).findById(id);
 	}
 
 	async create(input: Readonly<TodoWriteInput>) {
-		return this.#repository.transaction(async (repository) => {
-			return repository.insert(input);
+		return this.#db.transaction(async (tx) => {
+			return TodoMapper.create(tx).insert(input);
 		});
 	}
 
 	async update(id: number, input: Readonly<TodoUpdateInput>) {
-		return this.#repository.transaction(async (repository) => {
-			const todo = await repository.findById(id);
+		return this.#db.transaction(async (tx) => {
+			const mapper = TodoMapper.create(tx);
+			const todo = await mapper.findById(id);
 			if (!todo) {
 				return;
 			}
 
-			return repository.save(todo.apply(input));
+			return mapper.update(todo.apply(input));
 		});
 	}
 
 	async toggle(id: number) {
-		return this.#repository.transaction(async (repository) => {
-			const todo = await repository.findById(id);
+		return this.#db.transaction(async (tx) => {
+			const mapper = TodoMapper.create(tx);
+			const todo = await mapper.findById(id);
 			if (!todo) {
 				return;
 			}
 
-			return repository.save(todo.toggle());
+			return mapper.update(todo.toggle());
 		});
 	}
 
 	async delete(id: number) {
-		return this.#repository.delete(id);
+		return TodoMapper.create(this.#db).delete(id);
 	}
 }

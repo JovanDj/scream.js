@@ -1,8 +1,34 @@
 import { describe, it, type TestContext } from "node:test";
-import { createTagHttpFixture } from "./tag.test-fixture.js";
+import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
+import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
+import { startTestServer } from "@scream.js/http/server.js";
+import { createHttpApp } from "../../../main.js";
+import { createTodoModule } from "../todo/index.js";
+import { createTagModule } from "./index.js";
 
 describe("tag controller", { concurrency: true }, () => {
-	const setupServer = async () => createTagHttpFixture();
+	const setupServer = async () => {
+		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({});
+		const modules = {
+			...createTodoModule({ db }),
+			...createTagModule({ db }),
+		};
+		const app = createExpressApp();
+
+		createHttpApp({
+			app,
+			tagController: modules.tagController,
+			todosController: modules.todosController,
+		});
+
+		const { port, shutdown } = await startTestServer(app);
+		const cleanup = async () => {
+			await shutdown();
+			await cleanupDb();
+		};
+
+		return { cleanup, modules, port };
+	};
 
 	it("GET /tags lists tags", async (t: TestContext) => {
 		const { cleanup, modules, port } = await setupServer();
