@@ -90,21 +90,17 @@ export class KnexTodoRepository implements TodoRepository {
 	}
 
 	async save(todo: Todo) {
-		const nextVersion = todo.version + 1;
 		const priorityId = await this.#findPriorityId(todo.priority);
 		const statusId = await this.#findStatusId(todo.statusCode);
 		const affectedRows = await this.#db("todos")
-			.where({
-				id: todo.id,
-				version: todo.version,
-			})
-			.update(toTodoUpdateRecord(todo, nextVersion, priorityId, statusId));
+			.where({ id: todo.id })
+			.update(toTodoUpdateRecord(todo, priorityId, statusId));
 
 		if (affectedRows === 0) {
 			return undefined;
 		}
 
-		return todo.withVersion(nextVersion);
+		return this.findById(todo.id);
 	}
 
 	async transaction<T>(
@@ -151,7 +147,6 @@ export class KnexTodoRepository implements TodoRepository {
 				"todos.project_id",
 				"todos.due_at",
 				"todos.completed_at",
-				"todos.version",
 				"todos.created_at",
 				"todos.updated_at",
 				this.#db.ref("todo_priorities.code").as("priority_code"),

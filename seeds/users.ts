@@ -46,7 +46,6 @@ export function seed(knex: Knex): Promise<void> {
 				status_id: todoOpenStatusId,
 				title: "Sample Todo",
 				updated_at: now,
-				version: 0,
 			})
 			.returning(["id"]);
 
@@ -60,7 +59,6 @@ export function seed(knex: Knex): Promise<void> {
 			status_id: todoCompletedStatusId,
 			title: "Completed Todo",
 			updated_at: now,
-			version: 0,
 		});
 
 		const [tag1] = await trx("tags")

@@ -14,7 +14,6 @@ describe("Todo domain", { concurrency: true }, () => {
 			statusCode: "open",
 			title: "Original title",
 			updatedAt: "2026-01-01T00:00:00.000Z",
-			version: 2,
 			...overrides,
 		});
 
@@ -32,7 +31,6 @@ describe("Todo domain", { concurrency: true }, () => {
 
 		t.assert.deepStrictEqual(updated.id, todo.id);
 		t.assert.deepStrictEqual(updated.createdAt, todo.createdAt);
-		t.assert.deepStrictEqual(updated.version, todo.version);
 		t.assert.deepStrictEqual(updated.title, "Updated title");
 		t.assert.deepStrictEqual(updated.description, "Updated description");
 		t.assert.deepStrictEqual(updated.priority, "high");
@@ -51,21 +49,5 @@ describe("Todo domain", { concurrency: true }, () => {
 		t.assert.deepStrictEqual(completedTodo.completedAt === null, false);
 		t.assert.deepStrictEqual(reopenedTodo.statusCode, "open");
 		t.assert.deepStrictEqual(reopenedTodo.completedAt, null);
-	});
-
-	it("withVersion returns a copy with the new version and preserved state", (t: TestContext) => {
-		const todo = createTodo({
-			completedAt: "2026-01-02T00:00:00.000Z",
-			statusCode: "completed",
-		});
-
-		const next = todo.withVersion(11);
-
-		t.assert.deepStrictEqual(next.version, 11);
-		t.assert.deepStrictEqual(next.id, todo.id);
-		t.assert.deepStrictEqual(next.title, todo.title);
-		t.assert.deepStrictEqual(next.statusCode, todo.statusCode);
-		t.assert.deepStrictEqual(next.completedAt, todo.completedAt);
-		t.assert.deepStrictEqual(next.updatedAt, todo.updatedAt);
 	});
 });

@@ -24,10 +24,8 @@ export const up = async (knex: Knex) => {
 			.onDelete("RESTRICT");
 		table.dateTime("due_at");
 		table.dateTime("completed_at");
-		table.integer("version").notNullable().defaultTo(0);
 		table.dateTime("created_at").notNullable().defaultTo(knex.fn.now());
 		table.dateTime("updated_at").notNullable().defaultTo(knex.fn.now());
-		table.check("version >= 0");
 		table.index(["project_id"], "todos_project_idx");
 		table.index(["status_id"], "todos_status_idx");
 		table.index(["priority_id"], "todos_priority_idx");
