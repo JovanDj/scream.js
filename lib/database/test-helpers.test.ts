@@ -15,7 +15,6 @@ describe("databaseTestFixture", { concurrency: true }, () => {
 				status_id: 1,
 				title: "Only In A",
 				updated_at: now,
-				version: 0,
 			});
 
 			const foundInA = await fixtureA

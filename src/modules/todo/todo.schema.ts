@@ -11,9 +11,7 @@ export type TodoCreateFields = {
 	title: string;
 };
 
-export type TodoUpdateFields = TodoCreateFields & {
-	version: number;
-};
+export type TodoUpdateFields = TodoCreateFields;
 
 export type TodoListQuery = {
 	projectId?: number;
@@ -32,7 +30,6 @@ export type TodoRow = {
 	status_code?: TodoStatusCode | undefined;
 	title: string;
 	updated_at?: string | undefined;
-	version?: number | undefined;
 };
 
 const dueAtValidator = schema
@@ -116,7 +113,6 @@ export const todoUpdateValidator = createValidator(
 			.refine((value) => value.length > 0, {
 				message: "Required",
 			}),
-		version: schema.coerce.number().int().min(0),
 	}),
 );
 
@@ -132,7 +128,6 @@ export const todoRowValidator = createValidator(
 		status_code: schema.enum(["open", "completed"]).optional(),
 		title: schema.string().nonempty(),
 		updated_at: schema.string().optional(),
-		version: schema.coerce.number().optional(),
 	}),
 );
 

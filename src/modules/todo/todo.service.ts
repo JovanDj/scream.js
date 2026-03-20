@@ -41,11 +41,7 @@ export class TodoService {
 		return this.#repository.transaction(async (repository) => {
 			const todo = await repository.findById(id);
 			if (!todo) {
-				return undefined;
-			}
-
-			if (todo.version !== input.version) {
-				return undefined;
+				return;
 			}
 
 			return repository.save(todo.apply(input));
@@ -56,7 +52,7 @@ export class TodoService {
 		return this.#repository.transaction(async (repository) => {
 			const todo = await repository.findById(id);
 			if (!todo) {
-				return undefined;
+				return;
 			}
 
 			return repository.save(todo.toggle());

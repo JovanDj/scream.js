@@ -6,8 +6,6 @@
         <h1 class="page-title mb-3">{{ pageTitle }}</h1>
 
         <form action="{{ action }}" method="POST">
-            <input type="hidden" name="version" value="{{ fields.version }}">
-
             <div class="mb-3">
                 <label for="title" class="form-label">Title</label>
                 <input type="text" name="title" class="form-control {% if errors.title %} is-invalid {% endif %}" id="title" value="{{ fields.title }}" aria-describedby="title">

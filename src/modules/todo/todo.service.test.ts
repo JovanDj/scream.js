@@ -30,7 +30,6 @@ describe("TodoService", { concurrency: true }, () => {
 			t.assert.deepStrictEqual(created?.priority, "medium");
 			t.assert.deepStrictEqual(created?.dueAt, null);
 			t.assert.deepStrictEqual(created?.projectId, null);
-			t.assert.deepStrictEqual(created?.version, 0);
 		} finally {
 			await cleanup();
 		}
@@ -99,7 +98,6 @@ describe("TodoService", { concurrency: true }, () => {
 			t.assert.deepStrictEqual(found?.description, "Find Me Description");
 			t.assert.deepStrictEqual(found?.statusCode, "open");
 			t.assert.deepStrictEqual(found?.projectId, null);
-			t.assert.deepStrictEqual(found?.version, 0);
 		} finally {
 			await cleanup();
 		}
@@ -134,7 +132,6 @@ describe("TodoService", { concurrency: true }, () => {
 				projectId: null,
 				statusCode: "completed",
 				title: "Updated",
-				version: 0,
 			});
 
 			t.assert.deepStrictEqual(updated?.id, 1);
@@ -143,7 +140,6 @@ describe("TodoService", { concurrency: true }, () => {
 			t.assert.deepStrictEqual(updated?.statusCode, "completed");
 			t.assert.deepStrictEqual(updated?.priority, "high");
 			t.assert.deepStrictEqual(updated?.projectId, null);
-			t.assert.deepStrictEqual(updated?.version, 1);
 		} finally {
 			await cleanup();
 		}
@@ -159,35 +155,6 @@ describe("TodoService", { concurrency: true }, () => {
 				projectId: null,
 				statusCode: "completed",
 				title: "Updated",
-				version: 0,
-			});
-
-			t.assert.deepStrictEqual(updated, undefined);
-		} finally {
-			await cleanup();
-		}
-	});
-
-	it("should return undefined for update when version is stale", async (t: TestContext) => {
-		const { cleanup, service } = await setupService();
-		try {
-			await service.create({
-				description: "",
-				dueAt: null,
-				priority: "medium",
-				projectId: null,
-				statusCode: "open",
-				title: "Original",
-			});
-
-			const updated = await service.update(1, {
-				description: "",
-				dueAt: null,
-				priority: "medium",
-				projectId: null,
-				statusCode: "completed",
-				title: "Stale",
-				version: 999,
 			});
 
 			t.assert.deepStrictEqual(updated, undefined);

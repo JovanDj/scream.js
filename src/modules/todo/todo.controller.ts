@@ -16,7 +16,6 @@ const emptyFields = {
 	projectId: "",
 	statusCode: "open",
 	title: "",
-	version: 0,
 } as const;
 
 const toDateInputValue = (value: string | null) => {
@@ -36,6 +35,7 @@ export class TodosController implements Resource {
 
 	async index(ctx: HttpContext) {
 		const parsedQuery = ctx.query(todoListQueryValidator);
+
 		if (!parsedQuery.success) {
 			return ctx.notFound();
 		}
@@ -54,6 +54,7 @@ export class TodosController implements Resource {
 		}
 
 		const todos = await this.#todoService.findAll(options);
+
 		const todoViews = todos.map((todo) => ({
 			dueDate: toDateInputValue(todo.dueAt),
 			id: todo.id,
@@ -139,7 +140,6 @@ export class TodosController implements Resource {
 			todoProjectId: todo.projectId,
 			todoStatusCode: todo.statusCode,
 			todoTitle: todo.title,
-			todoVersion: todo.version,
 		});
 	}
 
@@ -194,7 +194,6 @@ export class TodosController implements Resource {
 				projectId: todo.projectId ?? "",
 				statusCode: todo.statusCode,
 				title: todo.title,
-				version: todo.version,
 			},
 			pageTitle: `Edit Todo #${todo.id}`,
 			submitLabel: "Update",
@@ -228,7 +227,6 @@ export class TodosController implements Resource {
 			projectId: parsed.data.projectId ?? null,
 			statusCode: parsed.data.statusCode,
 			title: parsed.data.title,
-			version: parsed.data.version,
 		});
 
 		if (!todo) {

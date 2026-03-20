@@ -11,9 +11,7 @@ export type TodoWriteInput = {
 	title: string;
 };
 
-export type TodoUpdateInput = TodoWriteInput & {
-	version: number;
-};
+export type TodoUpdateInput = TodoWriteInput;
 
 export type TodoFindAllOptions = {
 	projectId?: number;
@@ -32,7 +30,6 @@ export type TodoSnapshot = {
 	statusCode: TodoStatusCode;
 	title: string;
 	updatedAt: string;
-	version: number;
 };
 
 export class Todo {
@@ -46,7 +43,6 @@ export class Todo {
 	readonly #statusCode: TodoStatusCode;
 	readonly #title: string;
 	readonly #updatedAt: string;
-	readonly #version: number;
 
 	constructor(snapshot: Readonly<TodoSnapshot>) {
 		this.#completedAt = snapshot.completedAt;
@@ -59,7 +55,6 @@ export class Todo {
 		this.#statusCode = snapshot.statusCode;
 		this.#title = snapshot.title;
 		this.#updatedAt = snapshot.updatedAt;
-		this.#version = snapshot.version;
 	}
 
 	get completedAt() {
@@ -102,10 +97,6 @@ export class Todo {
 		return this.#updatedAt;
 	}
 
-	get version() {
-		return this.#version;
-	}
-
 	apply(input: Readonly<TodoWriteInput>) {
 		const now = new Date().toISOString();
 		const completedAt =
@@ -122,7 +113,6 @@ export class Todo {
 			statusCode: input.statusCode,
 			title: input.title,
 			updatedAt: now,
-			version: this.#version,
 		});
 	}
 
@@ -134,22 +124,6 @@ export class Todo {
 			projectId: this.#projectId,
 			statusCode: this.#statusCode === "completed" ? "open" : "completed",
 			title: this.#title,
-		});
-	}
-
-	withVersion(version: number) {
-		return new Todo({
-			completedAt: this.#completedAt,
-			createdAt: this.#createdAt,
-			description: this.#description,
-			dueAt: this.#dueAt,
-			id: this.#id,
-			priority: this.#priority,
-			projectId: this.#projectId,
-			statusCode: this.#statusCode,
-			title: this.#title,
-			updatedAt: this.#updatedAt,
-			version,
 		});
 	}
 }

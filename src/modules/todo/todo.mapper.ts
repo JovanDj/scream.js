@@ -13,7 +13,6 @@ export const toTodo = (row: TodoRow) => {
 		statusCode: row.status_code ?? "open",
 		title: row.title,
 		updatedAt: row.updated_at ?? new Date().toISOString(),
-		version: row.version ?? 0,
 	};
 
 	return new Todo(snapshot);
@@ -35,13 +34,11 @@ export const toTodoInsertRecord = (
 		status_id: statusId,
 		title: input.title,
 		updated_at: now,
-		version: 0,
 	};
 };
 
 export const toTodoUpdateRecord = (
 	todo: Todo,
-	nextVersion: number,
 	priorityId: number,
 	statusId: number,
 ) => {
@@ -54,6 +51,5 @@ export const toTodoUpdateRecord = (
 		status_id: statusId,
 		title: todo.title,
 		updated_at: todo.updatedAt,
-		version: nextVersion,
 	};
 };
