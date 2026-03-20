@@ -1,9 +1,11 @@
 import { describe, it, type TestContext } from "node:test";
-import { createTodoServiceFixture } from "./todo.test-fixture.js";
+import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
+import { createTodoModule } from "./index.js";
 
 describe("TodoService", { concurrency: true }, () => {
 	const setupService = async () => {
-		const { cleanup, module } = await createTodoServiceFixture();
+		const { cleanup, db } = await databaseTestFixture.setup({});
+		const module = createTodoModule({ db });
 
 		return {
 			cleanup,

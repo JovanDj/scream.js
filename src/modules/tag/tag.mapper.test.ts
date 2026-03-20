@@ -1,18 +1,18 @@
 import { describe, it, type TestContext } from "node:test";
 import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
-import { KnexTodoRepository } from "../todo/todo.repository.js";
-import { KnexTagRepository } from "./tag.repository.js";
+import { TodoMapper } from "../todo/todo.mapper.js";
+import { TagMapper } from "./tag.mapper.js";
 
-describe("TagRepository", { concurrency: true }, () => {
+describe("TagMapper", { concurrency: true }, () => {
 	it("inserts and lists tags", async (t: TestContext) => {
 		const { cleanup, db } = await databaseTestFixture.setup({});
 
 		try {
-			const repository = KnexTagRepository.create(db);
-			await repository.insert({ name: "beta" });
-			await repository.insert({ name: "alpha" });
+			const mapper = TagMapper.create(db);
+			await mapper.insert({ name: "beta" });
+			await mapper.insert({ name: "alpha" });
 
-			const tags = await repository.findAll();
+			const tags = await mapper.findAll();
 
 			t.assert.deepStrictEqual(
 				tags.map((tag) => tag.name),
@@ -27,10 +27,10 @@ describe("TagRepository", { concurrency: true }, () => {
 		const { cleanup, db } = await databaseTestFixture.setup({});
 
 		try {
-			const repository = KnexTagRepository.create(db);
-			const created = await repository.insert({ name: "delete-me" });
-			const deleted = await repository.delete(created.id);
-			const tags = await repository.findAll();
+			const mapper = TagMapper.create(db);
+			const created = await mapper.insert({ name: "delete-me" });
+			const deleted = await mapper.delete(created.id);
+			const tags = await mapper.findAll();
 
 			t.assert.deepStrictEqual(deleted, true);
 			t.assert.deepStrictEqual(tags, []);
@@ -43,9 +43,9 @@ describe("TagRepository", { concurrency: true }, () => {
 		const { cleanup, db } = await databaseTestFixture.setup({});
 
 		try {
-			const tagRepository = KnexTagRepository.create(db);
-			const todoRepository = KnexTodoRepository.create(db);
-			const todo = await todoRepository.insert({
+			const tagMapper = TagMapper.create(db);
+			const todoMapper = TodoMapper.create(db);
+			const todo = await todoMapper.insert({
 				description: "",
 				dueAt: null,
 				priority: "medium",
@@ -53,13 +53,13 @@ describe("TagRepository", { concurrency: true }, () => {
 				statusCode: "open",
 				title: "Tagged Todo",
 			});
-			const firstTag = await tagRepository.insert({ name: "alpha" });
-			const secondTag = await tagRepository.insert({ name: "beta" });
+			const firstTag = await tagMapper.insert({ name: "alpha" });
+			const secondTag = await tagMapper.insert({ name: "beta" });
 
-			const replaced = await tagRepository.replaceTodoTags(todo.id, {
+			const replaced = await tagMapper.replaceTodoTags(todo.id, {
 				tagIds: [secondTag.id, firstTag.id, secondTag.id],
 			});
-			const assigned = await tagRepository.findTodoTagIds(todo.id);
+			const assigned = await tagMapper.findTodoTagIds(todo.id);
 
 			t.assert.deepStrictEqual(replaced, true);
 			t.assert.deepStrictEqual(assigned, [firstTag.id, secondTag.id]);
@@ -72,9 +72,9 @@ describe("TagRepository", { concurrency: true }, () => {
 		const { cleanup, db } = await databaseTestFixture.setup({});
 
 		try {
-			const tagRepository = KnexTagRepository.create(db);
-			const missingTodoIds = await tagRepository.findTodoTagIds(999_999);
-			const replaced = await tagRepository.replaceTodoTags(999_999, {
+			const mapper = TagMapper.create(db);
+			const missingTodoIds = await mapper.findTodoTagIds(999_999);
+			const replaced = await mapper.replaceTodoTags(999_999, {
 				tagIds: [1],
 			});
 

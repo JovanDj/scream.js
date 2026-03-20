@@ -1,14 +1,10 @@
+import type { Database } from "@scream.js/database/db.js";
 import { TodosController } from "./todo.controller.js";
-import type { TodoRepository } from "./todo.service.js";
 import { TodoService } from "./todo.service.js";
 
-export const createTodoModule = ({
-	todoRepository,
-}: {
-	todoRepository: TodoRepository;
-}) => {
-	const todoService = new TodoService(todoRepository);
+export const createTodoModule = ({ db }: { db: Database }) => {
+	const todoService = new TodoService(db);
 	const todosController = new TodosController(todoService);
 
-	return { todoRepository, todoService, todosController };
+	return { todoService, todosController };
 };

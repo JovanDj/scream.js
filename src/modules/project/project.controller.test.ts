@@ -1,8 +1,34 @@
 import { describe, it, type TestContext } from "node:test";
-import { createProjectHttpFixture } from "./project.test-fixture.js";
+import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
+import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
+import { startTestServer } from "@scream.js/http/server.js";
+import { createHttpApp } from "../../../main.js";
+import { createTodoModule } from "../todo/index.js";
+import { createProjectModule } from "./index.js";
 
 describe("project controller", { concurrency: true }, () => {
-	const setupServer = async () => createProjectHttpFixture();
+	const setupServer = async () => {
+		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({});
+		const modules = {
+			...createTodoModule({ db }),
+			...createProjectModule({ db }),
+		};
+		const app = createExpressApp();
+
+		createHttpApp({
+			app,
+			projectController: modules.projectController,
+			todosController: modules.todosController,
+		});
+
+		const { port, shutdown } = await startTestServer(app);
+		const cleanup = async () => {
+			await shutdown();
+			await cleanupDb();
+		};
+
+		return { cleanup, modules, port };
+	};
 
 	it("GET /projects lists projects", async (t: TestContext) => {
 		const { cleanup, modules, port } = await setupServer();

@@ -1,15 +1,10 @@
+import type { Database } from "@scream.js/database/db.js";
 import { ProjectController } from "./project.controller.js";
-import type { ProjectRepository } from "./project.service.js";
-
 import { ProjectService } from "./project.service.js";
 
-export const createProjectModule = ({
-	projectRepository,
-}: {
-	projectRepository: ProjectRepository;
-}) => {
-	const projectService = new ProjectService(projectRepository);
+export const createProjectModule = ({ db }: { db: Database }) => {
+	const projectService = new ProjectService(db);
 	const projectController = new ProjectController(projectService);
 
-	return { projectController, projectRepository, projectService };
+	return { projectController, projectService };
 };

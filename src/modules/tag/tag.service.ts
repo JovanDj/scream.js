@@ -1,45 +1,35 @@
-import type { Tag, TagWriteInput } from "./tag.js";
-
-export interface TagRepository {
-	delete(id: number): Promise<boolean>;
-	findAll(): Promise<Tag[]>;
-	findTodoTagIds(todoId: number): Promise<number[] | undefined>;
-	insert(input: Readonly<TagWriteInput>): Promise<Tag>;
-	replaceTodoTags(
-		todoId: number,
-		input: Readonly<{ tagIds: number[] }>,
-	): Promise<boolean>;
-	transaction<T>(
-		callback: (repository: TagRepository) => Promise<T>,
-	): Promise<T>;
-}
+import type { DatabaseHandle } from "@scream.js/database/db.js";
+import type { TagWriteInput } from "./tag.js";
+import { TagMapper } from "./tag.mapper.js";
 
 export class TagService {
-	readonly #repository: TagRepository;
+	readonly #db: DatabaseHandle;
 
-	constructor(repository: TagRepository) {
-		this.#repository = repository;
+	constructor(db: DatabaseHandle) {
+		this.#db = db;
 	}
 
 	async findAll() {
-		return this.#repository.findAll();
+		return TagMapper.create(this.#db).findAll();
 	}
 
 	async create(input: Readonly<TagWriteInput>) {
-		return this.#repository.insert(input);
+		return this.#db.transaction(async (tx) => {
+			return TagMapper.create(tx).insert(input);
+		});
 	}
 
 	async delete(id: number) {
-		return this.#repository.delete(id);
+		return TagMapper.create(this.#db).delete(id);
 	}
 
 	async replaceTodoTags(todoId: number, input: Readonly<{ tagIds: number[] }>) {
-		return this.#repository.transaction(async (repository) => {
-			return repository.replaceTodoTags(todoId, input);
+		return this.#db.transaction(async (tx) => {
+			return TagMapper.create(tx).replaceTodoTags(todoId, input);
 		});
 	}
 
 	async findTodoTagIds(todoId: number) {
-		return this.#repository.findTodoTagIds(todoId);
+		return TagMapper.create(this.#db).findTodoTagIds(todoId);
 	}
 }

@@ -1,9 +1,15 @@
 import { describe, it, type TestContext } from "node:test";
-import { createTagServiceFixture } from "./tag.test-fixture.js";
+import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
+import { createTodoModule } from "../todo/index.js";
+import { createTagModule } from "./index.js";
 
 describe("TagService", { concurrency: true }, () => {
 	const setupService = async () => {
-		const { cleanup, module } = await createTagServiceFixture();
+		const { cleanup, db } = await databaseTestFixture.setup({});
+		const module = {
+			...createTodoModule({ db }),
+			...createTagModule({ db }),
+		};
 
 		return {
 			cleanup,
