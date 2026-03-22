@@ -1,4 +1,3 @@
-import type { DatabaseHandle } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Resource } from "@scream.js/http/resource.js";
 import { createValidator } from "@scream.js/validator/create-validator.js";
@@ -108,12 +107,6 @@ const toDateInputValue = (value: string | null) => {
 };
 
 export class TodosController implements Resource {
-	readonly #db: DatabaseHandle;
-
-	constructor(db: DatabaseHandle) {
-		this.#db = db;
-	}
-
 	async index(ctx: HttpContext) {
 		const parsedQuery = ctx.query(todoListQueryValidator);
 
@@ -135,7 +128,8 @@ export class TodosController implements Resource {
 		}
 
 		const scope = options.scope ?? "all";
-		const query = this.#db("todos")
+		const query = ctx
+			.db("todos")
 			.join("todo_priorities", "todos.priority_id", "todo_priorities.id")
 			.join("todo_statuses", "todos.status_id", "todo_statuses.id")
 			.select(
@@ -147,8 +141,8 @@ export class TodosController implements Resource {
 				"todos.completed_at",
 				"todos.created_at",
 				"todos.updated_at",
-				this.#db.ref("todo_priorities.code").as("priority_code"),
-				this.#db.ref("todo_statuses.code").as("status_code"),
+				"todo_priorities.code as priority_code",
+				"todo_statuses.code as status_code",
 			);
 
 		if (options.projectId) {
@@ -279,7 +273,8 @@ export class TodosController implements Resource {
 			return ctx.notFound();
 		}
 
-		const row = await this.#db("todos")
+		const row = await ctx
+			.db("todos")
 			.join("todo_priorities", "todos.priority_id", "todo_priorities.id")
 			.join("todo_statuses", "todos.status_id", "todo_statuses.id")
 			.where({ "todos.id": todoId })
@@ -292,8 +287,8 @@ export class TodosController implements Resource {
 				"todos.completed_at",
 				"todos.created_at",
 				"todos.updated_at",
-				this.#db.ref("todo_priorities.code").as("priority_code"),
-				this.#db.ref("todo_statuses.code").as("status_code"),
+				"todo_priorities.code as priority_code",
+				"todo_statuses.code as status_code",
 			)
 			.first();
 		if (!row) {
@@ -373,7 +368,7 @@ export class TodosController implements Resource {
 			});
 		}
 
-		const result = await this.#db.transaction(async (tx) => {
+		const result = await ctx.transaction(async (tx) => {
 			const priority = await tx("todo_priorities")
 				.where({ code: parsed.data.priority })
 				.first("id");
@@ -419,7 +414,8 @@ export class TodosController implements Resource {
 			return ctx.notFound();
 		}
 
-		const row = await this.#db("todos")
+		const row = await ctx
+			.db("todos")
 			.join("todo_priorities", "todos.priority_id", "todo_priorities.id")
 			.join("todo_statuses", "todos.status_id", "todo_statuses.id")
 			.where({ "todos.id": todoId })
@@ -432,8 +428,8 @@ export class TodosController implements Resource {
 				"todos.completed_at",
 				"todos.created_at",
 				"todos.updated_at",
-				this.#db.ref("todo_priorities.code").as("priority_code"),
-				this.#db.ref("todo_statuses.code").as("status_code"),
+				"todo_priorities.code as priority_code",
+				"todo_statuses.code as status_code",
 			)
 			.first();
 		if (!row) {
@@ -512,7 +508,7 @@ export class TodosController implements Resource {
 			});
 		}
 
-		const result = await this.#db.transaction(async (tx) => {
+		const result = await ctx.transaction(async (tx) => {
 			const currentRow = await tx("todos")
 				.join("todo_priorities", "todos.priority_id", "todo_priorities.id")
 				.join("todo_statuses", "todos.status_id", "todo_statuses.id")
@@ -607,7 +603,7 @@ export class TodosController implements Resource {
 			return ctx.notFound();
 		}
 
-		const affectedRows = await this.#db("todos").where({ id: todoId }).del();
+		const affectedRows = await ctx.db("todos").where({ id: todoId }).del();
 		const deleted = affectedRows > 0;
 		if (!deleted) {
 			return ctx.notFound();
@@ -622,7 +618,7 @@ export class TodosController implements Resource {
 			return ctx.notFound();
 		}
 
-		const result = await this.#db.transaction(async (tx) => {
+		const result = await ctx.transaction(async (tx) => {
 			const currentRow = await tx("todos")
 				.join("todo_priorities", "todos.priority_id", "todo_priorities.id")
 				.join("todo_statuses", "todos.status_id", "todo_statuses.id")

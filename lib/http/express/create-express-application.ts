@@ -1,4 +1,5 @@
 import path from "node:path";
+import type { Database } from "@scream.js/database/db.js";
 import { Evaluator } from "@scream.js/template-engine/evaluator.js";
 import { Generator } from "@scream.js/template-engine/generator.js";
 import { Parser } from "@scream.js/template-engine/parser.js";
@@ -13,7 +14,7 @@ import { createProxyMiddleware } from "http-proxy-middleware";
 import type { Application } from "../application.js";
 import { ExpressApp } from "./express-application.js";
 
-export const createExpressApp: () => Application = () => {
+export const createExpressApp = (db: Database): Application => {
 	const app = express();
 	const templateEngine = new ScreamTemplateEngine(
 		new Resolver(
@@ -53,5 +54,5 @@ export const createExpressApp: () => Application = () => {
 		}),
 	);
 
-	return new ExpressApp(app);
+	return new ExpressApp(app, db);
 };

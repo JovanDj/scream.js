@@ -28,10 +28,10 @@ describe("project controller", { concurrency: true }, () => {
 	const setupServer = async () => {
 		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({});
 		const modules = {
-			...createTodoModule({ db }),
-			...createProjectModule({ db }),
+			...createTodoModule(),
+			...createProjectModule(),
 		};
-		const app = createExpressApp();
+		const app = createExpressApp(db);
 
 		createHttpApp({
 			app,

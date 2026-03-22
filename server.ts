@@ -13,17 +13,11 @@ import { createTodoModule } from "@/modules/todo";
 export const createServer = () => {
 	const logger = createLogger();
 	const db = createDB();
-	const { projectController } = createProjectModule({
-		db,
-	});
-	const { tagController } = createTagModule({
-		db,
-	});
-	const { todosController } = createTodoModule({
-		db,
-	});
+	const { projectController } = createProjectModule();
+	const { tagController } = createTagModule();
+	const { todosController } = createTodoModule();
 
-	const app: Application = createExpressApp();
+	const app: Application = createExpressApp(db);
 	createHttpApp({
 		app,
 		projectController,

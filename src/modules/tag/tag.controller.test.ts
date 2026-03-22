@@ -52,10 +52,10 @@ describe("tag controller", { concurrency: true }, () => {
 	const setupServer = async () => {
 		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({});
 		const modules = {
-			...createTodoModule({ db }),
-			...createTagModule({ db }),
+			...createTodoModule(),
+			...createTagModule(),
 		};
-		const app = createExpressApp();
+		const app = createExpressApp(db);
 
 		createHttpApp({
 			app,

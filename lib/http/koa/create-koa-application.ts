@@ -1,6 +1,7 @@
 import path from "node:path";
 import { bodyParser } from "@koa/bodyparser";
 import Router from "@koa/router";
+import type { Database } from "@scream.js/database/db.js";
 import Koa from "koa";
 import nunjucks from "nunjucks";
 import type { Application } from "../application.js";
@@ -12,7 +13,7 @@ declare module "koa" {
 	}
 }
 
-export const createKoaApp: () => Application = () => {
+export const createKoaApp = (db: Database): Application => {
 	const koa = new Koa();
 
 	const viewsPath = path.join(process.cwd(), "views");
@@ -48,5 +49,5 @@ export const createKoaApp: () => Application = () => {
 		await next();
 	});
 
-	return new KoaApp(koa, new Router());
+	return new KoaApp(koa, new Router(), db);
 };

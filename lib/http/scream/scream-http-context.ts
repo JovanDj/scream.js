@@ -5,11 +5,13 @@ import {
 } from "node:http";
 import path from "node:path";
 import { parse } from "node:url";
+import type { Database, DatabaseTransaction } from "@scream.js/database/db.js";
 import type { Validator } from "@scream.js/validator/validator.js";
 import nunjucks from "nunjucks";
 import type { HttpContext } from "../http-context.js";
 
 export class ScreamHttpContext implements HttpContext {
+	readonly #db: Database;
 	readonly #res: ServerResponse;
 	readonly #parsedUrl: ReturnType<typeof parse>;
 	#bodyData: unknown | undefined = undefined;
@@ -22,9 +24,22 @@ export class ScreamHttpContext implements HttpContext {
 		}),
 	);
 
-	constructor(req: Readonly<IncomingMessage>, res: ServerResponse) {
+	constructor(
+		req: Readonly<IncomingMessage>,
+		res: ServerResponse,
+		db: Database,
+	) {
 		this.#res = res;
 		this.#parsedUrl = parse(req.url || "", true);
+		this.#db = db;
+	}
+
+	db(table: string) {
+		return this.#db(table);
+	}
+
+	transaction<T>(callback: (tx: DatabaseTransaction) => Promise<T>) {
+		return this.#db.transaction(callback);
 	}
 
 	notFound() {

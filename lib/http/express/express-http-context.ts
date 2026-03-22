@@ -1,15 +1,30 @@
 import { STATUS_CODES } from "node:http";
+import type { Database, DatabaseTransaction } from "@scream.js/database/db.js";
 import type { Validator } from "@scream.js/validator/validator.js";
 import type express from "express";
 import type { HttpContext } from "../http-context.js";
 
 export class ExpressHttpContext implements HttpContext {
+	readonly #db: Database;
 	readonly #request: express.Request;
 	readonly #response: express.Response;
 
-	constructor(request: express.Request, response: express.Response) {
+	constructor(
+		request: express.Request,
+		response: express.Response,
+		db: Database,
+	) {
 		this.#request = request;
 		this.#response = response;
+		this.#db = db;
+	}
+
+	db(table: string) {
+		return this.#db(table);
+	}
+
+	transaction<T>(callback: (tx: DatabaseTransaction) => Promise<T>) {
+		return this.#db.transaction(callback);
 	}
 
 	render(template: string, locals = {}) {
