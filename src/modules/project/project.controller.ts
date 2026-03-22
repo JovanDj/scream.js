@@ -1,4 +1,3 @@
-import type { DatabaseHandle } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Resource } from "@scream.js/http/resource.js";
 import { createValidator } from "@scream.js/validator/create-validator.js";
@@ -21,21 +20,16 @@ const projectWriteValidator = createValidator(
 );
 
 export class ProjectController implements Resource {
-	readonly #db: DatabaseHandle;
-
-	constructor(db: DatabaseHandle) {
-		this.#db = db;
-	}
-
 	async index(ctx: HttpContext) {
-		const rows = await this.#db("projects")
+		const rows = await ctx
+			.db("projects")
 			.join("project_statuses", "projects.status_id", "project_statuses.id")
 			.select(
 				"projects.id",
 				"projects.name",
 				"projects.created_at",
 				"projects.updated_at",
-				this.#db.ref("project_statuses.code").as("status_code"),
+				"project_statuses.code as status_code",
 			)
 			.orderBy("projects.id", "desc");
 
@@ -66,7 +60,8 @@ export class ProjectController implements Resource {
 			return ctx.notFound();
 		}
 
-		const row = await this.#db("projects")
+		const row = await ctx
+			.db("projects")
 			.join("project_statuses", "projects.status_id", "project_statuses.id")
 			.where({ "projects.id": projectId })
 			.select(
@@ -74,7 +69,7 @@ export class ProjectController implements Resource {
 				"projects.name",
 				"projects.created_at",
 				"projects.updated_at",
-				this.#db.ref("project_statuses.code").as("status_code"),
+				"project_statuses.code as status_code",
 			)
 			.first();
 
@@ -129,7 +124,7 @@ export class ProjectController implements Resource {
 		}
 
 		try {
-			const result = await this.#db.transaction(async (tx) => {
+			const result = await ctx.transaction(async (tx) => {
 				const status = await tx("project_statuses")
 					.where({ code: "active" })
 					.first("id");
@@ -168,7 +163,8 @@ export class ProjectController implements Resource {
 			return ctx.notFound();
 		}
 
-		const row = await this.#db("projects")
+		const row = await ctx
+			.db("projects")
 			.join("project_statuses", "projects.status_id", "project_statuses.id")
 			.where({ "projects.id": projectId })
 			.select(
@@ -176,7 +172,7 @@ export class ProjectController implements Resource {
 				"projects.name",
 				"projects.created_at",
 				"projects.updated_at",
-				this.#db.ref("project_statuses.code").as("status_code"),
+				"project_statuses.code as status_code",
 			)
 			.first();
 		if (!row) {
@@ -234,7 +230,7 @@ export class ProjectController implements Resource {
 		}
 
 		try {
-			const result = await this.#db.transaction(async (tx) => {
+			const result = await ctx.transaction(async (tx) => {
 				const existing = await tx("projects")
 					.join("project_statuses", "projects.status_id", "project_statuses.id")
 					.where({ "projects.id": projectId })
@@ -290,7 +286,8 @@ export class ProjectController implements Resource {
 			return ctx.notFound();
 		}
 
-		const affectedRows = await this.#db("projects")
+		const affectedRows = await ctx
+			.db("projects")
 			.where({ id: projectId })
 			.del();
 		const deleted = affectedRows > 0;
@@ -307,7 +304,7 @@ export class ProjectController implements Resource {
 			return ctx.notFound();
 		}
 
-		const result = await this.#db.transaction(async (tx) => {
+		const result = await ctx.transaction(async (tx) => {
 			const existing = await tx("projects")
 				.where({ id: projectId })
 				.first("id");
@@ -348,7 +345,7 @@ export class ProjectController implements Resource {
 			return ctx.notFound();
 		}
 
-		const result = await this.#db.transaction(async (tx) => {
+		const result = await ctx.transaction(async (tx) => {
 			const existing = await tx("projects")
 				.where({ id: projectId })
 				.first("id");

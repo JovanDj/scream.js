@@ -10,8 +10,8 @@ describe("todo controller", { concurrency: true }, () => {
 		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({
 			seed: true,
 		});
-		const modules = createTodoModule({ db });
-		const app = createExpressApp();
+		const modules = createTodoModule();
+		const app = createExpressApp(db);
 
 		createHttpApp({ app, todosController: modules.todosController });
 

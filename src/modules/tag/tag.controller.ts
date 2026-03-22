@@ -1,4 +1,3 @@
-import type { DatabaseHandle } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { createValidator } from "@scream.js/validator/create-validator.js";
 import { schema } from "@scream.js/validator/schema.js";
@@ -32,14 +31,9 @@ const replaceTodoTagsValidator = createValidator(
 );
 
 export class TagController {
-	readonly #db: DatabaseHandle;
-
-	constructor(db: DatabaseHandle) {
-		this.#db = db;
-	}
-
 	async index(ctx: HttpContext) {
-		const rows = await this.#db("tags")
+		const rows = await ctx
+			.db("tags")
 			.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
 			.orderBy("tags.name", "asc");
 
@@ -67,7 +61,8 @@ export class TagController {
 		const parsed = ctx.body(tagWriteValidator);
 		if (!parsed.success) {
 			ctx.unprocessableEntity();
-			const rows = await this.#db("tags")
+			const rows = await ctx
+				.db("tags")
 				.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
 				.orderBy("tags.name", "asc");
 			const tags = schema
@@ -92,7 +87,7 @@ export class TagController {
 		}
 
 		try {
-			await this.#db.transaction(async (tx) => {
+			await ctx.transaction(async (tx) => {
 				const now = new Date().toISOString();
 				await tx("tags").insert({
 					created_at: now,
@@ -103,7 +98,8 @@ export class TagController {
 			return ctx.redirect("/tags");
 		} catch {
 			ctx.unprocessableEntity();
-			const rows = await this.#db("tags")
+			const rows = await ctx
+				.db("tags")
 				.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
 				.orderBy("tags.name", "asc");
 			const tags = schema
@@ -134,7 +130,7 @@ export class TagController {
 			return ctx.notFound();
 		}
 
-		const affectedRows = await this.#db("tags").where({ id: tagId }).del();
+		const affectedRows = await ctx.db("tags").where({ id: tagId }).del();
 		const deleted = affectedRows > 0;
 		if (!deleted) {
 			return ctx.notFound();
@@ -155,7 +151,7 @@ export class TagController {
 			return ctx.redirect(`/todos/${todoId}/edit`);
 		}
 
-		const replaced = await this.#db.transaction(async (tx) => {
+		const replaced = await ctx.transaction(async (tx) => {
 			const todo = await tx("todos").where({ id: todoId }).first("id");
 			if (!todo) {
 				return false;

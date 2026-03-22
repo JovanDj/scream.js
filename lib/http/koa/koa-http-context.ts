@@ -1,12 +1,23 @@
+import type { Database, DatabaseTransaction } from "@scream.js/database/db.js";
 import type { Validator } from "@scream.js/validator/validator.js";
 import type Koa from "koa";
 import type { HttpContext } from "../http-context.js";
 
 export class KoaHttpContext implements HttpContext {
+	readonly #db: Database;
 	readonly #ctx: Koa.Context;
 
-	constructor(ctx: Koa.Context) {
+	constructor(ctx: Koa.Context, db: Database) {
 		this.#ctx = ctx;
+		this.#db = db;
+	}
+
+	db(table: string) {
+		return this.#db(table);
+	}
+
+	transaction<T>(callback: (tx: DatabaseTransaction) => Promise<T>) {
+		return this.#db.transaction(callback);
 	}
 
 	params() {

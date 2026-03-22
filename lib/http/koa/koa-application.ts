@@ -1,4 +1,5 @@
 import Router from "@koa/router";
+import type { Database } from "@scream.js/database/db.js";
 import type Koa from "koa";
 
 import type { Application } from "../application.js";
@@ -7,12 +8,14 @@ import type { Resource } from "../resource.js";
 import { KoaHttpContext } from "./koa-http-context.js";
 
 export class KoaApp implements Application {
+	readonly #db: Database;
 	readonly #koa: Koa;
 	readonly #router: Router;
 
-	constructor(koa: Koa, router: Router) {
+	constructor(koa: Koa, router: Router, db: Database) {
 		this.#koa = koa;
 		this.#router = router;
+		this.#db = db;
 	}
 
 	get(path: string, handler: Handler) {
@@ -62,7 +65,7 @@ export class KoaApp implements Application {
 	}
 
 	#createContext(ctx: Koa.ParameterizedContext) {
-		return new KoaHttpContext(ctx);
+		return new KoaHttpContext(ctx, this.#db);
 	}
 
 	listen(port: number, cb?: () => void) {
