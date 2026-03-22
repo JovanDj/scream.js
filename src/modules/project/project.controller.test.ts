@@ -1,4 +1,5 @@
 import { describe, it, type TestContext } from "node:test";
+import type { Database } from "@scream.js/database/db.js";
 import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
 import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
 import { startTestServer } from "@scream.js/http/server.js";
@@ -7,6 +8,23 @@ import { createTodoModule } from "../todo/index.js";
 import { createProjectModule } from "./index.js";
 
 describe("project controller", { concurrency: true }, () => {
+	const insertProject = async (db: Database, name: string) => {
+		const status = await db("project_statuses")
+			.where({ code: "active" })
+			.first("id");
+		const now = new Date().toISOString();
+		const [row] = await db("projects")
+			.insert({
+				created_at: now,
+				name,
+				status_id: Number(status["id"]),
+				updated_at: now,
+			})
+			.returning(["id"]);
+
+		return { id: Number(row["id"]) };
+	};
+
 	const setupServer = async () => {
 		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({});
 		const modules = {
@@ -27,13 +45,13 @@ describe("project controller", { concurrency: true }, () => {
 			await cleanupDb();
 		};
 
-		return { cleanup, modules, port };
+		return { cleanup, db, modules, port };
 	};
 
 	it("GET /projects lists projects", async (t: TestContext) => {
-		const { cleanup, modules, port } = await setupServer();
+		const { cleanup, db, port } = await setupServer();
 		try {
-			await modules.projectService.create({ name: "Alpha" });
+			await insertProject(db, "Alpha");
 			const response = await fetch(`http://localhost:${port}/projects`, {
 				signal: t.signal,
 			});
@@ -48,9 +66,9 @@ describe("project controller", { concurrency: true }, () => {
 	});
 
 	it("GET /projects/:id shows a project", async (t: TestContext) => {
-		const { cleanup, modules, port } = await setupServer();
+		const { cleanup, db, port } = await setupServer();
 		try {
-			const project = await modules.projectService.create({ name: "Show Me" });
+			const project = await insertProject(db, "Show Me");
 			const response = await fetch(
 				`http://localhost:${port}/projects/${project.id}`,
 				{ signal: t.signal },
@@ -106,9 +124,9 @@ describe("project controller", { concurrency: true }, () => {
 	});
 
 	it("POST /projects/create renders the form when the name is duplicated", async (t: TestContext) => {
-		const { cleanup, modules, port } = await setupServer();
+		const { cleanup, db, port } = await setupServer();
 		try {
-			await modules.projectService.create({ name: "Duplicate" });
+			await insertProject(db, "Duplicate");
 			const response = await fetch(`http://localhost:${port}/projects/create`, {
 				body: "name=Duplicate",
 				headers: {
@@ -148,11 +166,9 @@ describe("project controller", { concurrency: true }, () => {
 	});
 
 	it("POST archive and unarchive redirect to the project page", async (t: TestContext) => {
-		const { cleanup, modules, port } = await setupServer();
+		const { cleanup, db, port } = await setupServer();
 		try {
-			const project = await modules.projectService.create({
-				name: "Archive Me",
-			});
+			const project = await insertProject(db, "Archive Me");
 			const archived = await fetch(
 				`http://localhost:${port}/projects/${project.id}/archive`,
 				{
