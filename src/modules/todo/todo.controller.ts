@@ -141,8 +141,8 @@ export class TodosController implements Resource {
 				"todos.completed_at",
 				"todos.created_at",
 				"todos.updated_at",
-				"todo_priorities.code as priority_code",
-				"todo_statuses.code as status_code",
+				ctx.ref("todo_priorities.code").as("priority_code"),
+				ctx.ref("todo_statuses.code").as("status_code"),
 			);
 
 		if (options.projectId) {
@@ -287,8 +287,8 @@ export class TodosController implements Resource {
 				"todos.completed_at",
 				"todos.created_at",
 				"todos.updated_at",
-				"todo_priorities.code as priority_code",
-				"todo_statuses.code as status_code",
+				ctx.ref("todo_priorities.code").as("priority_code"),
+				ctx.ref("todo_statuses.code").as("status_code"),
 			)
 			.first();
 		if (!row) {
@@ -428,8 +428,8 @@ export class TodosController implements Resource {
 				"todos.completed_at",
 				"todos.created_at",
 				"todos.updated_at",
-				"todo_priorities.code as priority_code",
-				"todo_statuses.code as status_code",
+				ctx.ref("todo_priorities.code").as("priority_code"),
+				ctx.ref("todo_statuses.code").as("status_code"),
 			)
 			.first();
 		if (!row) {

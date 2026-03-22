@@ -16,6 +16,10 @@ export class KoaHttpContext implements HttpContext {
 		return this.#db(table);
 	}
 
+	ref(column: string) {
+		return this.#db.ref(column);
+	}
+
 	transaction<T>(callback: (tx: DatabaseTransaction) => Promise<T>) {
 		return this.#db.transaction(callback);
 	}

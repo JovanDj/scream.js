@@ -29,7 +29,7 @@ export class ProjectController implements Resource {
 				"projects.name",
 				"projects.created_at",
 				"projects.updated_at",
-				"project_statuses.code as status_code",
+				ctx.ref("project_statuses.code").as("status_code"),
 			)
 			.orderBy("projects.id", "desc");
 
@@ -69,7 +69,7 @@ export class ProjectController implements Resource {
 				"projects.name",
 				"projects.created_at",
 				"projects.updated_at",
-				"project_statuses.code as status_code",
+				ctx.ref("project_statuses.code").as("status_code"),
 			)
 			.first();
 
@@ -172,7 +172,7 @@ export class ProjectController implements Resource {
 				"projects.name",
 				"projects.created_at",
 				"projects.updated_at",
-				"project_statuses.code as status_code",
+				ctx.ref("project_statuses.code").as("status_code"),
 			)
 			.first();
 		if (!row) {
