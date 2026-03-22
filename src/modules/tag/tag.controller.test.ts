@@ -1,4 +1,5 @@
 import { describe, it, type TestContext } from "node:test";
+import type { Database } from "@scream.js/database/db.js";
 import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
 import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
 import { startTestServer } from "@scream.js/http/server.js";
@@ -7,6 +8,47 @@ import { createTodoModule } from "../todo/index.js";
 import { createTagModule } from "./index.js";
 
 describe("tag controller", { concurrency: true }, () => {
+	const findIdByCode = async (
+		db: Database,
+		table: "todo_priorities" | "todo_statuses",
+		code: string,
+	) => {
+		const row = await db(table).where({ code }).first("id");
+		return Number(row["id"]);
+	};
+
+	const insertTag = async (db: Database, name: string) => {
+		const now = new Date().toISOString();
+		const [row] = await db("tags")
+			.insert({
+				created_at: now,
+				name,
+				updated_at: now,
+			})
+			.returning(["id"]);
+
+		return { id: Number(row["id"]) };
+	};
+
+	const insertTodo = async (db: Database, title: string) => {
+		const now = new Date().toISOString();
+		const priorityId = await findIdByCode(db, "todo_priorities", "medium");
+		const statusId = await findIdByCode(db, "todo_statuses", "open");
+		const [row] = await db("todos")
+			.insert({
+				created_at: now,
+				description: "",
+				priority_id: priorityId,
+				project_id: null,
+				status_id: statusId,
+				title,
+				updated_at: now,
+			})
+			.returning(["id"]);
+
+		return { id: Number(row["id"]) };
+	};
+
 	const setupServer = async () => {
 		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({});
 		const modules = {
@@ -27,13 +69,13 @@ describe("tag controller", { concurrency: true }, () => {
 			await cleanupDb();
 		};
 
-		return { cleanup, modules, port };
+		return { cleanup, db, modules, port };
 	};
 
 	it("GET /tags lists tags", async (t: TestContext) => {
-		const { cleanup, modules, port } = await setupServer();
+		const { cleanup, db, port } = await setupServer();
 		try {
-			await modules.tagService.create({ name: "alpha" });
+			await insertTag(db, "alpha");
 			const response = await fetch(`http://localhost:${port}/tags`, {
 				signal: t.signal,
 			});
@@ -88,9 +130,9 @@ describe("tag controller", { concurrency: true }, () => {
 	});
 
 	it("POST /tags/create renders the index when the name is duplicated", async (t: TestContext) => {
-		const { cleanup, modules, port } = await setupServer();
+		const { cleanup, db, port } = await setupServer();
 		try {
-			await modules.tagService.create({ name: "alpha" });
+			await insertTag(db, "alpha");
 			const response = await fetch(`http://localhost:${port}/tags/create`, {
 				body: "name=alpha",
 				headers: {
@@ -126,17 +168,10 @@ describe("tag controller", { concurrency: true }, () => {
 	});
 
 	it("POST /todos/:id/tags redirects to edit when assigning tags succeeds", async (t: TestContext) => {
-		const { cleanup, modules, port } = await setupServer();
+		const { cleanup, db, port } = await setupServer();
 		try {
-			const todo = await modules.todoService.create({
-				description: "",
-				dueAt: null,
-				priority: "medium",
-				projectId: null,
-				statusCode: "open",
-				title: "Todo",
-			});
-			const tag = await modules.tagService.create({ name: "alpha" });
+			const todo = await insertTodo(db, "Todo");
+			const tag = await insertTag(db, "alpha");
 
 			const response = await fetch(
 				`http://localhost:${port}/todos/${todo.id}/tags`,
@@ -162,9 +197,9 @@ describe("tag controller", { concurrency: true }, () => {
 	});
 
 	it("POST /todos/:id/tags returns 404 when the todo is missing", async (t: TestContext) => {
-		const { cleanup, modules, port } = await setupServer();
+		const { cleanup, db, port } = await setupServer();
 		try {
-			const tag = await modules.tagService.create({ name: "alpha" });
+			const tag = await insertTag(db, "alpha");
 			const response = await fetch(
 				`http://localhost:${port}/todos/99999/tags`,
 				{
@@ -184,16 +219,9 @@ describe("tag controller", { concurrency: true }, () => {
 	});
 
 	it("POST /todos/:id/tags redirects back to edit when tag ids are invalid", async (t: TestContext) => {
-		const { cleanup, modules, port } = await setupServer();
+		const { cleanup, db, port } = await setupServer();
 		try {
-			const todo = await modules.todoService.create({
-				description: "",
-				dueAt: null,
-				priority: "medium",
-				projectId: null,
-				statusCode: "open",
-				title: "Todo",
-			});
+			const todo = await insertTodo(db, "Todo");
 			const response = await fetch(
 				`http://localhost:${port}/todos/${todo.id}/tags`,
 				{
