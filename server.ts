@@ -1,29 +1,22 @@
-import "source-map-support/register";
 import { pathToFileURL } from "node:url";
 import { createDB } from "@scream.js/database/db.js";
 import type { Application } from "@scream.js/http/application.js";
-import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
+import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import { startHttpServer } from "@scream.js/http/server.js";
 import { createLogger } from "@scream.js/logger/logger-factory.js";
-import { createHttpApp } from "main.js";
-import { createProjectModule } from "@/modules/project";
-import { createTagModule } from "@/modules/tag";
-import { createTodoModule } from "@/modules/todo";
+import "source-map-support/register";
+import { PagesModule } from "./src/modules/pages/index.js";
+import { ProjectModule } from "./src/modules/project/index.js";
 
 export const createServer = () => {
 	const logger = createLogger();
 	const db = createDB();
-	const { projectController } = createProjectModule();
-	const { tagController } = createTagModule();
-	const { todosController } = createTodoModule();
+	const modules = [PagesModule.create(), ProjectModule.create(db)];
 
-	const app: Application = createExpressApp(db);
-	createHttpApp({
-		app,
-		projectController,
-		tagController,
-		todosController,
-	});
+	const app: Application = ExpressApp.create();
+	for (const module of modules) {
+		module.mount(app);
+	}
 
 	return { app, db, logger };
 };

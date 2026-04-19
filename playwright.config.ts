@@ -30,9 +30,9 @@ export default defineConfig({
 		trace: "on-first-retry",
 	},
 	webServer: {
-		command: "cross-env NODE_ENV=e2e npm run dev",
+		command: "npm run start:e2e",
 		port: 3000,
-		reuseExistingServer: false,
+		reuseExistingServer: true,
 	},
 	workers: process.env["CI"] ? 1 : "50%",
 });

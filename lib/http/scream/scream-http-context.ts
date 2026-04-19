@@ -5,17 +5,15 @@ import {
 } from "node:http";
 import path from "node:path";
 import { parse } from "node:url";
-import type { Database, DatabaseTransaction } from "@scream.js/database/db.js";
 import type { Validator } from "@scream.js/validator/validator.js";
 import nunjucks from "nunjucks";
 import type { HttpContext } from "../http-context.js";
+import { NotFoundError } from "../not-found-error.js";
 
 export class ScreamHttpContext implements HttpContext {
-	readonly #db: Database;
 	readonly #res: ServerResponse;
 	readonly #parsedUrl: ReturnType<typeof parse>;
 	#bodyData: unknown | undefined = undefined;
-	#statusCode = 200;
 
 	readonly #nunjucks = new nunjucks.Environment(
 		new nunjucks.FileSystemLoader(path.join(process.cwd(), "views"), {
@@ -24,41 +22,15 @@ export class ScreamHttpContext implements HttpContext {
 		}),
 	);
 
-	constructor(
-		req: Readonly<IncomingMessage>,
-		res: ServerResponse,
-		db: Database,
-	) {
+	constructor(req: Readonly<IncomingMessage>, res: ServerResponse) {
 		this.#res = res;
 		this.#parsedUrl = parse(req.url || "", true);
-		this.#db = db;
-	}
-
-	db(table: string) {
-		return this.#db(table);
-	}
-
-	ref(column: string) {
-		return this.#db.ref(column);
-	}
-
-	transaction<T>(callback: (tx: DatabaseTransaction) => Promise<T>) {
-		return this.#db.transaction(callback);
 	}
 
 	notFound() {
 		this.#res
 			.writeHead(404, STATUS_CODES[404], { "Content-Type": "text/plain" })
 			.end(STATUS_CODES[404]);
-	}
-
-	unprocessableEntity(body?: string) {
-		this.#statusCode = 422;
-		if (body) {
-			this.#res
-				.writeHead(422, STATUS_CODES[422], { "Content-Type": "text/plain" })
-				.end(body);
-		}
 	}
 
 	params() {
@@ -94,7 +66,7 @@ export class ScreamHttpContext implements HttpContext {
 
 				// Set HTML content type and send the rendered HTML
 				this.#res
-					.writeHead(this.#statusCode, {
+					.writeHead(200, {
 						"Content-Type": "text/html",
 					})
 					.end(result);
@@ -105,7 +77,12 @@ export class ScreamHttpContext implements HttpContext {
 
 	param<T>(key: string, validator: Validator<T>) {
 		const result = validator.validate(this.#paramValue(key));
-		return result.success ? result.data : undefined;
+		if (result.success) {
+			return result.data;
+		}
+
+		this.notFound();
+		throw new NotFoundError();
 	}
 
 	body<T>(validator: Validator<T>) {

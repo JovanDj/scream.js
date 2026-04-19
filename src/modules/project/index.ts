@@ -1,7 +1,1 @@
-import { ProjectController } from "./project.controller.js";
-
-export const createProjectModule = () => {
-	const projectController = new ProjectController();
-
-	return { projectController };
-};
+export * from "./project.module.js";

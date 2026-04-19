@@ -1,93 +1,6 @@
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Resource } from "@scream.js/http/resource.js";
-import { createValidator } from "@scream.js/validator/create-validator.js";
-import { schema } from "@scream.js/validator/schema.js";
-
-type TodoScope = "all" | "completed" | "dueToday" | "open" | "overdue";
-
-const dueAtValidator = schema
-	.string()
-	.optional()
-	.default("")
-	.transform((value) => value.trim())
-	.refine(
-		(value) => value.length < 1 || !Number.isNaN(new Date(value).getTime()),
-		{
-			message: "Invalid date",
-		},
-	)
-	.transform((value) => {
-		if (value.length < 1) {
-			return null;
-		}
-
-		return new Date(value).toISOString();
-	});
-
-const todoIdValidator = createValidator(
-	schema.coerce.number().int().positive(),
-);
-
-const todoListQueryValidator = createValidator(
-	schema.object({
-		projectId: schema.coerce.number().int().positive().optional(),
-		search: schema
-			.string()
-			.optional()
-			.default("")
-			.transform((value) => value.trim()),
-		status: schema
-			.enum(["all", "completed", "dueToday", "open", "overdue"])
-			.optional()
-			.default("all"),
-	}),
-);
-
-const todoCreateValidator = createValidator(
-	schema.strictObject({
-		description: schema
-			.string()
-			.default("")
-			.transform((value) => value.trim()),
-		dueAt: dueAtValidator,
-		priority: schema.enum(["low", "medium", "high"]).default("medium"),
-		projectId: schema.preprocess(
-			(value) => (value === "" ? undefined : value),
-			schema.coerce.number().int().positive().optional(),
-		),
-		statusCode: schema.enum(["open", "completed"]).default("open"),
-		title: schema
-			.string()
-			.default("")
-			.transform((value) => value.trim())
-			.refine((value) => value.length > 0, {
-				message: "Required",
-			}),
-	}),
-);
-
-const todoUpdateValidator = createValidator(
-	schema.strictObject({
-		description: schema
-			.string()
-			.default("")
-			.transform((value) => value.trim()),
-		dueAt: dueAtValidator,
-		priority: schema.enum(["low", "medium", "high"]).default("medium"),
-		projectId: schema.preprocess(
-			(value) => (value === "" ? undefined : value),
-			schema.coerce.number().int().positive().optional(),
-		),
-		statusCode: schema.enum(["open", "completed"]).default("open"),
-		title: schema
-			.string()
-			.default("")
-			.transform((value) => value.trim())
-			.refine((value) => value.length > 0, {
-				message: "Required",
-			}),
-	}),
-);
+import { type TodoScope, TodoService } from "./todo.service.js";
 
 const emptyFields = {
 	description: "",
@@ -107,8 +20,14 @@ const toDateInputValue = (value: string | null) => {
 };
 
 export class TodosController implements Resource {
+	readonly #todoService: TodoService;
+
+	constructor(todoService: TodoService) {
+		this.#todoService = todoService;
+	}
+
 	async index(ctx: HttpContext) {
-		const parsedQuery = ctx.query(todoListQueryValidator);
+		const parsedQuery = ctx.query(TodoService.listQueryValidator());
 
 		if (!parsedQuery.success) {
 			return ctx.notFound();
@@ -128,80 +47,20 @@ export class TodosController implements Resource {
 		}
 
 		const scope = options.scope ?? "all";
-		const query = ctx
-			.db("todos")
-			.join("todo_priorities", "todos.priority_id", "todo_priorities.id")
-			.join("todo_statuses", "todos.status_id", "todo_statuses.id")
-			.select(
-				"todos.id",
-				"todos.title",
-				"todos.description",
-				"todos.project_id",
-				"todos.due_at",
-				"todos.completed_at",
-				"todos.created_at",
-				"todos.updated_at",
-				ctx.ref("todo_priorities.code").as("priority_code"),
-				ctx.ref("todo_statuses.code").as("status_code"),
-			);
+		const listOptions: {
+			projectId?: number;
+			scope: TodoScope;
+			search: string;
+		} = {
+			scope,
+			search: options.search,
+		};
 
-		if (options.projectId) {
-			query.andWhere({ "todos.project_id": options.projectId });
+		if (options.projectId !== undefined) {
+			listOptions.projectId = options.projectId;
 		}
 
-		if (options.search.trim().length > 0) {
-			query.andWhereLike("todos.title", `%${options.search.trim()}%`);
-		}
-
-		if (scope === "open") {
-			query.where({ "todo_statuses.code": "open" });
-		}
-
-		if (scope === "completed") {
-			query.where({ "todo_statuses.code": "completed" });
-		}
-
-		if (scope === "dueToday") {
-			query.where({ "todo_statuses.code": "open" });
-			query.whereRaw("date(todos.due_at) = date('now', 'localtime')");
-		}
-
-		if (scope === "overdue") {
-			query.where({ "todo_statuses.code": "open" });
-			query.whereRaw("date(todos.due_at) < date('now', 'localtime')");
-		}
-
-		const rows = await query.orderBy("todos.id", "desc");
-		const todos = schema
-			.array(
-				schema.object({
-					completed_at: schema.string().nullable().optional(),
-					created_at: schema.string().optional(),
-					description: schema.string().optional(),
-					due_at: schema.string().nullable().optional(),
-					id: schema.coerce.number(),
-					priority_code: schema.enum(["low", "medium", "high"]).optional(),
-					project_id: schema.coerce.number().nullable().optional(),
-					status_code: schema.enum(["open", "completed"]).optional(),
-					title: schema.string().nonempty(),
-					updated_at: schema.string().optional(),
-				}),
-			)
-			.parse(rows)
-			.map((parsedTodo) => {
-				return {
-					completedAt: parsedTodo.completed_at ?? null,
-					createdAt: parsedTodo.created_at ?? new Date().toISOString(),
-					description: parsedTodo.description ?? "",
-					dueAt: parsedTodo.due_at ?? null,
-					id: parsedTodo.id,
-					priority: parsedTodo.priority_code ?? "medium",
-					projectId: parsedTodo.project_id ?? null,
-					statusCode: parsedTodo.status_code ?? "open",
-					title: parsedTodo.title,
-					updatedAt: parsedTodo.updated_at ?? new Date().toISOString(),
-				};
-			});
+		const todos = await this.#todoService.index(listOptions);
 
 		const todoViews = todos.map((todo) => ({
 			dueDate: toDateInputValue(todo.dueAt),
@@ -268,60 +127,9 @@ export class TodosController implements Resource {
 	}
 
 	async show(ctx: HttpContext) {
-		const todoId = ctx.param("id", todoIdValidator);
-		if (!todoId) {
-			return ctx.notFound();
-		}
+		const todoId = ctx.param("id", TodoService.idParamValidator());
 
-		const row = await ctx
-			.db("todos")
-			.join("todo_priorities", "todos.priority_id", "todo_priorities.id")
-			.join("todo_statuses", "todos.status_id", "todo_statuses.id")
-			.where({ "todos.id": todoId })
-			.select(
-				"todos.id",
-				"todos.title",
-				"todos.description",
-				"todos.project_id",
-				"todos.due_at",
-				"todos.completed_at",
-				"todos.created_at",
-				"todos.updated_at",
-				ctx.ref("todo_priorities.code").as("priority_code"),
-				ctx.ref("todo_statuses.code").as("status_code"),
-			)
-			.first();
-		if (!row) {
-			return ctx.notFound();
-		}
-
-		const parsedTodo = schema
-			.object({
-				completed_at: schema.string().nullable().optional(),
-				created_at: schema.string().optional(),
-				description: schema.string().optional(),
-				due_at: schema.string().nullable().optional(),
-				id: schema.coerce.number(),
-				priority_code: schema.enum(["low", "medium", "high"]).optional(),
-				project_id: schema.coerce.number().nullable().optional(),
-				status_code: schema.enum(["open", "completed"]).optional(),
-				title: schema.string().nonempty(),
-				updated_at: schema.string().optional(),
-			})
-			.parse(row);
-
-		const todo = {
-			completedAt: parsedTodo.completed_at ?? null,
-			createdAt: parsedTodo.created_at ?? new Date().toISOString(),
-			description: parsedTodo.description ?? "",
-			dueAt: parsedTodo.due_at ?? null,
-			id: parsedTodo.id,
-			priority: parsedTodo.priority_code ?? "medium",
-			projectId: parsedTodo.project_id ?? null,
-			statusCode: parsedTodo.status_code ?? "open",
-			title: parsedTodo.title,
-			updatedAt: parsedTodo.updated_at ?? new Date().toISOString(),
-		};
+		const todo = await this.#todoService.findById(todoId);
 		if (!todo) {
 			return ctx.notFound();
 		}
@@ -352,9 +160,8 @@ export class TodosController implements Resource {
 	}
 
 	async store(ctx: HttpContext) {
-		const parsed = ctx.body(todoCreateValidator);
+		const parsed = ctx.body(TodoService.createBodyValidator());
 		if (!parsed.success) {
-			ctx.unprocessableEntity();
 			return ctx.render("create", {
 				errors: parsed.errors,
 				fields: {
@@ -368,101 +175,33 @@ export class TodosController implements Resource {
 			});
 		}
 
-		const result = await ctx.transaction(async (tx) => {
-			const priority = await tx("todo_priorities")
-				.where({ code: parsed.data.priority })
-				.first("id");
-			if (!priority) {
-				throw new Error(
-					`Todo priority lookup not found: ${parsed.data.priority}`,
-				);
-			}
+		const input: {
+			description: string;
+			dueAt: string | null;
+			priority: "low" | "medium" | "high";
+			projectId?: number;
+			statusCode: "open" | "completed";
+			title: string;
+		} = {
+			description: parsed.data.description,
+			dueAt: parsed.data.dueAt,
+			priority: parsed.data.priority,
+			statusCode: parsed.data.statusCode,
+			title: parsed.data.title,
+		};
+		if (parsed.data.projectId !== undefined) {
+			input.projectId = parsed.data.projectId;
+		}
 
-			const status = await tx("todo_statuses")
-				.where({ code: parsed.data.statusCode })
-				.first("id");
-			if (!status) {
-				throw new Error(
-					`Todo status lookup not found: ${parsed.data.statusCode}`,
-				);
-			}
-
-			const now = new Date().toISOString();
-			const [row] = await tx("todos")
-				.insert({
-					completed_at: parsed.data.statusCode === "completed" ? now : null,
-					created_at: now,
-					description: parsed.data.description,
-					due_at: parsed.data.dueAt,
-					priority_id: Number(priority["id"]),
-					project_id: parsed.data.projectId ?? null,
-					status_id: Number(status["id"]),
-					title: parsed.data.title,
-					updated_at: now,
-				})
-				.returning(["id"]);
-
-			return { id: Number(row["id"]) };
-		});
+		const result = await this.#todoService.create(input);
 
 		return ctx.redirect(`/todos/${result.id}`);
 	}
 
 	async edit(ctx: HttpContext) {
-		const todoId = ctx.param("id", todoIdValidator);
-		if (!todoId) {
-			return ctx.notFound();
-		}
+		const todoId = ctx.param("id", TodoService.idParamValidator());
 
-		const row = await ctx
-			.db("todos")
-			.join("todo_priorities", "todos.priority_id", "todo_priorities.id")
-			.join("todo_statuses", "todos.status_id", "todo_statuses.id")
-			.where({ "todos.id": todoId })
-			.select(
-				"todos.id",
-				"todos.title",
-				"todos.description",
-				"todos.project_id",
-				"todos.due_at",
-				"todos.completed_at",
-				"todos.created_at",
-				"todos.updated_at",
-				ctx.ref("todo_priorities.code").as("priority_code"),
-				ctx.ref("todo_statuses.code").as("status_code"),
-			)
-			.first();
-		if (!row) {
-			return ctx.notFound();
-		}
-
-		const parsedTodo = schema
-			.object({
-				completed_at: schema.string().nullable().optional(),
-				created_at: schema.string().optional(),
-				description: schema.string().optional(),
-				due_at: schema.string().nullable().optional(),
-				id: schema.coerce.number(),
-				priority_code: schema.enum(["low", "medium", "high"]).optional(),
-				project_id: schema.coerce.number().nullable().optional(),
-				status_code: schema.enum(["open", "completed"]).optional(),
-				title: schema.string().nonempty(),
-				updated_at: schema.string().optional(),
-			})
-			.parse(row);
-
-		const todo = {
-			completedAt: parsedTodo.completed_at ?? null,
-			createdAt: parsedTodo.created_at ?? new Date().toISOString(),
-			description: parsedTodo.description ?? "",
-			dueAt: parsedTodo.due_at ?? null,
-			id: parsedTodo.id,
-			priority: parsedTodo.priority_code ?? "medium",
-			projectId: parsedTodo.project_id ?? null,
-			statusCode: parsedTodo.status_code ?? "open",
-			title: parsedTodo.title,
-			updatedAt: parsedTodo.updated_at ?? new Date().toISOString(),
-		};
+		const todo = await this.#todoService.findById(todoId);
 		if (!todo) {
 			return ctx.notFound();
 		}
@@ -484,14 +223,10 @@ export class TodosController implements Resource {
 	}
 
 	async update(ctx: HttpContext) {
-		const todoId = ctx.param("id", todoIdValidator);
-		if (!todoId) {
-			return ctx.notFound();
-		}
+		const todoId = ctx.param("id", TodoService.idParamValidator());
 
-		const parsed = ctx.body(todoUpdateValidator);
+		const parsed = ctx.body(TodoService.updateBodyValidator());
 		if (!parsed.success) {
-			ctx.unprocessableEntity();
 			return ctx.render("edit", {
 				action: `/todos/${todoId}/edit`,
 				errors: parsed.errors,
@@ -508,87 +243,27 @@ export class TodosController implements Resource {
 			});
 		}
 
-		const result = await ctx.transaction(async (tx) => {
-			const currentRow = await tx("todos")
-				.join("todo_priorities", "todos.priority_id", "todo_priorities.id")
-				.join("todo_statuses", "todos.status_id", "todo_statuses.id")
-				.where({ "todos.id": todoId })
-				.select(
-					"todos.id",
-					"todos.title",
-					"todos.description",
-					"todos.project_id",
-					"todos.due_at",
-					"todos.completed_at",
-					"todos.created_at",
-					"todos.updated_at",
-					tx.ref("todo_priorities.code").as("priority_code"),
-					tx.ref("todo_statuses.code").as("status_code"),
-				)
-				.first();
+		const input: {
+			id: number;
+			description: string;
+			dueAt: string | null;
+			priority: "low" | "medium" | "high";
+			projectId?: number;
+			statusCode: "open" | "completed";
+			title: string;
+		} = {
+			description: parsed.data.description,
+			dueAt: parsed.data.dueAt,
+			id: todoId,
+			priority: parsed.data.priority,
+			statusCode: parsed.data.statusCode,
+			title: parsed.data.title,
+		};
+		if (parsed.data.projectId !== undefined) {
+			input.projectId = parsed.data.projectId;
+		}
 
-			if (!currentRow) {
-				return undefined;
-			}
-
-			const parsedCurrent = schema
-				.object({
-					completed_at: schema.string().nullable().optional(),
-					created_at: schema.string().optional(),
-					description: schema.string().optional(),
-					due_at: schema.string().nullable().optional(),
-					id: schema.coerce.number(),
-					priority_code: schema.enum(["low", "medium", "high"]).optional(),
-					project_id: schema.coerce.number().nullable().optional(),
-					status_code: schema.enum(["open", "completed"]).optional(),
-					title: schema.string().nonempty(),
-					updated_at: schema.string().optional(),
-				})
-				.parse(currentRow);
-
-			const priority = await tx("todo_priorities")
-				.where({ code: parsed.data.priority })
-				.first("id");
-			if (!priority) {
-				throw new Error(
-					`Todo priority lookup not found: ${parsed.data.priority}`,
-				);
-			}
-
-			const status = await tx("todo_statuses")
-				.where({ code: parsed.data.statusCode })
-				.first("id");
-			if (!status) {
-				throw new Error(
-					`Todo status lookup not found: ${parsed.data.statusCode}`,
-				);
-			}
-
-			const now = new Date().toISOString();
-			const completedAt =
-				parsed.data.statusCode === "completed"
-					? (parsedCurrent.completed_at ?? now)
-					: null;
-
-			const affectedRows = await tx("todos")
-				.where({ id: todoId })
-				.update({
-					completed_at: completedAt,
-					description: parsed.data.description,
-					due_at: parsed.data.dueAt,
-					priority_id: Number(priority["id"]),
-					project_id: parsed.data.projectId ?? null,
-					status_id: Number(status["id"]),
-					title: parsed.data.title,
-					updated_at: now,
-				});
-
-			if (affectedRows === 0) {
-				return undefined;
-			}
-
-			return { id: todoId };
-		});
+		const result = await this.#todoService.update(input);
 
 		if (!result) {
 			return ctx.notFound();
@@ -598,13 +273,9 @@ export class TodosController implements Resource {
 	}
 
 	async delete(ctx: HttpContext) {
-		const todoId = ctx.param("id", todoIdValidator);
-		if (!todoId) {
-			return ctx.notFound();
-		}
+		const todoId = ctx.param("id", TodoService.idParamValidator());
 
-		const affectedRows = await ctx.db("todos").where({ id: todoId }).del();
-		const deleted = affectedRows > 0;
+		const deleted = await this.#todoService.delete(todoId);
 		if (!deleted) {
 			return ctx.notFound();
 		}
@@ -613,76 +284,9 @@ export class TodosController implements Resource {
 	}
 
 	async toggle(ctx: HttpContext) {
-		const todoId = ctx.param("id", todoIdValidator);
-		if (!todoId) {
-			return ctx.notFound();
-		}
+		const todoId = ctx.param("id", TodoService.idParamValidator());
 
-		const result = await ctx.transaction(async (tx) => {
-			const currentRow = await tx("todos")
-				.join("todo_priorities", "todos.priority_id", "todo_priorities.id")
-				.join("todo_statuses", "todos.status_id", "todo_statuses.id")
-				.where({ "todos.id": todoId })
-				.select(
-					"todos.id",
-					"todos.title",
-					"todos.description",
-					"todos.project_id",
-					"todos.due_at",
-					"todos.completed_at",
-					"todos.created_at",
-					"todos.updated_at",
-					tx.ref("todo_priorities.code").as("priority_code"),
-					tx.ref("todo_statuses.code").as("status_code"),
-				)
-				.first();
-
-			if (!currentRow) {
-				return undefined;
-			}
-
-			const parsedCurrent = schema
-				.object({
-					completed_at: schema.string().nullable().optional(),
-					created_at: schema.string().optional(),
-					description: schema.string().optional(),
-					due_at: schema.string().nullable().optional(),
-					id: schema.coerce.number(),
-					priority_code: schema.enum(["low", "medium", "high"]).optional(),
-					project_id: schema.coerce.number().nullable().optional(),
-					status_code: schema.enum(["open", "completed"]).optional(),
-					title: schema.string().nonempty(),
-					updated_at: schema.string().optional(),
-				})
-				.parse(currentRow);
-
-			const nextStatusCode =
-				parsedCurrent.status_code === "completed" ? "open" : "completed";
-			const status = await tx("todo_statuses")
-				.where({ code: nextStatusCode })
-				.first("id");
-			if (!status) {
-				throw new Error(`Todo status lookup not found: ${nextStatusCode}`);
-			}
-
-			const now = new Date().toISOString();
-			const affectedRows = await tx("todos")
-				.where({ id: todoId })
-				.update({
-					completed_at:
-						nextStatusCode === "completed"
-							? (parsedCurrent.completed_at ?? now)
-							: null,
-					status_id: Number(status["id"]),
-					updated_at: now,
-				});
-
-			if (affectedRows === 0) {
-				return undefined;
-			}
-
-			return { id: todoId };
-		});
+		const result = await this.#todoService.toggle({ id: todoId });
 		if (!result) {
 			return ctx.notFound();
 		}

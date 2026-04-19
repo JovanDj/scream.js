@@ -5,21 +5,16 @@ import {
 	STATUS_CODES,
 } from "node:http";
 import { parse } from "node:url";
-import type { Database } from "@scream.js/database/db.js";
 
 import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
 import type { HttpContext } from "../http-context.js";
+import { NotFoundError } from "../not-found-error.js";
 import type { Resource } from "../resource.ts";
 import { ScreamHttpContext } from "./scream-http-context.js";
 
 export class ScreamApp implements Application {
-	readonly #db: Database;
 	readonly #routes = new Map<string, Map<string, Handler>>();
-
-	constructor(db: Database) {
-		this.#db = db;
-	}
 
 	#registerRoute(method: string, path: string, handler: Handler) {
 		if (!this.#routes.has(method)) {
@@ -49,7 +44,7 @@ export class ScreamApp implements Application {
 	}
 
 	async #handleRequest(req: IncomingMessage, res: ServerResponse) {
-		const context: HttpContext = new ScreamHttpContext(req, res, this.#db);
+		const context: HttpContext = new ScreamHttpContext(req, res);
 		const parsedUrl = parse(req.url || "", true);
 		const path = parsedUrl.pathname || "/";
 		const method = req.method || "GET";
@@ -58,7 +53,13 @@ export class ScreamApp implements Application {
 		const handler = methodRoutes ? methodRoutes.get(path) : undefined;
 
 		if (handler) {
-			await handler(context);
+			try {
+				await handler(context);
+			} catch (error) {
+				if (!(error instanceof NotFoundError)) {
+					throw error;
+				}
+			}
 		} else {
 			context.notFound();
 		}

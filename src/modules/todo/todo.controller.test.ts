@@ -1,19 +1,21 @@
 import { describe, it, type TestContext } from "node:test";
 import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
-import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
+import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import { startTestServer } from "@scream.js/http/server.js";
-import { createHttpApp } from "../../../main.js";
-import { createTodoModule } from "./index.js";
+import { PagesModule } from "../pages/index.js";
+import { TodoModule } from "./todo.module.ts";
 
 describe("todo controller", { concurrency: true }, () => {
 	const setupServer = async () => {
 		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({
 			seed: true,
 		});
-		const modules = createTodoModule();
-		const app = createExpressApp(db);
+		const modules = [PagesModule.create(), TodoModule.create(db)];
+		const app = ExpressApp.create();
 
-		createHttpApp({ app, todosController: modules.todosController });
+		for (const module of modules) {
+			module.mount(app);
+		}
 
 		const { port, shutdown } = await startTestServer(app);
 		const cleanup = async () => {
@@ -21,7 +23,7 @@ describe("todo controller", { concurrency: true }, () => {
 			await cleanupDb();
 		};
 
-		return { cleanup, modules, port };
+		return { cleanup, port };
 	};
 
 	it("GET / responds with 200", async (t: TestContext) => {
@@ -209,7 +211,7 @@ describe("todo controller", { concurrency: true }, () => {
 			});
 
 			const html = await res.text();
-			t.assert.deepStrictEqual<number>(res.status, 422);
+			t.assert.deepStrictEqual<number>(res.status, 200);
 			t.assert.match(html, /Invalid date/i);
 		} finally {
 			await cleanup();

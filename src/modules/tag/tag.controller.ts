@@ -1,56 +1,15 @@
 import type { HttpContext } from "@scream.js/http/http-context.js";
-import { createValidator } from "@scream.js/validator/create-validator.js";
-import { schema } from "@scream.js/validator/schema.js";
-
-const tagIdValidator = createValidator(schema.coerce.number().int().positive());
-
-const tagWriteValidator = createValidator(
-	schema.strictObject({
-		name: schema
-			.string()
-			.default("")
-			.transform((value) => value.trim())
-			.refine((value) => value.length > 0, {
-				message: "Required",
-			}),
-	}),
-);
-
-const replaceTodoTagsValidator = createValidator(
-	schema.strictObject({
-		tagIds: schema.preprocess((value) => {
-			if (!value) {
-				return [];
-			}
-			if (Array.isArray(value)) {
-				return value;
-			}
-			return [value];
-		}, schema.array(schema.coerce.number().int().positive()).default([])),
-	}),
-);
+import { TagService } from "./tag.service.js";
 
 export class TagController {
-	async index(ctx: HttpContext) {
-		const rows = await ctx
-			.db("tags")
-			.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
-			.orderBy("tags.name", "asc");
+	readonly #tagService: TagService;
 
-		const tags = schema
-			.array(
-				schema.object({
-					id: schema.coerce.number(),
-					name: schema.string(),
-				}),
-			)
-			.parse(rows)
-			.map((parsed) => {
-				return {
-					id: parsed.id,
-					name: parsed.name,
-				};
-			});
+	constructor(tagService: TagService) {
+		this.#tagService = tagService;
+	}
+
+	async index(ctx: HttpContext) {
+		const tags = await this.#tagService.index();
 		return ctx.render("tag-index", {
 			pageTitle: "Tags",
 			tags,
@@ -58,27 +17,9 @@ export class TagController {
 	}
 
 	async store(ctx: HttpContext) {
-		const parsed = ctx.body(tagWriteValidator);
+		const parsed = ctx.body(TagService.writeBodyValidator());
 		if (!parsed.success) {
-			ctx.unprocessableEntity();
-			const rows = await ctx
-				.db("tags")
-				.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
-				.orderBy("tags.name", "asc");
-			const tags = schema
-				.array(
-					schema.object({
-						id: schema.coerce.number(),
-						name: schema.string(),
-					}),
-				)
-				.parse(rows)
-				.map((parsedTag) => {
-					return {
-						id: parsedTag.id,
-						name: parsedTag.name,
-					};
-				});
+			const tags = await this.#tagService.listForRender();
 			return ctx.render("tag-index", {
 				errors: parsed.errors,
 				pageTitle: "Tags",
@@ -87,35 +28,10 @@ export class TagController {
 		}
 
 		try {
-			await ctx.transaction(async (tx) => {
-				const now = new Date().toISOString();
-				await tx("tags").insert({
-					created_at: now,
-					name: parsed.data.name,
-					updated_at: now,
-				});
-			});
+			await this.#tagService.create(parsed.data.name);
 			return ctx.redirect("/tags");
 		} catch {
-			ctx.unprocessableEntity();
-			const rows = await ctx
-				.db("tags")
-				.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
-				.orderBy("tags.name", "asc");
-			const tags = schema
-				.array(
-					schema.object({
-						id: schema.coerce.number(),
-						name: schema.string(),
-					}),
-				)
-				.parse(rows)
-				.map((parsedTag) => {
-					return {
-						id: parsedTag.id,
-						name: parsedTag.name,
-					};
-				});
+			const tags = await this.#tagService.listForRender();
 			return ctx.render("tag-index", {
 				errors: { name: ["Tag name must be unique"] },
 				pageTitle: "Tags",
@@ -125,13 +41,9 @@ export class TagController {
 	}
 
 	async delete(ctx: HttpContext) {
-		const tagId = ctx.param("id", tagIdValidator);
-		if (!tagId) {
-			return ctx.notFound();
-		}
+		const tagId = ctx.param("id", TagService.idParamValidator());
 
-		const affectedRows = await ctx.db("tags").where({ id: tagId }).del();
-		const deleted = affectedRows > 0;
+		const deleted = await this.#tagService.delete(tagId);
 		if (!deleted) {
 			return ctx.notFound();
 		}
@@ -140,48 +52,16 @@ export class TagController {
 	}
 
 	async assignToTodo(ctx: HttpContext) {
-		const todoId = ctx.param("id", tagIdValidator);
-		if (!todoId) {
-			return ctx.notFound();
-		}
+		const todoId = ctx.param("id", TagService.idParamValidator());
 
-		const parsed = ctx.body(replaceTodoTagsValidator);
+		const parsed = ctx.body(TagService.replaceTodoTagsBodyValidator());
 		if (!parsed.success) {
-			ctx.unprocessableEntity();
 			return ctx.redirect(`/todos/${todoId}/edit`);
 		}
 
-		const replaced = await ctx.transaction(async (tx) => {
-			const todo = await tx("todos").where({ id: todoId }).first("id");
-			if (!todo) {
-				return false;
-			}
-
-			const uniqueTagIds = [...new Set(parsed.data.tagIds)];
-			if (uniqueTagIds.length > 0) {
-				const matchedTags = await tx("tags")
-					.whereIn("id", uniqueTagIds)
-					.select("id");
-				if (matchedTags.length !== uniqueTagIds.length) {
-					return false;
-				}
-			}
-
-			await tx("todo_tags").where({ todo_id: todoId }).del();
-
-			if (uniqueTagIds.length === 0) {
-				return true;
-			}
-
-			await tx("todo_tags").insert(
-				uniqueTagIds.map((tagId) => ({
-					created_at: new Date().toISOString(),
-					tag_id: tagId,
-					todo_id: todoId,
-				})),
-			);
-
-			return true;
+		const replaced = await this.#tagService.assignToTodo({
+			tagIds: [...new Set(parsed.data.tagIds)],
+			todoId,
 		});
 
 		if (!replaced) {

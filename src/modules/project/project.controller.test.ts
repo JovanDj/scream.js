@@ -1,11 +1,9 @@
 import { describe, it, type TestContext } from "node:test";
 import type { Database } from "@scream.js/database/db.js";
 import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
-import { createExpressApp } from "@scream.js/http/express/create-express-application.js";
+import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import { startTestServer } from "@scream.js/http/server.js";
-import { createHttpApp } from "../../../main.js";
-import { createTodoModule } from "../todo/index.js";
-import { createProjectModule } from "./index.js";
+import { ProjectModule } from "./project.module.ts";
 
 describe("project controller", { concurrency: true }, () => {
 	const insertProject = async (db: Database, name: string) => {
@@ -27,17 +25,10 @@ describe("project controller", { concurrency: true }, () => {
 
 	const setupServer = async () => {
 		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({});
-		const modules = {
-			...createTodoModule(),
-			...createProjectModule(),
-		};
-		const app = createExpressApp(db);
+		const module = ProjectModule.create(db);
+		const app = ExpressApp.create();
 
-		createHttpApp({
-			app,
-			projectController: modules.projectController,
-			todosController: modules.todosController,
-		});
+		module.mount(app);
 
 		const { port, shutdown } = await startTestServer(app);
 		const cleanup = async () => {
@@ -45,7 +36,7 @@ describe("project controller", { concurrency: true }, () => {
 			await cleanupDb();
 		};
 
-		return { cleanup, db, modules, port };
+		return { cleanup, db, port };
 	};
 
 	it("GET /projects lists projects", async (t: TestContext) => {
@@ -83,6 +74,20 @@ describe("project controller", { concurrency: true }, () => {
 		}
 	});
 
+	it("GET /projects/:id returns 404 for an invalid project id", async (t: TestContext) => {
+		const { cleanup, port } = await setupServer();
+		try {
+			const response = await fetch(
+				`http://localhost:${port}/projects/not-a-number`,
+				{ signal: t.signal },
+			);
+
+			t.assert.deepStrictEqual(response.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
 	it("POST /projects/create shows validation errors for a missing name", async (t: TestContext) => {
 		const { cleanup, port } = await setupServer();
 		try {
@@ -96,7 +101,7 @@ describe("project controller", { concurrency: true }, () => {
 			});
 			const html = await response.text();
 
-			t.assert.deepStrictEqual(response.status, 422);
+			t.assert.deepStrictEqual(response.status, 200);
 			t.assert.match(html, /Required/);
 		} finally {
 			await cleanup();
@@ -137,7 +142,7 @@ describe("project controller", { concurrency: true }, () => {
 			});
 			const html = await response.text();
 
-			t.assert.deepStrictEqual(response.status, 422);
+			t.assert.deepStrictEqual(response.status, 200);
 			t.assert.match(html, /Project name must be unique/);
 		} finally {
 			await cleanup();
@@ -151,6 +156,27 @@ describe("project controller", { concurrency: true }, () => {
 				`http://localhost:${port}/projects/99999/edit`,
 				{
 					body: "name=Missing",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+					},
+					method: "POST",
+					signal: t.signal,
+				},
+			);
+
+			t.assert.deepStrictEqual(response.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /projects/:id/edit returns 404 for an invalid project id", async (t: TestContext) => {
+		const { cleanup, port } = await setupServer();
+		try {
+			const response = await fetch(
+				`http://localhost:${port}/projects/not-a-number/edit`,
+				{
+					body: "name=Invalid",
 					headers: {
 						"Content-Type": "application/x-www-form-urlencoded",
 					},

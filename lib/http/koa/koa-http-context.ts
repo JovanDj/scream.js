@@ -1,27 +1,17 @@
-import type { Database, DatabaseTransaction } from "@scream.js/database/db.js";
 import type { Validator } from "@scream.js/validator/validator.js";
 import type Koa from "koa";
 import type { HttpContext } from "../http-context.js";
+import { NotFoundError } from "../not-found-error.js";
 
 export class KoaHttpContext implements HttpContext {
-	readonly #db: Database;
 	readonly #ctx: Koa.Context;
 
-	constructor(ctx: Koa.Context, db: Database) {
+	static create(ctx: Koa.Context) {
+		return new KoaHttpContext(ctx);
+	}
+
+	constructor(ctx: Koa.Context) {
 		this.#ctx = ctx;
-		this.#db = db;
-	}
-
-	db(table: string) {
-		return this.#db(table);
-	}
-
-	ref(column: string) {
-		return this.#db.ref(column);
-	}
-
-	transaction<T>(callback: (tx: DatabaseTransaction) => Promise<T>) {
-		return this.#db.transaction(callback);
 	}
 
 	params() {
@@ -57,20 +47,18 @@ export class KoaHttpContext implements HttpContext {
 		this.#ctx.redirect(url);
 	}
 
-	unprocessableEntity(body?: string) {
-		this.#status(422);
-		if (body) {
-			this.#end(body);
-		}
-	}
-
 	notFound() {
 		this.#status(404).#end("Not Found");
 	}
 
 	param<T>(key: string, validator: Validator<T>) {
 		const result = validator.validate(this.#paramValue(key));
-		return result.success ? result.data : undefined;
+		if (result.success) {
+			return result.data;
+		}
+
+		this.notFound();
+		throw new NotFoundError();
 	}
 
 	body<T>(validator: Validator<T>) {
