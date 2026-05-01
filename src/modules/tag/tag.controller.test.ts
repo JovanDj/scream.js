@@ -2,7 +2,7 @@ import { describe, it, type TestContext } from "node:test";
 import type { Database } from "@scream.js/database/db.js";
 import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
 import { ExpressApp } from "@scream.js/http/express/express-application.js";
-import { startTestServer } from "@scream.js/http/server.js";
+import { HttpServer } from "@scream.js/http/server.js";
 import { PagesModule } from "../pages/index.js";
 import { TagModule } from "./index.js";
 
@@ -57,13 +57,13 @@ describe("tag controller", { concurrency: true }, () => {
 			module.mount(app);
 		}
 
-		const { port, shutdown } = await startTestServer(app);
+		const httpServer = HttpServer.start({ app, port: 0 });
 		const cleanup = async () => {
-			await shutdown();
+			await httpServer.shutdown();
 			await cleanupDb();
 		};
 
-		return { cleanup, db, port };
+		return { cleanup, db, port: httpServer.port };
 	};
 
 	it("GET /tags lists tags", async (t: TestContext) => {

@@ -1,76 +1,63 @@
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import type { Database } from "@scream.js/database/db.js";
-import type { Logger } from "../logger/logger.interface.js";
 import type { Application } from "./application.js";
 
-type StartHttpServerOptions = {
+export type HttpServerOptions = {
 	app: Application;
-	db: Database;
-	logger: Logger;
+	onListening?: (port: number) => void;
+	onShutdown?: () => Promise<void>;
 	port?: number;
 };
 
-const closeServer = (server: Server) => {
-	return new Promise<void>((resolve, reject) => {
-		server.close((err) => {
-			if (err) {
-				reject(err);
-			} else {
-				resolve();
-			}
+export class HttpServer {
+	readonly #onShutdown: (() => Promise<void>) | undefined;
+	readonly #server: Server;
+
+	static start(options: HttpServerOptions) {
+		const { app, port = 3000 } = options;
+		const server = app.listen(port, () => {
+			options.onListening?.(port);
 		});
-	});
-};
 
-const startHttpServer = ({
-	app,
-	db,
-	logger,
-	port = 3000,
-}: StartHttpServerOptions) => {
-	const server = app.listen(port, () => {
-		logger.log(`Listening on port ${port}`);
-	});
-
-	const shutdown = async () => {
-		await closeServer(server);
-		await db.destroy();
-	};
-
-	const handleSignal = () => {
-		shutdown().catch((error) => {
-			logger.error(error);
-			process.exitCode = 1;
-		});
-	};
-
-	process.on("SIGINT", handleSignal);
-	process.on("SIGTERM", handleSignal);
-
-	return { server, shutdown };
-};
-
-const isAddressInfo = (address: unknown): address is AddressInfo => {
-	return !!address && typeof address === "object" && "port" in address;
-};
-
-const startTestServer = async (app: Application) => {
-	const server = app.listen(0);
-	const address = server.address();
-
-	if (!isAddressInfo(address)) {
-		await closeServer(server);
-		throw new Error("Failed to start server");
+		return new HttpServer(server, options);
 	}
 
-	const { port } = address;
+	private constructor(server: Server, options: HttpServerOptions) {
+		this.#onShutdown = options.onShutdown;
+		this.#server = server;
+	}
 
-	const shutdown = async () => {
-		return closeServer(server);
-	};
+	get port() {
+		const address = this.#server.address();
+		if (!this.#isAddressInfo(address)) {
+			throw new Error("Failed to resolve server port");
+		}
 
-	return { port, server, shutdown };
-};
+		return address.port;
+	}
 
-export { closeServer, startHttpServer, startTestServer };
+	get server() {
+		return this.#server;
+	}
+
+	async shutdown() {
+		await this.#close();
+		await this.#onShutdown?.();
+	}
+
+	#close() {
+		return new Promise<void>((resolve, reject) => {
+			this.#server.close((err) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve();
+				}
+			});
+		});
+	}
+
+	#isAddressInfo(address: unknown): address is AddressInfo {
+		return !!address && typeof address === "object" && "port" in address;
+	}
+}

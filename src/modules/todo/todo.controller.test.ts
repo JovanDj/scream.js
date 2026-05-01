@@ -1,7 +1,7 @@
 import { describe, it, type TestContext } from "node:test";
 import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
 import { ExpressApp } from "@scream.js/http/express/express-application.js";
-import { startTestServer } from "@scream.js/http/server.js";
+import { HttpServer } from "@scream.js/http/server.js";
 import { PagesModule } from "../pages/index.js";
 import { TodoModule } from "./todo.module.ts";
 
@@ -17,13 +17,13 @@ describe("todo controller", { concurrency: true }, () => {
 			module.mount(app);
 		}
 
-		const { port, shutdown } = await startTestServer(app);
+		const httpServer = HttpServer.start({ app, port: 0 });
 		const cleanup = async () => {
-			await shutdown();
+			await httpServer.shutdown();
 			await cleanupDb();
 		};
 
-		return { cleanup, port };
+		return { cleanup, port: httpServer.port };
 	};
 
 	it("GET / responds with 200", async (t: TestContext) => {

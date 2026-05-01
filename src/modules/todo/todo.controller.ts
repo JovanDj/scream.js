@@ -657,24 +657,26 @@ export class TodosController implements Resource {
 			const completedAt =
 				input.statusCode === "completed" ? (current.completedAt ?? now) : null;
 
-			const affectedRows = await tx("todos").where({ id: input.id }).update({
-				completed_at: completedAt,
-				description: input.description,
-				due_at: input.dueAt,
-				priority_id: schema
-					.object({
-						id: schema.coerce.number().int().positive(),
-					})
-					.parse(priority).id,
-				project_id: input.projectId ?? null,
-				status_id: schema
-					.object({
-						id: schema.coerce.number().int().positive(),
-					})
-					.parse(status).id,
-				title: input.title,
-				updated_at: now,
-			});
+			const affectedRows = await tx("todos")
+				.where({ id: input.id })
+				.update({
+					completed_at: completedAt,
+					description: input.description,
+					due_at: input.dueAt,
+					priority_id: schema
+						.object({
+							id: schema.coerce.number().int().positive(),
+						})
+						.parse(priority).id,
+					project_id: input.projectId ?? null,
+					status_id: schema
+						.object({
+							id: schema.coerce.number().int().positive(),
+						})
+						.parse(status).id,
+					title: input.title,
+					updated_at: now,
+				});
 
 			if (affectedRows === 0) {
 				return undefined;
@@ -784,16 +786,20 @@ export class TodosController implements Resource {
 			}
 
 			const now = new Date().toISOString();
-			const affectedRows = await tx("todos").where({ id: todoId }).update({
-				completed_at:
-					nextStatusCode === "completed" ? (current.completedAt ?? now) : null,
-				status_id: schema
-					.object({
-						id: schema.coerce.number().int().positive(),
-					})
-					.parse(status).id,
-				updated_at: now,
-			});
+			const affectedRows = await tx("todos")
+				.where({ id: todoId })
+				.update({
+					completed_at:
+						nextStatusCode === "completed"
+							? (current.completedAt ?? now)
+							: null,
+					status_id: schema
+						.object({
+							id: schema.coerce.number().int().positive(),
+						})
+						.parse(status).id,
+					updated_at: now,
+				});
 
 			if (affectedRows === 0) {
 				return undefined;

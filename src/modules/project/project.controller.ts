@@ -43,9 +43,11 @@ export class ProjectController implements Resource {
 	}
 
 	async show(ctx: HttpContext) {
-		const parsedProjectId = schema.coerce.number().int().positive().safeParse(
-			ctx.param("id"),
-		);
+		const parsedProjectId = schema.coerce
+			.number()
+			.int()
+			.positive()
+			.safeParse(ctx.param("id"));
 		if (!parsedProjectId.success) {
 			return ctx.notFound();
 		}
@@ -169,9 +171,11 @@ export class ProjectController implements Resource {
 	}
 
 	async edit(ctx: HttpContext) {
-		const parsedProjectId = schema.coerce.number().int().positive().safeParse(
-			ctx.param("id"),
-		);
+		const parsedProjectId = schema.coerce
+			.number()
+			.int()
+			.positive()
+			.safeParse(ctx.param("id"));
 		if (!parsedProjectId.success) {
 			return ctx.notFound();
 		}
@@ -215,9 +219,11 @@ export class ProjectController implements Resource {
 	}
 
 	async update(ctx: HttpContext) {
-		const parsedProjectId = schema.coerce.number().int().positive().safeParse(
-			ctx.param("id"),
-		);
+		const parsedProjectId = schema.coerce
+			.number()
+			.int()
+			.positive()
+			.safeParse(ctx.param("id"));
 		if (!parsedProjectId.success) {
 			return ctx.notFound();
 		}
@@ -259,7 +265,9 @@ export class ProjectController implements Resource {
 
 		try {
 			const result = await this.#db.transaction(async (tx) => {
-				const existing = await tx("projects").where({ id: projectId }).first("id");
+				const existing = await tx("projects")
+					.where({ id: projectId })
+					.first("id");
 				if (!existing) {
 					return;
 				}
@@ -270,10 +278,12 @@ export class ProjectController implements Resource {
 					})
 					.parse(existing);
 
-				const affectedRows = await tx("projects").where({ id: projectId }).update({
-					name: parsed.data.name,
-					updated_at: new Date().toISOString(),
-				});
+				const affectedRows = await tx("projects")
+					.where({ id: projectId })
+					.update({
+						name: parsed.data.name,
+						updated_at: new Date().toISOString(),
+					});
 				if (affectedRows === 0) {
 					return undefined;
 				}
@@ -300,15 +310,18 @@ export class ProjectController implements Resource {
 	}
 
 	async delete(ctx: HttpContext) {
-		const parsedProjectId = schema.coerce.number().int().positive().safeParse(
-			ctx.param("id"),
-		);
+		const parsedProjectId = schema.coerce
+			.number()
+			.int()
+			.positive()
+			.safeParse(ctx.param("id"));
 		if (!parsedProjectId.success) {
 			return ctx.notFound();
 		}
 		const projectId = parsedProjectId.data;
 
-		const deleted = (await this.#db("projects").where({ id: projectId }).del()) > 0;
+		const deleted =
+			(await this.#db("projects").where({ id: projectId }).del()) > 0;
 		if (!deleted) {
 			return ctx.notFound();
 		}
@@ -317,16 +330,20 @@ export class ProjectController implements Resource {
 	}
 
 	async archive(ctx: HttpContext) {
-		const parsedProjectId = schema.coerce.number().int().positive().safeParse(
-			ctx.param("id"),
-		);
+		const parsedProjectId = schema.coerce
+			.number()
+			.int()
+			.positive()
+			.safeParse(ctx.param("id"));
 		if (!parsedProjectId.success) {
 			return ctx.notFound();
 		}
 		const projectId = parsedProjectId.data;
 
 		const result = await this.#db.transaction(async (tx) => {
-			const existing = await tx("projects").where({ id: projectId }).first("id");
+			const existing = await tx("projects")
+				.where({ id: projectId })
+				.first("id");
 			if (!existing) {
 				return;
 			}
@@ -349,10 +366,12 @@ export class ProjectController implements Resource {
 				})
 				.parse(statusRow);
 
-			const affectedRows = await tx("projects").where({ id: projectId }).update({
-				status_id: status.id,
-				updated_at: new Date().toISOString(),
-			});
+			const affectedRows = await tx("projects")
+				.where({ id: projectId })
+				.update({
+					status_id: status.id,
+					updated_at: new Date().toISOString(),
+				});
 			if (affectedRows === 0) {
 				return undefined;
 			}
@@ -367,16 +386,20 @@ export class ProjectController implements Resource {
 	}
 
 	async unarchive(ctx: HttpContext) {
-		const parsedProjectId = schema.coerce.number().int().positive().safeParse(
-			ctx.param("id"),
-		);
+		const parsedProjectId = schema.coerce
+			.number()
+			.int()
+			.positive()
+			.safeParse(ctx.param("id"));
 		if (!parsedProjectId.success) {
 			return ctx.notFound();
 		}
 		const projectId = parsedProjectId.data;
 
 		const result = await this.#db.transaction(async (tx) => {
-			const existing = await tx("projects").where({ id: projectId }).first("id");
+			const existing = await tx("projects")
+				.where({ id: projectId })
+				.first("id");
 			if (!existing) {
 				return;
 			}
@@ -399,10 +422,12 @@ export class ProjectController implements Resource {
 				})
 				.parse(statusRow);
 
-			const affectedRows = await tx("projects").where({ id: projectId }).update({
-				status_id: status.id,
-				updated_at: new Date().toISOString(),
-			});
+			const affectedRows = await tx("projects")
+				.where({ id: projectId })
+				.update({
+					status_id: status.id,
+					updated_at: new Date().toISOString(),
+				});
 			if (affectedRows === 0) {
 				return undefined;
 			}

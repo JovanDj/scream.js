@@ -99,9 +99,11 @@ export class TagController {
 	}
 
 	async delete(ctx: HttpContext) {
-		const parsedTagId = schema.coerce.number().int().positive().safeParse(
-			ctx.param("id"),
-		);
+		const parsedTagId = schema.coerce
+			.number()
+			.int()
+			.positive()
+			.safeParse(ctx.param("id"));
 		if (!parsedTagId.success) {
 			return ctx.notFound();
 		}
@@ -116,9 +118,11 @@ export class TagController {
 	}
 
 	async assignToTodo(ctx: HttpContext) {
-		const parsedTodoId = schema.coerce.number().int().positive().safeParse(
-			ctx.param("id"),
-		);
+		const parsedTodoId = schema.coerce
+			.number()
+			.int()
+			.positive()
+			.safeParse(ctx.param("id"));
 		if (!parsedTodoId.success) {
 			return ctx.notFound();
 		}
