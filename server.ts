@@ -7,11 +7,18 @@ import { createLogger } from "@scream.js/logger/logger-factory.js";
 import "source-map-support/register";
 import { PagesModule } from "./src/modules/pages/index.js";
 import { ProjectModule } from "./src/modules/project/index.js";
+import { TagModule } from "./src/modules/tag/index.js";
+import { TodoModule } from "./src/modules/todo/index.js";
 
 export const createServer = () => {
 	const logger = createLogger();
 	const db = createDB();
-	const modules = [PagesModule.create(), ProjectModule.create(db)];
+	const modules = [
+		PagesModule.create(),
+		ProjectModule.create(db),
+		TagModule.create(db),
+		TodoModule.create(db),
+	];
 
 	const app: Application = ExpressApp.create();
 	for (const module of modules) {

@@ -1,8 +1,6 @@
-import { STATUS_CODES } from "node:http";
-import type { Validator } from "@scream.js/validator/validator.js";
 import type express from "express";
+import { STATUS_CODES } from "node:http";
 import type { HttpContext } from "../http-context.js";
-import { NotFoundError } from "../not-found-error.js";
 
 export class ExpressHttpContext implements HttpContext {
 	readonly #request: express.Request;
@@ -37,21 +35,15 @@ export class ExpressHttpContext implements HttpContext {
 		this.#response.status(404).end(STATUS_CODES[404]);
 	}
 
-	param<T>(key: string, validator: Validator<T>) {
-		const result = validator.validate(this.#request.params[key]);
-		if (result.success) {
-			return result.data;
-		}
-
-		this.notFound();
-		throw new NotFoundError();
+	param(key: string) {
+		return this.#request.params[key];
 	}
 
-	body<T>(validator: Validator<T>) {
-		return validator.validate(this.#request.body);
+	body() {
+		return this.#request.body;
 	}
 
-	query<T>(validator: Validator<T>) {
-		return validator.validate(this.#request.query);
+	query() {
+		return this.#request.query;
 	}
 }

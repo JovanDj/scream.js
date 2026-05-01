@@ -7,7 +7,6 @@ import nunjucks from "nunjucks";
 
 import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
-import { NotFoundError } from "../not-found-error.js";
 import type { Resource } from "../resource.js";
 import { KoaHttpContext } from "./koa-http-context.js";
 
@@ -66,13 +65,7 @@ export class KoaApp implements Application {
 	get(path: string, handler: Handler) {
 		this.#router.get(path, async (ctx) => {
 			const context = this.#createContext(ctx);
-			try {
-				await handler(context);
-			} catch (error) {
-				if (!(error instanceof NotFoundError)) {
-					throw error;
-				}
-			}
+			await handler(context);
 		});
 		return this;
 	}
@@ -80,13 +73,7 @@ export class KoaApp implements Application {
 	post(path: string, handler: Handler) {
 		this.#router.post(path, async (ctx) => {
 			const context = this.#createContext(ctx);
-			try {
-				await handler(context);
-			} catch (error) {
-				if (!(error instanceof NotFoundError)) {
-					throw error;
-				}
-			}
+			await handler(context);
 		});
 		return this;
 	}

@@ -50,7 +50,7 @@ TypeScript is configured with **maximum strictness** (e.g., `"strict": true` and
 * Do not add abstractions only because they are conventional.
 * Removing code is better than preserving unused abstractions. If a layer is no longer useful, remove it, inline it, or simplify it.
 * Keep modules flat by default. Split files only when readability or change cost clearly improves.
-* When a controller method grows past clear prototype scale, extract a transaction script service instead of letting the action keep expanding.
+* Services are not a default module pattern. Treat them as a refactoring step when current complexity makes a controller-led module harder to change.
 
 ### Non-negotiable boundaries
 
@@ -131,18 +131,19 @@ Do not assume single-user execution.
 * **Data access:** services may use repositories when a repository layer improves clarity, but a simple module does not need a service just to forward calls.
 * **Testing:** instantiate the service **directly** and assert its methods’ behavior. It shouldn’t matter where inputs came from (HTTP, jobs, CLI) — the service should behave the same. **Prefer real dependencies**.
 
-### Extraction Thresholds
+### Service Extraction
 
-When controller-led code stops being the simplest clear implementation, extract a transaction script service.
+When controller-led code stops being the simplest clear implementation, consider extracting a service as the first refactoring step.
 
-Typical triggers:
+Useful signals:
 
-* a controller method exceeds about 150 lines
-* a controller method performs more than one transaction-worthy write flow
-* a controller method touches more than two tables or entities
-* branching logic goes deeper than two levels
-* the same method logic is reused or duplicated
-* understanding the code takes longer than writing new code
+* the same use-case logic is reused outside one HTTP action
+* transaction handling becomes repetitive or hard to follow
+* business rules are getting mixed into HTTP branching
+* understanding the controller takes longer than changing it
+* moving the use case into a service makes the next change easier now
+
+Do not extract a service because of arbitrary size, table-count, or branching-count thresholds. If a service only forwards calls or hides simple SQL, inline it.
 
 ### Repositories (Data Access)
 

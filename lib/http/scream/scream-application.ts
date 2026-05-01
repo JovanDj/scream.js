@@ -9,7 +9,6 @@ import { parse } from "node:url";
 import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
 import type { HttpContext } from "../http-context.js";
-import { NotFoundError } from "../not-found-error.js";
 import type { Resource } from "../resource.ts";
 import { ScreamHttpContext } from "./scream-http-context.js";
 
@@ -53,13 +52,7 @@ export class ScreamApp implements Application {
 		const handler = methodRoutes ? methodRoutes.get(path) : undefined;
 
 		if (handler) {
-			try {
-				await handler(context);
-			} catch (error) {
-				if (!(error instanceof NotFoundError)) {
-					throw error;
-				}
-			}
+			await handler(context);
 		} else {
 			context.notFound();
 		}

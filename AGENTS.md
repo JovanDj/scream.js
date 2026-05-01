@@ -237,7 +237,7 @@ Refactor when:
 
 * understanding the code takes longer than writing new code
 
-Refactor when one or more of these are true:
+Consider refactoring when one or more of these are true:
 
 * the same rule appears in multiple places
 * the same SQL appears in multiple places
@@ -249,17 +249,11 @@ Refactor when one or more of these are true:
 
 Until then, prefer delivery over structure.
 
-Mandatory extraction thresholds for controller methods:
+There are no arbitrary service-extraction thresholds.
 
-* A controller method must be refactored when it exceeds about 150 lines.
-* A controller method must be refactored when it performs more than 1 transaction-worthy write flow.
-* A controller method must be refactored when it touches more than 2 tables or entities.
-* A controller method must be refactored when it contains branching logic deeper than 2 levels.
-* A controller method must be refactored when it is reused or duplicated.
+Services are not a default module pattern. They are one possible first step when refactoring a controller-led module after real pressure appears.
 
-At that point:
-
-* extract a transaction script service
+Extract a service only when it makes the next change easier now. A service may be a good fit when it gives a reusable use case a clear home, keeps HTTP concerns out of business logic, or makes a transaction script easier to reason about. If the service only forwards calls, hides simple SQL, or exists because a controller crossed a numeric threshold, inline it.
 
 #### No premature abstraction
 

@@ -13,7 +13,6 @@ import { createProxyMiddleware } from "http-proxy-middleware";
 
 import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
-import { NotFoundError } from "../not-found-error.js";
 import type { Resource } from "../resource.ts";
 import { ExpressHttpContext } from "./express-http-context.js";
 
@@ -72,9 +71,6 @@ export class ExpressApp implements Application {
 			try {
 				await handler(ExpressHttpContext.create(req, res));
 			} catch (error) {
-				if (error instanceof NotFoundError) {
-					return;
-				}
 				next(error);
 			}
 		});
@@ -87,9 +83,6 @@ export class ExpressApp implements Application {
 			try {
 				await handler(ExpressHttpContext.create(req, res));
 			} catch (error) {
-				if (error instanceof NotFoundError) {
-					return;
-				}
 				next(error);
 			}
 		});

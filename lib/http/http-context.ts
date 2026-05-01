@@ -1,12 +1,7 @@
-import type {
-	ValidationResult,
-	Validator,
-} from "@scream.js/validator/validator.js";
-
 export interface HttpContext {
-	param<T>(key: string, validator: Validator<T>): T;
-	body<T>(validator: Validator<T>): ValidationResult<T>;
-	query<T>(validator: Validator<T>): ValidationResult<T>;
+	param(key: string): unknown;
+	body(): unknown;
+	query(): unknown;
 	render(
 		template: string,
 		locals?: Record<PropertyKey, unknown>,

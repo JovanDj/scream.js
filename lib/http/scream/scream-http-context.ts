@@ -5,10 +5,8 @@ import {
 } from "node:http";
 import path from "node:path";
 import { parse } from "node:url";
-import type { Validator } from "@scream.js/validator/validator.js";
 import nunjucks from "nunjucks";
 import type { HttpContext } from "../http-context.js";
-import { NotFoundError } from "../not-found-error.js";
 
 export class ScreamHttpContext implements HttpContext {
 	readonly #res: ServerResponse;
@@ -75,21 +73,15 @@ export class ScreamHttpContext implements HttpContext {
 		});
 	}
 
-	param<T>(key: string, validator: Validator<T>) {
-		const result = validator.validate(this.#paramValue(key));
-		if (result.success) {
-			return result.data;
-		}
-
-		this.notFound();
-		throw new NotFoundError();
+	param(key: string) {
+		return this.#paramValue(key);
 	}
 
-	body<T>(validator: Validator<T>) {
-		return validator.validate(this.#body());
+	body() {
+		return this.#body();
 	}
 
-	query<T>(validator: Validator<T>) {
-		return validator.validate(this.#query());
+	query() {
+		return this.#query();
 	}
 }
