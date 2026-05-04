@@ -1,16 +1,7 @@
 import path from "node:path";
-import { Evaluator } from "@scream.js/template-engine/evaluator.js";
-import { Generator } from "@scream.js/template-engine/generator.js";
-import { Parser } from "@scream.js/template-engine/parser.js";
-import { Resolver } from "@scream.js/template-engine/resolver.js";
-import { SystemFileLoader } from "@scream.js/template-engine/system-file-loader.js";
 import { ScreamTemplateEngine } from "@scream.js/template-engine/template-engine.js";
-import { Tokenizer } from "@scream.js/template-engine/tokenizer.js";
-import { Transformer } from "@scream.js/template-engine/transformer.js";
 import type Express from "express";
 import express from "express";
-import { createProxyMiddleware } from "http-proxy-middleware";
-
 import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
 import type { Resource } from "../resource.ts";
@@ -21,20 +12,11 @@ export class ExpressApp implements Application {
 
 	static create(): Application {
 		const app = express();
-		const templateEngine = new ScreamTemplateEngine(
-			new Resolver(
-				new SystemFileLoader(),
-				new Tokenizer(),
-				new Parser(),
-				new Transformer(),
-			),
-			new Evaluator(),
-			new Generator(),
-		);
+		const templateEngine = ScreamTemplateEngine.create();
 
 		const viewsPath = path.join(process.cwd(), "views");
 
-		app.engine("njk", async (filePath, options, callback) => {
+		app.engine("scream", async (filePath, options, callback) => {
 			try {
 				const rendered = await templateEngine.compileFile(filePath, {
 					...options,
@@ -46,18 +28,9 @@ export class ExpressApp implements Application {
 		});
 
 		app.set("views", viewsPath);
-		app.set("view engine", "njk");
+		app.set("view engine", "scream");
 
 		app.use(express.urlencoded({ extended: true }));
-		app.use(express.static(path.join(process.cwd(), "resources")));
-
-		app.use(
-			"/assets",
-			createProxyMiddleware({
-				changeOrigin: true,
-				target: "http://localhost:5173",
-			}),
-		);
 
 		return new ExpressApp(app);
 	}

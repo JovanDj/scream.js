@@ -5,20 +5,14 @@ import {
 } from "node:http";
 import path from "node:path";
 import { parse } from "node:url";
-import nunjucks from "nunjucks";
+import { ScreamTemplateEngine } from "@scream.js/template-engine/template-engine.js";
 import type { HttpContext } from "../http-context.js";
 
 export class ScreamHttpContext implements HttpContext {
 	readonly #res: ServerResponse;
 	readonly #parsedUrl: ReturnType<typeof parse>;
 	#bodyData: unknown | undefined = undefined;
-
-	readonly #nunjucks = new nunjucks.Environment(
-		new nunjucks.FileSystemLoader(path.join(process.cwd(), "views"), {
-			noCache: true,
-			watch: true,
-		}),
-	);
+	readonly #templateEngine = ScreamTemplateEngine.create();
 
 	constructor(req: Readonly<IncomingMessage>, res: ServerResponse) {
 		this.#res = res;
@@ -56,21 +50,17 @@ export class ScreamHttpContext implements HttpContext {
 	}
 
 	async render(template: string, locals?: Record<string, unknown>) {
-		return new Promise<void>((resolve, reject) => {
-			this.#nunjucks.render(`${template}.njk`, locals || {}, (err, result) => {
-				if (err) {
-					return reject(err);
-				}
+		const filename = path.extname(template) ? template : `${template}.scream`;
+		const html = await this.#templateEngine.compileFile(
+			path.join(process.cwd(), "views", filename),
+			locals || {},
+		);
 
-				// Set HTML content type and send the rendered HTML
-				this.#res
-					.writeHead(200, {
-						"Content-Type": "text/html",
-					})
-					.end(result);
-				resolve();
-			});
-		});
+		this.#res
+			.writeHead(200, {
+				"Content-Type": "text/html; charset=utf-8",
+			})
+			.end(html);
 	}
 
 	param(key: string) {

@@ -1,6 +1,308 @@
 # ScreamJS Working Rules
 
-These rules are mandatory for new code and refactors. If another doc conflicts, this wins.
+These rules are mandatory for new code and refactors. They describe the current direction for Scream.js.
+
+## Product Decisions
+
+Scream.js is a full-stack TypeScript framework for SSR HTML applications, not merely a backend framework.
+
+Scream.js is:
+
+* SSR HTML-only
+* database-backed
+* CRUD-first
+* explicit
+* testable
+* boring in the right way
+
+The framework rejects:
+
+* Express-style chaos
+* NestJS-style ceremony
+* Next.js frontend gravity
+* Laravel/Rails-style dynamic magic
+* decorators, reflection, metadata, runtime scanning, and hidden object assembly
+
+The core principle is speed of delivery inside architectural guardrails.
+
+Framework defaults:
+
+* fat controllers are acceptable
+* services are optional
+* repositories are optional
+* gateways are optional
+* ORMs are not required or provided by default
+* query files are not created by default
+* dependency containers are not used
+* hidden magic is not allowed
+
+Refactor only when real pressure appears:
+
+| Pressure | Refactor toward |
+| --- | --- |
+| Controller becomes hard to read | service/use case |
+| SQL repetition appears | persistence abstraction |
+| Business rules grow | domain/table object |
+| Repeated rendering behavior appears | base/helper |
+| Validation gets large | module-local validator/schema |
+
+## Manual Dependency Composition
+
+Manual dependency injection is permanent.
+
+Rules:
+
+* app composition wires dependencies
+* dependencies are visible in constructors
+* no IoC container
+* no service locator
+* no decorator injection
+* no metadata scanning
+
+The composition root may assemble the app. The framework must not secretly assemble business objects.
+
+## Resource Routing
+
+Default routing should be resource-based for SSR CRUD.
+
+Canonical actions:
+
+* `index`
+* `create`
+* `store`
+* `show`
+* `edit`
+* `update`
+* `destroy`
+
+Use Laravel-style `create`/`store`, not Rails-style `new`/`create`. Use `destroy`, not `delete`.
+
+Resource routing should use separate action interfaces, so users can pick actions individually. Full CRUD is a prebuilt composition of those action interfaces.
+
+Default resource routes:
+
+| HTTP | Path | Action |
+| --- | --- | --- |
+| GET | `/todos` | `index` |
+| GET | `/todos/create` | `create` |
+| POST | `/todos` | `store` |
+| GET | `/todos/:id` | `show` |
+| GET | `/todos/:id/edit` | `edit` |
+| PATCH | `/todos/:id` | `update` |
+| DELETE | `/todos/:id` | `destroy` |
+
+Controllers use classic methods, not arrow-function fields. The router/resource system must support classic methods without making users fight JavaScript binding.
+
+## Route Names and URL Generation
+
+`resource()` generates route names automatically. Do not add explicit route-name overrides.
+
+`routes.resource("/todos", todosController)` generates:
+
+* `todos.index`
+* `todos.create`
+* `todos.store`
+* `todos.show`
+* `todos.edit`
+* `todos.update`
+* `todos.destroy`
+
+Nested paths become dot-separated route namespaces. For example, `/admin/blog-posts` generates names such as `admin.blog-posts.index`.
+
+Dynamic params are skipped in route names. For example, `/projects/:projectId/tasks` generates names such as `projects.tasks.index`.
+
+`route()` rules:
+
+* returns relative URLs only
+* fills path params first
+* leftover values become query params
+* URL-encodes path and query values
+* template engine handles HTML escaping
+* fails loudly on missing route names or missing params
+* omits `undefined`
+* preserves empty strings
+* rejects `null`
+* rejects objects
+* rejects `Date`
+* supports arrays as repeated query keys
+* serializes booleans as `true` and `false`
+
+## Path Handling
+
+* Registered routes normalize away trailing slash, except `/`.
+* Route generation outputs canonical non-trailing-slash URLs.
+* Request matching tolerates trailing slashes silently.
+* No automatic redirect.
+* Route matching is case-sensitive.
+* Path params are decoded before controller access.
+* Invalid percent encoding returns `400 Bad Request`.
+* Params remain strings until explicit validation or coercion.
+
+## HTML Forms
+
+Scream.js is SSR form-first.
+
+Method spoofing:
+
+* enabled by default
+* handled before route matching
+* only reads POST body `_method`
+* supports `PATCH` and `DELETE`
+* is not handled in controllers
+
+CSRF:
+
+* part of the framework
+* handled in the HTTP/app middleware pipeline
+* applies to unsafe methods
+* ignored for `GET`
+* invalid token returns `403`
+* token is automatically exposed to templates as `csrfToken`
+
+Do not add a form-helper DSL. Plain HTML comes first.
+
+## Request Validation and Form Errors
+
+Request values stay raw until validation.
+
+Rules:
+
+* route params are decoded strings
+* query params are decoded strings or string arrays
+* form body values are decoded but not magically typed
+* JSON bodies still require validation
+
+`HttpContext` should provide boundary validation helpers:
+
+* `context.param(...)`
+* `context.query(...)`
+* `context.body(...)`
+
+Actual schemas and validators remain explicit and reusable.
+
+Validation returns a discriminated union, not exceptions:
+
+```ts
+type ValidationResult<T> =
+  | { valid: true; value: T }
+  | { valid: false; errors: FormErrors };
+```
+
+Invalid user input is normal control flow, not exceptional framework failure.
+
+Validation errors, business-rule errors, and database conflicts render through one form-error contract.
+
+`FormErrors` is a small first-class object. It supports:
+
+* field errors
+* form/global errors
+* `field("email")`
+* `has("email")`
+* `any()`
+
+Errors are keyed by stable field paths:
+
+```ts
+{
+  fields: {
+    "user.email": ["Email must be valid"],
+    "items.0.name": ["Name is required"],
+  },
+  form: ["Invalid submission"],
+}
+```
+
+Cross-field validation is required through simple object-level refinement. Async/database-backed validation is not part of the schema system. Do those checks after parsing, with DB constraints as the final guard.
+
+## Template Engine
+
+The template engine is a first-class core framework component, behind a small rendering contract.
+
+The template pipeline is:
+
+```text
+template source/name
+-> resolver
+-> tokenizer
+-> parser
+-> transformer
+-> generator
+-> HTML
+```
+
+Stage responsibilities:
+
+| Stage | Responsibility |
+| --- | --- |
+| Resolver | Load and statically compose templates |
+| Tokenizer | Turn source into tokens |
+| Parser | Turn tokens into AST |
+| Transformer | Transform AST only |
+| Generator | Render AST with context |
+
+Every stage receives structured input, returns structured output, and does not do another stage's job.
+
+Layout resolution and includes belong in the resolver, not the transformer, tokenizer, parser, or generator. The resolver returns a merged template source string, not a template graph.
+
+Template loading and inheritance rules:
+
+* `{% extends %}` is static only
+* `{% extends %}` must be the first meaningful statement
+* a template may have zero or one direct parent
+* no conditional or dynamic extends
+* child templates that extend layouts may contain only extends plus block definitions at top level
+* parent block fallback content renders when not overridden
+* unknown child block overrides fail loudly
+* missing templates fail loudly
+* include/layout cycles fail loudly and report the cycle path
+* includes use static string literals only
+* includes resolve recursively
+* no dynamic includes
+* includes resolve from the configured views root
+* no `./` or `../` relative paths
+* absolute paths and traversal outside views root are rejected
+* explicit file extensions are required
+* `.scream` is the only template extension
+* plain HTML is valid `.scream`
+
+Template expression rules:
+
+* variable output is HTML-escaped by default
+* no raw or unescaped output
+* no arbitrary JavaScript
+* no complex inline computation
+* no `Math`, `process`, globals, imports, or arbitrary object method calls
+* helper calls are limited to explicitly provided view helpers
+* top-level helpers are allowed
+* `route(...)` is a top-level helper
+* `csrfToken` is a value, not a helper function
+* comments use `{# comment #}`
+* comments are removed from output
+* comments are allowed anywhere whitespace is allowed
+* comments are not allowed inside expressions
+* whitespace trimming syntax is excluded
+
+Allowed expression examples:
+
+```scream
+{{ user.name }}
+{{ todo.title }}
+{{ route("todos.show", { id: todo.id }) }}
+{{ errors.field("title") }}
+```
+
+## Current Implementation Priorities
+
+1. Keep the scope focused on SSR HTML CRUD.
+2. Design resource routing: action interfaces, `resource()` registration, and generated route names.
+3. Build route generation: `route(name, params)` with the rules above.
+4. Add method spoofing: POST plus `_method`.
+5. Add CSRF middleware and expose `csrfToken` automatically to views.
+6. Define `FormErrors` as one renderable error contract.
+7. Define the validation result shape as a discriminated union.
+8. Refactor the template engine pipeline so layout/include resolution lives in a resolver stage.
+9. Restrict template syntax to static composition, escaped output, and simple expressions.
+10. Prove everything with one boring CRUD app.
 
 ## Goal
 
@@ -263,7 +565,7 @@ Do not add:
 * generic repositories
 * generic mappers
 * indirection-only interfaces
-* “future-proof” layers
+* "future-proof" layers
 
 Add a new abstraction only when the current code is harder to change because the abstraction is missing.
 

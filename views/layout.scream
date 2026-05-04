@@ -7,9 +7,8 @@
 
         <title>{{pageTitle}}</title>
 
-		<link rel="stylesheet" href="http://localhost:5173/styles.scss">
-		<script type="module" src="http://localhost:5173/main.js"></script>
-		<script type="module" src="http://localhost:5173/@vite/client"></script>
+		<script type="module" src="http://127.0.0.1:5173/@vite/client"></script>
+		<script type="module" src="http://127.0.0.1:5173/main.ts"></script>
     </head>
     <body class="app-shell">
         <header class="app-header">

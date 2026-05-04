@@ -1,4 +1,4 @@
-{% extends "layout.njk" %}
+{% extends "layout.scream" %}
 
 {% block content %}
     <div class="container py-4 px-3 mx-auto">
@@ -10,7 +10,7 @@
 
             <form method="GET" action="/todos" class="mb-3">
                 <input type="hidden" name="status" value="{{ status }}">
-                {% if projectId !== undefined %}
+                {% if hasProjectId %}
                 <input type="hidden" name="projectId" value="{{ projectId }}">
                 {% endif %}
                 <div class="row g-2">
@@ -54,7 +54,7 @@
                                 <a class="btn btn-sm btn-outline-primary" href="/todos/{{ todo.id }}/edit">Edit</a>
                                 <form action="/todos/{{ todo.id }}/toggle" method="POST" class="d-inline">
                                     <button class="btn btn-sm btn-outline-secondary" type="submit">
-                                        {% if todo.statusCode == "completed" %}Reopen{% else %}Complete{% endif %}
+                                        {% if todo.isCompleted %}Reopen{% else %}Complete{% endif %}
                                     </button>
                                 </form>
                             </td>

@@ -1,4 +1,4 @@
-{% extends "layout.njk" %}
+{% extends "layout.scream" %}
 
 {% block content %}
     <div class="container py-4 px-3 mx-auto">
@@ -8,17 +8,25 @@
             <form action="/todos/create" method="POST">
                 <div class="mb-3">
                     <label for="title" class="form-label">Title</label>
+                    {% if errors.title %}
                     <input
                         type="text"
                         name="title"
-                        class="form-control {% if errors.title %} is-invalid {% endif %}"
+                        class="form-control is-invalid"
                         id="title"
                         value="{{ fields.title }}"
                         aria-describedby="title"
                     >
-
-                    {% if errors.title %}
-                    <div class="invalid-feedback">{{ errors.title }}</div>
+                    <div class="invalid-feedback d-block">{{ errors.title }}</div>
+                    {% else %}
+                    <input
+                        type="text"
+                        name="title"
+                        class="form-control"
+                        id="title"
+                        value="{{ fields.title }}"
+                        aria-describedby="title"
+                    >
                     {% endif %}
                 </div>
 
@@ -31,23 +39,25 @@
                     <div class="col-md-4">
                         <label for="priority" class="form-label">Priority</label>
                         <select id="priority" name="priority" class="form-select">
-                            <option value="low" {% if fields.priority == "low" %}selected{% endif %}>Low</option>
-                            <option value="medium" {% if fields.priority == "medium" %}selected{% endif %}>Medium</option>
-                            <option value="high" {% if fields.priority == "high" %}selected{% endif %}>High</option>
+                            <option value="low" {% if fields.isLowPriority %}selected{% endif %}>Low</option>
+                            <option value="medium" {% if fields.isMediumPriority %}selected{% endif %}>Medium</option>
+                            <option value="high" {% if fields.isHighPriority %}selected{% endif %}>High</option>
                         </select>
                     </div>
                     <div class="col-md-4">
                         <label for="statusCode" class="form-label">Status</label>
                         <select id="statusCode" name="statusCode" class="form-select">
-                            <option value="open" {% if fields.statusCode == "open" %}selected{% endif %}>Open</option>
-                            <option value="completed" {% if fields.statusCode == "completed" %}selected{% endif %}>Completed</option>
+                            <option value="open" {% if fields.isOpen %}selected{% endif %}>Open</option>
+                            <option value="completed" {% if fields.isCompleted %}selected{% endif %}>Completed</option>
                         </select>
                     </div>
                     <div class="col-md-4">
                         <label for="dueAt" class="form-label">Due Date</label>
-                        <input type="date" id="dueAt" name="dueAt" class="form-control {% if errors.dueAt %} is-invalid {% endif %}" value="{{ fields.dueAt }}">
                         {% if errors.dueAt %}
-                        <div class="invalid-feedback">{{ errors.dueAt }}</div>
+                        <input type="date" id="dueAt" name="dueAt" class="form-control is-invalid" value="{{ fields.dueAt }}">
+                        <div class="invalid-feedback d-block">{{ errors.dueAt }}</div>
+                        {% else %}
+                        <input type="date" id="dueAt" name="dueAt" class="form-control" value="{{ fields.dueAt }}">
                         {% endif %}
                     </div>
                 </div>

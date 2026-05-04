@@ -1,4 +1,4 @@
-{% extends "layout.njk" %}
+{% extends "layout.scream" %}
 
 {% block content %}
 <div class="container py-4 px-3 mx-auto">
@@ -28,7 +28,7 @@
                             <form action="/projects/{{ project.id }}/delete" method="POST" class="d-inline">
                                 <button class="btn btn-sm btn-danger" type="submit">Delete</button>
                             </form>
-                            {% if project.statusCode == "archived" %}
+                            {% if project.isArchived %}
                             <form action="/projects/{{ project.id }}/unarchive" method="POST" class="d-inline">
                                 <button class="btn btn-sm btn-outline-secondary" type="submit">Unarchive</button>
                             </form>

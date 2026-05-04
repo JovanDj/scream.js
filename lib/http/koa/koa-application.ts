@@ -1,9 +1,9 @@
 import path from "node:path";
 import { bodyParser } from "@koa/bodyparser";
 import Router from "@koa/router";
+import { ScreamTemplateEngine } from "@scream.js/template-engine/template-engine.js";
 import type Koa from "koa";
 import KoaClass from "koa";
-import nunjucks from "nunjucks";
 
 import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
@@ -12,7 +12,7 @@ import { KoaHttpContext } from "./koa-http-context.js";
 
 declare module "koa" {
 	interface DefaultContext {
-		render: (view: string, locals?: Record<string, unknown>) => void;
+		render: (view: string, locals?: Record<string, unknown>) => Promise<void>;
 	}
 }
 
@@ -23,30 +23,18 @@ export class KoaApp implements Application {
 	static create(): Application {
 		const koa = new KoaClass();
 		const viewsPath = path.join(process.cwd(), "views");
-		const nunjucksEnv = new nunjucks.Environment(
-			new nunjucks.FileSystemLoader(viewsPath, {
-				noCache: true,
-				watch: process.env["NODE_ENV"] === "development",
-			}),
-		).addGlobal("viteScripts", () => {
-			return `
-			<link rel="stylesheet" href="http://localhost:5173/styles.scss">
-			<script type="module" src="http://localhost:5173/main.ts"></script>
-			<script type="module" src="http://localhost:5173/@vite/client"></script>`;
-		});
+		const templateEngine = ScreamTemplateEngine.create();
 
 		koa.use(bodyParser());
 
 		koa.use(async (ctx, next) => {
 			ctx.render = async (view, locals = {}) => {
-				const filename = path.extname(view) ? view : `${view}.njk`;
+				const filename = path.extname(view) ? view : `${view}.scream`;
 				const data = { ...ctx.state, ...locals };
-
-				const html = await new Promise((resolve, reject) => {
-					nunjucksEnv.render(filename, data, (err, res) =>
-						err ? reject(err) : resolve(res),
-					);
-				});
+				const html = await templateEngine.compileFile(
+					path.join(viewsPath, filename),
+					data,
+				);
 
 				ctx.type = "text/html; charset=utf-8";
 				ctx.body = html;

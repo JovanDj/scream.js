@@ -38,7 +38,10 @@ export class ProjectController implements Resource {
 
 		return ctx.render("project-index", {
 			pageTitle: "Projects",
-			projects,
+			projects: projects.map((project) => ({
+				...project,
+				isArchived: project.statusCode === "archived",
+			})),
 		});
 	}
 
@@ -80,7 +83,10 @@ export class ProjectController implements Resource {
 
 		return ctx.render("project-show", {
 			pageTitle: `Project | ${project.name}`,
-			project,
+			project: {
+				...project,
+				isArchived: project.statusCode === "archived",
+			},
 		});
 	}
 
@@ -213,7 +219,10 @@ export class ProjectController implements Resource {
 				name: project.name,
 			},
 			pageTitle: "Edit Project",
-			project,
+			project: {
+				...project,
+				isArchived: project.statusCode === "archived",
+			},
 			submitLabel: "Update",
 		});
 	}
@@ -258,7 +267,7 @@ export class ProjectController implements Resource {
 					name: "",
 				},
 				pageTitle: "Edit Project",
-				project: { id: projectId },
+				project: { id: projectId, isArchived: false },
 				submitLabel: "Update",
 			});
 		}
@@ -303,7 +312,7 @@ export class ProjectController implements Resource {
 					name: parsed.data.name,
 				},
 				pageTitle: "Edit Project",
-				project: { id: projectId },
+				project: { id: projectId, isArchived: false },
 				submitLabel: "Update",
 			});
 		}

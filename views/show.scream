@@ -1,4 +1,4 @@
-{% extends "layout.njk" %}
+{% extends "layout.scream" %}
 
 {% block content %}
     <div class="container py-4 px-3 mx-auto">
@@ -24,7 +24,7 @@
                 </form>
                 <form action="/todos/{{ todoId }}/toggle" method="POST" class="d-inline">
                     <button type="submit" class="btn btn-outline-secondary">
-                        {% if todoStatusCode == "completed" %}Reopen{% else %}Complete{% endif %}
+                        {% if todoIsCompleted %}Reopen{% else %}Complete{% endif %}
                     </button>
                 </form>
             </div>

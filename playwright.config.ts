@@ -30,7 +30,7 @@ export default defineConfig({
 		trace: "on-first-retry",
 	},
 	webServer: {
-		command: "npm run start:e2e",
+		command: "npm run dev",
 		port: 3000,
 		reuseExistingServer: true,
 	},

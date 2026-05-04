@@ -1,43 +1,60 @@
 # ScreamJS
 
-**A TypeScript‑first web framework with strict DI, SOLID design, and zero magic.**
+**A full-stack TypeScript framework for SSR HTML applications with strict DI, explicit boundaries, and zero magic.**
 
-> ⚠️ **Status & Intended Use**
+> Warning: **Status & Intended Use**
 >
-> ScreamJS is **not production‑ready**. It is **actively developed** and intended **only for testing and educational purposes** at this stage. APIs and behavior may change without notice.
+> ScreamJS is **not production-ready**. It is **actively developed** and intended **only for testing and educational purposes** at this stage. Public APIs and behavior may change without notice.
 
-ScreamJS is a handcrafted, **opinionated, batteries‑included** framework focused on **clarity over magic**. It favors a modular monolith shape with explicit module seams, **constructor injection**, no global singletons, and adapters so you can swap HTTP servers or data layers without rewriting your app. Modules may start with controller-led implementations and grow into more layered designs only when that improves clarity.
+ScreamJS is a handcrafted, opinionated, batteries-included framework focused on **SSR HTML CRUD applications**. It favors a modular monolith shape with explicit module seams, constructor injection, no global singletons, and boring database-backed workflows that are easy to test. Modules may start with controller-led implementations and grow into more layered designs only when that improves clarity.
+
+The scope is intentionally narrow: **SSR HTML-only, database-backed, CRUD-first, explicit, testable, and boring in the right way**.
+
+ScreamJS rejects Express-style chaos, NestJS-style ceremony, Next.js frontend gravity, Laravel/Rails-style dynamic magic, decorators, reflection, metadata, runtime scanning, dependency containers, and hidden business-object assembly.
 
 ---
 
 ## Why ScreamJS?
 
-* **Strict DI** – dependencies are explicit and compile‑time type‑checked.
-* **SOLID & composition** – no inheritance pyramids; small parts, well‑defined extension points.
-* **Framework‑agnostic HTTP** – plug in Express or Koa (or your own adapter).
-* **Typed persistence** – explicit persistence boundaries; DB choice is yours.
-* **Opinionated defaults** – conventions over configuration; clear stances to keep projects consistent.
-* **First‑party batteries** – include as many batteries as practical and hand‑craft them when possible. Third‑party dependencies are used deliberately and chosen with a **preference for MIT licenses**.
-* **Zero surprises** – ESM‑only, Node 22+, strict TypeScript, **Biome** for lint/format.
+* **SSR HTML first** - templates, forms, CSRF, method spoofing, validation errors, and route generation are core concerns.
+* **Strict DI** - dependencies are explicit and compile-time type-checked.
+* **OOP where useful** - small objects, explicit collaborators, and no inheritance pyramids.
+* **HTTP adapter boundary** - the framework can sit on an HTTP adapter without making user code feel like Express-style route soup.
+* **Typed persistence** - explicit persistence boundaries; DB choice is yours.
+* **Opinionated defaults** - conventions over configuration; clear stances keep projects consistent.
+* **First-party batteries** - include as many batteries as practical and hand-craft them when possible.
+* **Zero surprises** - ESM-only, Node 22+, strict TypeScript, Biome for lint/format.
 
-## Opinionated & Batteries‑Included
+## Scope
 
-ScreamJS intentionally ships with **strong opinions** and **as many first‑party batteries as practical**. The goal is to give you a productive, consistent baseline without hidden magic:
+Core principle: **speed of delivery inside architectural guardrails**.
 
-* **Handcrafted batteries**: core capabilities are built in‑house where feasible to keep behavior predictable and docs cohesive.
-* **Explicit seams at the edges**: when a third‑party tool is used, keep the boundary clear so library details do not leak where they do not belong.
-* **License posture**: prefer **MIT‑licensed** dependencies.
-* **Conventions first**: prefer sensible defaults and well‑defined extension points instead of sprawling configuration.
+Framework defaults:
 
----
+* fat controllers are acceptable
+* services are optional
+* repositories are optional
+* gateways are optional
+* no ORM is provided or required
+* no query files by default
+* no dependency container
+* no hidden magic
+
+Extraction happens only when pressure appears:
+
+| Pressure | Refactor toward |
+| --- | --- |
+| Controller becomes hard to read | service/use case |
+| SQL repetition appears | persistence abstraction |
+| Business rules grow | domain/table object |
+| Repeated rendering behavior appears | base/helper |
+| Validation gets large | module-local validator/schema |
 
 ## TypeScript Strictness
 
-TypeScript is configured with **maximum strictness** (e.g., `"strict": true` and related checks) in a single-source `tsconfig`. Settings are **never changed per environment or at runtime**—no ts-node loaders, env-specific extends, or ad‑hoc overrides.
+TypeScript is configured with maximum strictness in a single-source `tsconfig`. Settings are never changed per environment or at runtime: no ts-node loaders, env-specific extends, or ad-hoc overrides.
 
-* Uses `erasableSyntaxOnly` so only **erasable type syntax** is allowed; the compiler emits plain JavaScript with no TS‑specific runtime semantics.
-
----
+* Uses `erasableSyntaxOnly` so only erasable type syntax is allowed; the compiler emits plain JavaScript with no TypeScript-specific runtime semantics.
 
 ## Architecture
 
@@ -51,6 +68,7 @@ TypeScript is configured with **maximum strictness** (e.g., `"strict": true` and
 * Removing code is better than preserving unused abstractions. If a layer is no longer useful, remove it, inline it, or simplify it.
 * Keep modules flat by default. Split files only when readability or change cost clearly improves.
 * Services are not a default module pattern. Treat them as a refactoring step when current complexity makes a controller-led module harder to change.
+* When a controller method grows past clear prototype scale, extract a transaction script service.
 
 ### Non-negotiable boundaries
 
@@ -62,129 +80,280 @@ TypeScript is configured with **maximum strictness** (e.g., `"strict": true` and
 * Raw boundary data must be parsed into trusted values before use.
 * `HttpContext` must not expose database access.
 
+### Manual dependency composition
+
+Manual dependency injection is permanent.
+
+* app composition wires dependencies
+* dependencies are visible in constructors
+* no IoC container
+* no service locator
+* no decorator injection
+* no metadata scanning
+
+The composition root may assemble the app. The framework must not secretly assemble business objects.
+
 ### Persistence boundaries
 
 * Database rows are boundary data too.
 * Whoever owns the persistence boundary must parse raw rows before returning trusted values.
-* That persistence boundary may be a repository, a controller, a service, a query object, or another module-local abstraction.
+* That persistence boundary may be a repository, controller, service, query object, or another module-local abstraction.
 * When a repository layer exists, it owns row parsing. When it does not, the layer that performs persistence directly owns that parsing.
 
-### Side effects rule
+### Side effects and concurrency
 
-External side effects such as events, emails, and HTTP calls:
-
-* must not run inside DB transactions unless strictly necessary
-* must run only after successful commit
-
-Violation of this rule risks inconsistent system state.
-
-### Concurrency expectations
+External side effects such as events, emails, and HTTP calls must not run inside DB transactions unless strictly necessary, and must run only after successful commit.
 
 For write flows:
 
 * use transactions for multi-step writes
 * use `SELECT ... FOR UPDATE` when correctness depends on current state
+* do not assume single-user execution
 
-Do not assume single-user execution.
+## Resource Routing
 
-## Core Concepts
+Default routing is resource-based for SSR CRUD.
 
-### Modules
+Canonical actions:
 
-**Purpose:** Keep feature seams explicit and consistent.
+* `index`
+* `create`
+* `store`
+* `show`
+* `edit`
+* `update`
+* `destroy`
 
-* **Public API:** each module exposes a factory through `index.ts`, typically `createXModule({ db })`.
-* **Mounting:** module factories return a module object with `mount(app)`. The composition root creates modules, then mounts them explicitly.
-* **Ownership:** controllers, validators, repositories, route definitions, and row validators stay internal to the module by default.
-* **Internal variation:** modules may start controller-led and gain services or repositories later if that improves clarity or reduces change cost.
-* **Cross-module use:** import only through another module’s `index.ts`, never through its internal files.
+Use Laravel-style `create`/`store`, not Rails-style `new`/`create`. Use `destroy`, not `delete`.
 
-### Controllers
+Resource routing uses separate action interfaces, so users can pick actions individually. Full CRUD is a prebuilt composition of those action interfaces.
 
-**Purpose:** Accept raw HTTP input, apply module-owned validators, call the next internal boundary with trusted data, and map the result to an HTTP response.
+Default resource routes:
 
-* **HTTP context:** Each controller method receives an injected **`HttpContext`** from the adapter. It encapsulates request data (method, path params, query, headers, cookies, body) and core response operations such as render, redirect, and not-found handling. The **`HttpContext` interface is uniform across adapters** (Express, Koa, etc.), keeping controllers server‑agnostic.
-* **Parsing:** `HttpContext` applies validators to body/query/params, but feature modules own the request validators they accept. Shared code should provide only generic validator primitives and combinators.
-* **Responsibilities:** extract raw request data, apply module-owned validators, call the appropriate service, repository, or controller-owned use-case logic with trusted values, and translate results to **response DTOs** and **status codes**; map domain errors to HTTP codes.
-* **Inputs/Outputs:** take method + request data; produce a response DTO and status. **Never surface ORM rows or persistence errors directly.**
-* **Types & DTOs:** define **independent types** for HTTP **request inputs** and **response DTOs** (template or JSON). Always **map** service/domain results into these DTOs; do **not** pass domain models straight to the view/JSON.
-* **Why not return service output directly?** Decouples transport from domain, allows API/view‑model changes without touching core logic, hides internal fields, enforces serialization (dates/enums), and reduces the risk of leaking sensitive data.
-* **Do:** keep them thin when that improves clarity, but prefer the smallest clear module structure over introducing layers for ceremony.
-* **Prototype mode:** controllers may temporarily contain business logic, but that logic should stay independent of HTTP concerns, remain extractable without being rewritten, and avoid mixing HTTP branching with business rules.
-* **Internal flow:** even in prototype mode, keep controller methods structured in a readable order: 1. parse and validate input, 2. execute use-case logic, 3. persist changes with SQL, 4. produce the response. Do not interleave these steps arbitrarily.
-* **Don’t:** let raw boundary data leak past the controller boundary or into inner layers.
-* **Testing:** Treat controllers as **black‑box HTTP**. Use a real HTTP test client (e.g., **SuperTest**) to send requests against the running adapter and assert **status, headers, and body**.
+| HTTP | Path | Action |
+| --- | --- | --- |
+| GET | `/todos` | `index` |
+| GET | `/todos/create` | `create` |
+| POST | `/todos` | `store` |
+| GET | `/todos/:id` | `show` |
+| GET | `/todos/:id/edit` | `edit` |
+| PATCH | `/todos/:id` | `update` |
+| DELETE | `/todos/:id` | `destroy` |
 
-  * **Don’t mock `HttpContext` or dependencies.** Mocking skips routing, adapter translation, content‑type/headers, validation, and error mapping—the actual contract the controller must satisfy.
-  * Real HTTP tests catch **wiring mistakes** (routes, middleware), **serialization issues** (dates/enums), and **data leaks** that unit tests with mocks miss.
-  * **Prefer real dependencies.** Run tests as close to production as possible: real adapter, **real database/schema** (via **Docker Compose** or **Testcontainers**), real migrations, real configuration. Use fakes only when a real dependency is impossible, and backstop with CI that runs the **fully integrated** suite.
+Controllers use classic methods, not arrow-function fields. The router/resource system supports classic methods without making users fight JavaScript binding.
 
-### Services
+## Route Names and URL Generation
 
-**Purpose:** Decouple business/use-cases from transport when a dedicated orchestration layer improves clarity. Services are supported, not mandatory.
+`resource()` generates route names automatically. Explicit route-name overrides are not part of the framework.
 
-* **Responsibilities:** implement app-specific business rules and orchestrate repositories and other services when that extra layer earns its cost.
-* **Inputs/Outputs:** accept plain, parsed inputs (DTOs coming from the controller) and return **app‑defined result types** (domain models or DTOs). **Do not leak** ORM rows, query builders, or third‑party library types across the service boundary.
-* **Boundary, not framework:** services are **app-specific** and act as a boundary. **Do not implement a framework interface** for services. If an interface is needed, it’s for **dependencies**, not for the service itself.
-* **Construction:** constructor injection.
-* **Transport‑agnostic:** no knowledge of HTTP (`HttpContext`), views, or serialization concerns.
-* **Data access:** services may use repositories when a repository layer improves clarity, but a simple module does not need a service just to forward calls.
-* **Testing:** instantiate the service **directly** and assert its methods’ behavior. It shouldn’t matter where inputs came from (HTTP, jobs, CLI) — the service should behave the same. **Prefer real dependencies**.
+```ts
+routes.resource("/todos", todosController);
+```
 
-### Service Extraction
+Generates:
 
-When controller-led code stops being the simplest clear implementation, consider extracting a service as the first refactoring step.
+* `todos.index`
+* `todos.create`
+* `todos.store`
+* `todos.show`
+* `todos.edit`
+* `todos.update`
+* `todos.destroy`
 
-Useful signals:
+Nested paths become dot-separated route namespaces. For example, `/admin/blog-posts` generates names such as `admin.blog-posts.index`.
 
-* the same use-case logic is reused outside one HTTP action
-* transaction handling becomes repetitive or hard to follow
-* business rules are getting mixed into HTTP branching
-* understanding the controller takes longer than changing it
-* moving the use case into a service makes the next change easier now
+Dynamic params are skipped in route names. For example, `/projects/:projectId/tasks` generates names such as `projects.tasks.index`.
 
-Do not extract a service because of arbitrary size, table-count, or branching-count thresholds. If a service only forwards calls or hides simple SQL, inline it.
+`route()`:
 
-### Repositories (Data Access)
+* returns relative URLs only
+* fills path params first
+* converts leftover values into query params
+* URL-encodes path and query values
+* lets the template engine handle HTML escaping
+* fails loudly on missing route names or missing params
+* omits `undefined`
+* preserves empty strings
+* rejects `null`, objects, and `Date`
+* supports arrays as repeated query keys
+* serializes booleans as `true` and `false`
 
-**Purpose:** Isolate persistence when a dedicated persistence boundary improves clarity. Repositories are supported, not mandatory.
+Registered routes normalize away trailing slash, except `/`. Route generation outputs canonical non-trailing-slash URLs. Request matching tolerates trailing slashes silently without redirecting. Route matching is case-sensitive. Path params are decoded before controller access, invalid percent encoding returns `400 Bad Request`, and params remain strings until explicit validation or coercion.
 
-* **No enforced pattern:** The framework **does not enforce any DB/data‑access pattern**. Use raw SQL, a query builder (e.g., Knex), an ORM, HTTP APIs, filesystem—whatever fits your app and team.
-* **Contract first:** when repositories exist, the consuming layer defines the contract it needs.
-* **One persistence-boundary option:** repositories are one supported place to own persistence. Simpler modules may keep persistence in a controller or another local abstraction when that is clearer.
-* **Parse rows at the boundary:** database rows are external input too. Whoever owns persistence must validate and parse raw rows before returning trusted shapes/DTOs to the rest of the app.
-* **Return shapes, not entities:** There is **no requirement to cast DB rows into domain entities**. Return the **contracted shapes/DTOs** expected by the service. Map to domain models **only** if you need domain behavior (see Domain Models below).
-* **Scope:** handle persistence concerns (queries, connection errors, unique constraints) when this layer exists.
+## Forms, CSRF, and Validation
 
-### Domain Models (Behavioral, not Anemic)
+ScreamJS is SSR form-first.
 
-(Behavioral, not Anemic)
+Method spoofing:
 
-**Purpose:** Encapsulate domain behavior and invariants—not just data.
+* enabled by default
+* handled before route matching
+* only reads POST body `_method`
+* supports `PATCH` and `DELETE`
+* is not handled in controllers
 
-* **Discouraged:** anemic models (data bags with getters/setters and no behavior).
-* **When to map rows → models:** **only if** there is domain logic to perform (e.g., calculations, state transitions, policy checks). Otherwise return a plain DTO tailored to the use‑case.
-* **Minimal data only:** even when mapping to a model, include **only the fields necessary** for the operation—not the entire DB row.
-* **Why:** reduces coupling to storage, avoids over‑fetching and accidental data exposure, keeps public surfaces small, strengthens invariants at the model boundary, and improves testability.
+CSRF:
 
-### Dependency Injection
+* part of the framework
+* handled in the HTTP/app middleware pipeline
+* applies to unsafe methods
+* ignored for `GET`
+* invalid token returns `403`
+* token is automatically exposed to templates as `csrfToken`
 
-**Purpose:** Make wiring explicit and compile‑time verified.
+No form-helper DSL is planned. Plain HTML comes first.
 
-* **Constructor injection only.**
-* **No decorators or DI containers.** No runtime reflection/metadata; everything stays type‑checked.
-* **Replaceability:** swap implementations per environment by changing what you pass to constructors—no code changes.
+Request values stay raw until validation:
 
-## Linting & Formatting
+* route params are decoded strings
+* query params are decoded strings or string arrays
+* form body values are decoded but not magically typed
+* JSON bodies still require validation
+
+`HttpContext` should provide boundary validation helpers such as `context.param(...)`, `context.query(...)`, and `context.body(...)`. Actual schemas and validators remain explicit and reusable.
+
+Validation returns a discriminated union, not exceptions:
+
+```ts
+type ValidationResult<T> =
+  | { valid: true; value: T }
+  | { valid: false; errors: FormErrors };
+```
+
+Invalid user input is normal control flow, not exceptional framework failure.
+
+Validation errors, business-rule errors, and database conflicts render through one form-error contract. `FormErrors` is a small first-class object that supports field errors, form/global errors, `field("email")`, `has("email")`, and `any()`.
+
+Errors are keyed by stable field paths:
+
+```ts
+{
+  fields: {
+    "user.email": ["Email must be valid"],
+    "items.0.name": ["Name is required"],
+  },
+  form: ["Invalid submission"],
+}
+```
+
+Cross-field validation is required through simple object-level refinement. Async/database-backed validation is not part of the schema system. Do those checks after parsing, with DB constraints as the final guard.
+
+## Template Engine
+
+The template engine is a first-class core framework component, behind a small rendering contract.
+
+The template pipeline is:
+
+```text
+template source/name
+-> resolver
+-> tokenizer
+-> parser
+-> transformer
+-> generator
+-> HTML
+```
+
+| Stage | Responsibility |
+| --- | --- |
+| Resolver | Load and statically compose templates |
+| Tokenizer | Turn source into tokens |
+| Parser | Turn tokens into AST |
+| Transformer | Transform AST only |
+| Generator | Render AST with context |
+
+Every stage receives structured input, returns structured output, and does not do another stage's job.
+
+Layout resolution and includes belong in the resolver, not the transformer, tokenizer, parser, or generator. The resolver returns a merged template source string, not a template graph.
+
+Template loading and inheritance:
+
+* `{% extends %}` is static only
+* `{% extends %}` must be the first meaningful statement
+* a template may have zero or one direct parent
+* no conditional or dynamic extends
+* child templates that extend layouts may contain only extends plus block definitions at top level
+* parent block fallback content renders when not overridden
+* unknown child block overrides fail loudly
+* missing templates fail loudly
+* include/layout cycles fail loudly and report the cycle path
+* includes use static string literals only
+* includes resolve recursively
+* no dynamic includes
+* includes resolve from the configured views root
+* no `./` or `../` relative paths
+* absolute paths and traversal outside views root are rejected
+* explicit file extensions are required
+* `.scream` is the only template extension
+* plain HTML is valid `.scream`
+
+Template expressions:
+
+* variable output is HTML-escaped by default
+* no raw or unescaped output
+* no arbitrary JavaScript
+* no complex inline computation
+* no `Math`, `process`, globals, imports, or arbitrary object method calls
+* helper calls are limited to explicitly provided view helpers
+* top-level helpers are allowed
+* `route(...)` is a top-level helper
+* `csrfToken` is a value, not a helper function
+* comments use `{# comment #}`
+* comments are removed from output
+* comments are allowed anywhere whitespace is allowed
+* comments are not allowed inside expressions
+* whitespace trimming syntax is excluded
+
+Allowed expression examples:
+
+```scream
+{{ user.name }}
+{{ todo.title }}
+{{ route("todos.show", { id: todo.id }) }}
+{{ errors.field("title") }}
+```
+
+## Controllers
+
+Controllers accept raw HTTP input, apply module-owned validators, call the next internal boundary with trusted data, and map the result to an HTTP response.
+
+* Each controller method receives an injected `HttpContext` from the adapter.
+* `HttpContext` encapsulates request data and response operations such as render, redirect, and not-found handling.
+* Controllers stay server-agnostic across adapters.
+* Controllers may temporarily contain business logic when extraction would only add ceremony.
+* Even in prototype mode, keep controller methods ordered as parse/validate input, execute use-case logic, persist changes, and produce the response.
+* Never surface ORM rows, raw DB rows, or persistence errors directly.
+
+## Services, Repositories, and Domain Models
+
+Services, repositories, and domain models are supported, not mandatory.
+
+Use a service when orchestration or reusable business rules make the controller hard to understand. Use a repository or query object when persistence complexity or duplication is already real. Use domain models only when there is behavior or invariants worth isolating.
+
+Do not add base classes, generic repositories, generic mappers, indirection-only interfaces, or future-proof layers.
+
+## Linting and Formatting
 
 Uses **Biome** for linting and formatting.
 
----
-
 ## Testing
 
-* Uses the **Node.js test runner** (`node --test`) with strict assertions.
-* Test **public behavior** (black‑box). Avoid mocking internals.
-* **Prefer real dependencies** and black‑box tests.
-* Do not write unit tests for controller internals, temporary helper functions, or code that is likely to be refactored soon.
+* Uses the Node.js test runner: `node --test`.
+* Test public behavior as black-box behavior.
+* Prefer a small number of integration-style tests over many brittle unit tests.
+* Prefer real dependencies.
+* Do not write unit tests for controller internals, temporary helper functions, or code likely to be refactored soon.
 * Test behavior, not structure.
+
+## Current Implementation Priorities
+
+1. Keep the scope focused on SSR HTML CRUD.
+2. Design resource routing: action interfaces, `resource()` registration, and generated route names.
+3. Build route generation: `route(name, params)` with the rules above.
+4. Add method spoofing: POST plus `_method`.
+5. Add CSRF middleware and expose `csrfToken` automatically to views.
+6. Define `FormErrors` as one renderable error contract.
+7. Define the validation result shape as a discriminated union.
+8. Refactor the template engine pipeline so layout/include resolution lives in a resolver stage.
+9. Restrict template syntax to static composition, escaped output, and simple expressions.
+10. Prove everything with one boring CRUD app.

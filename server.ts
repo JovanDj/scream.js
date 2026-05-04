@@ -5,7 +5,6 @@ import type { HttpModule } from "@scream.js/http/module.js";
 import { HttpServer } from "@scream.js/http/server.js";
 import type { Logger } from "@scream.js/logger/logger.interface.js";
 import { createLogger } from "@scream.js/logger/logger-factory.js";
-import "source-map-support/register";
 import { PagesModule } from "./src/modules/pages/index.js";
 import { ProjectModule } from "./src/modules/project/index.js";
 import { TagModule } from "./src/modules/tag/index.js";
@@ -14,6 +13,7 @@ import { TodoModule } from "./src/modules/todo/index.js";
 const startServer = () => {
 	const logger: Logger = createLogger();
 	const db: Database = createDB();
+
 	const modules: HttpModule[] = [
 		PagesModule.create(),
 		ProjectModule.create(db),
@@ -22,6 +22,7 @@ const startServer = () => {
 	];
 
 	const app: Application = ExpressApp.create();
+
 	for (const module of modules) {
 		module.mount(app);
 	}

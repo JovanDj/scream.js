@@ -1,4 +1,4 @@
-{% extends "layout.njk" %}
+{% extends "layout.scream" %}
 
 {% block content %}
     <div class="container py-4 px-3 mx-auto">
@@ -12,4 +12,4 @@
             </div>
         </section>
     </div>
-{% endblock content %}
+{% endblock content %}w

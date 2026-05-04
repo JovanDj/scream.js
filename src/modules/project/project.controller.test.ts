@@ -10,7 +10,9 @@ describe("project controller", { concurrency: true }, () => {
 		const status = await db("project_statuses")
 			.where({ code: "active" })
 			.first("id");
+
 		const now = new Date().toISOString();
+
 		const [row] = await db("projects")
 			.insert({
 				created_at: now,

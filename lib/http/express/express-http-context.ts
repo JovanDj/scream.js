@@ -17,13 +17,17 @@ export class ExpressHttpContext implements HttpContext {
 
 	render(template: string, locals = {}) {
 		return new Promise<void>((resolve, reject) => {
-			this.#response.render(template, locals, (err, html) => {
-				if (err) {
-					return reject(err);
-				}
-				this.#response.send(html);
-				resolve();
-			});
+			this.#response.render(
+				template,
+				{ lang: "en", ...locals },
+				(err, html) => {
+					if (err) {
+						return reject(err);
+					}
+					this.#response.send(html);
+					resolve();
+				},
+			);
 		});
 	}
 

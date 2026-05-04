@@ -1,4 +1,4 @@
-{% extends "layout.njk" %}
+{% extends "layout.scream" %}
 
 {% block content %}
 <div class="container py-4 px-3 mx-auto">
@@ -8,9 +8,11 @@
         <form action="/tags/create" method="POST" class="mb-4">
             <div class="row g-2">
                 <div class="col-9">
-                    <input name="name" class="form-control {% if errors.name %} is-invalid {% endif %}" placeholder="Tag name" type="text">
                     {% if errors.name %}
-                    <div class="invalid-feedback">{{ errors.name }}</div>
+                    <input name="name" class="form-control is-invalid" placeholder="Tag name" type="text">
+                    <div class="invalid-feedback d-block">{{ errors.name }}</div>
+                    {% else %}
+                    <input name="name" class="form-control" placeholder="Tag name" type="text">
                     {% endif %}
                 </div>
                 <div class="col-3">
