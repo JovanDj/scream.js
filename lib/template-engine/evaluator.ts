@@ -1,12 +1,13 @@
-import type { TemplateContext } from "./context.js";
+import type { RenderContext } from "./context.js";
 import type { ASTNode } from "./parser.js";
+import { RenderError } from "./render-error.js";
 
 export class Evaluator {
-	evaluate(ast: readonly ASTNode[], context: TemplateContext) {
+	evaluate(ast: readonly ASTNode[], context: RenderContext) {
 		return ast.map((node) => this.#evaluateNode(node, context));
 	}
 
-	#evaluateNode(node: ASTNode, context: TemplateContext) {
+	#evaluateNode(node: ASTNode, context: RenderContext) {
 		switch (node.type) {
 			case "text":
 			case "extends":
@@ -45,45 +46,58 @@ export class Evaluator {
 		);
 	}
 
-	#resolvePath(root: unknown, path: readonly (string | number)[]) {
-		return path.reduce<unknown>((acc, key) => {
-			if (!acc) {
-				return undefined;
-			}
-
-			if (Array.isArray(acc) && typeof key === "number") {
-				return acc[key];
-			}
-			if (this.#isRecord(acc) && key in acc) {
-				return acc[key];
-			}
-			return undefined;
-		}, root);
+	#formatPath(path: readonly (string | number)[]) {
+		return path
+			.map((part) => (typeof part === "number" ? `[${part}]` : part))
+			.join(".");
 	}
 
-	#evaluateVariable(node: ASTNode, context: TemplateContext) {
+	#resolvePath(root: unknown, path: readonly (string | number)[]) {
+		let acc = root;
+
+		for (const key of path) {
+			if (Array.isArray(acc) && typeof key === "number") {
+				if (key in acc) {
+					acc = acc[key];
+					continue;
+				}
+				throw new RenderError("Missing value", {
+					expression: this.#formatPath(path),
+				});
+			}
+
+			if (this.#isRecord(acc) && key in acc) {
+				acc = acc[key];
+				continue;
+			}
+
+			throw new RenderError("Missing value", {
+				expression: this.#formatPath(path),
+			});
+		}
+
+		return acc;
+	}
+
+	#evaluateVariable(node: ASTNode, context: RenderContext) {
 		const path = this.#getPathFromNode(node);
 		const raw = this.#resolvePath(context, path);
 
-		return {
-			...node,
-			value: this.#evaluateVariableValue(raw),
-		};
+		return { ...node, value: this.#evaluateVariableValue(raw, path) };
 	}
 
-	#evaluateVariableValue(value: unknown) {
-		if (Array.isArray(value)) {
-			return value.map((v) => this.#escape(String(v))).join(", ");
-		}
-
+	#evaluateVariableValue(value: unknown, path: readonly (string | number)[]) {
 		if (
 			value === null ||
 			value === undefined ||
+			Array.isArray(value) ||
 			typeof value === "object" ||
 			typeof value === "function" ||
 			typeof value === "symbol"
 		) {
-			return "";
+			throw new RenderError("Cannot render value", {
+				expression: this.#formatPath(path),
+			});
 		}
 
 		return this.#escape(String(value));
@@ -109,7 +123,7 @@ export class Evaluator {
 		});
 	}
 
-	#evaluateIf(node: ASTNode, context: TemplateContext): ASTNode {
+	#evaluateIf(node: ASTNode, context: RenderContext): ASTNode {
 		const path = (node.value ?? "")
 			.split(".")
 			.map((s) => s.trim())
@@ -134,7 +148,7 @@ export class Evaluator {
 		};
 	}
 
-	#evaluateFor(node: ASTNode, context: TemplateContext): ASTNode {
+	#evaluateFor(node: ASTNode, context: RenderContext): ASTNode {
 		const path = (node.value ?? "")
 			.split(".")
 			.map((s) => s.trim())
@@ -142,8 +156,16 @@ export class Evaluator {
 
 		const collection = this.#resolvePath(context, path);
 
-		if (!Array.isArray(collection) || !node.iterator) {
-			return { ...node, children: [] };
+		if (!Array.isArray(collection)) {
+			throw new RenderError("Loop collection must be an array", {
+				expression: node.value,
+			});
+		}
+
+		if (!node.iterator) {
+			throw new RenderError("Missing loop iterator", {
+				expression: node.value,
+			});
 		}
 
 		const iteratorKey = node.iterator;
@@ -160,7 +182,7 @@ export class Evaluator {
 		};
 	}
 
-	#evaluateBlock(node: ASTNode, context: TemplateContext): ASTNode {
+	#evaluateBlock(node: ASTNode, context: RenderContext): ASTNode {
 		return {
 			...node,
 			children: (node.children ?? []).map((child) =>

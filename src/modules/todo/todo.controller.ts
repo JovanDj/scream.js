@@ -4,6 +4,47 @@ import type { Resource } from "@scream.js/http/resource.js";
 import { schema } from "@scream.js/validator/schema.js";
 
 type TodoScope = "all" | "completed" | "dueToday" | "open" | "overdue";
+type TodoPriority = "high" | "low" | "medium";
+type TodoStatus = "completed" | "open";
+
+const todoErrors = (
+	issues: readonly { message: string; path: PropertyKey[] }[],
+) => {
+	const errors = { dueAt: "", title: "" };
+
+	for (const issue of issues) {
+		const key = issue.path.join(".");
+		if (key === "title" || key === "dueAt") {
+			errors[key] ||= issue.message;
+		}
+	}
+
+	return errors;
+};
+
+const todoFields = (input: {
+	description?: string;
+	dueAt?: string;
+	priority?: TodoPriority;
+	statusCode?: TodoStatus;
+	title?: string;
+}) => {
+	const priority = input.priority ?? "medium";
+	const statusCode = input.statusCode ?? "open";
+
+	return {
+		description: input.description ?? "",
+		dueAt: input.dueAt ?? "",
+		isCompleted: statusCode === "completed",
+		isHighPriority: priority === "high",
+		isLowPriority: priority === "low",
+		isMediumPriority: priority === "medium",
+		isOpen: statusCode === "open",
+		priority,
+		statusCode,
+		title: input.title ?? "",
+	};
+};
 
 export class TodosController implements Resource {
 	readonly #db: Database;
@@ -191,7 +232,7 @@ export class TodosController implements Resource {
 			},
 			hasProjectId: parsedQuery.data.projectId !== undefined,
 			pageTitle: "Todos",
-			projectId: parsedQuery.data.projectId,
+			projectId: parsedQuery.data.projectId ?? "",
 			search: parsedQuery.data.search,
 			status: parsedQuery.data.status,
 			todos: todoViews,
@@ -275,19 +316,8 @@ export class TodosController implements Resource {
 
 	async create(ctx: HttpContext) {
 		return ctx.render("create", {
-			errors: {},
-			fields: {
-				description: "",
-				dueAt: "",
-				isCompleted: false,
-				isHighPriority: false,
-				isLowPriority: false,
-				isMediumPriority: true,
-				isOpen: true,
-				priority: "medium",
-				statusCode: "open",
-				title: "",
-			},
+			errors: todoErrors([]),
+			fields: todoFields({}),
 			pageTitle: "New Todo",
 		});
 	}
@@ -336,29 +366,8 @@ export class TodosController implements Resource {
 
 		if (!parsed.success) {
 			return ctx.render("create", {
-				errors: parsed.error.issues.reduce<Record<string, string[]>>(
-					(errors, issue) => {
-						const key = issue.path.join(".");
-						if (!errors[key]) {
-							errors[key] = [];
-						}
-						errors[key].push(issue.message);
-						return errors;
-					},
-					{},
-				),
-				fields: {
-					description: "",
-					dueAt: "",
-					isCompleted: false,
-					isHighPriority: false,
-					isLowPriority: false,
-					isMediumPriority: true,
-					isOpen: true,
-					priority: "medium",
-					statusCode: "open",
-					title: "",
-				},
+				errors: todoErrors(parsed.error.issues),
+				fields: todoFields({}),
 				pageTitle: "New Todo",
 			});
 		}
@@ -490,19 +499,14 @@ export class TodosController implements Resource {
 
 		return ctx.render("edit", {
 			action: `/todos/${todo.id}`,
-			errors: {},
-			fields: {
+			errors: todoErrors([]),
+			fields: todoFields({
 				description: todo.description,
 				dueAt: todo.dueAt ? todo.dueAt.slice(0, 10) : "",
-				isCompleted: todo.statusCode === "completed",
-				isHighPriority: todo.priority === "high",
-				isLowPriority: todo.priority === "low",
-				isMediumPriority: todo.priority === "medium",
-				isOpen: todo.statusCode === "open",
 				priority: todo.priority,
 				statusCode: todo.statusCode,
 				title: todo.title,
-			},
+			}),
 			pageTitle: `Edit Todo #${todo.id}`,
 			submitLabel: "Update",
 			todoId: todo.id,
@@ -563,29 +567,8 @@ export class TodosController implements Resource {
 		if (!parsed.success) {
 			return ctx.render("edit", {
 				action: `/todos/${todoId}`,
-				errors: parsed.error.issues.reduce<Record<string, string[]>>(
-					(errors, issue) => {
-						const key = issue.path.join(".");
-						if (!errors[key]) {
-							errors[key] = [];
-						}
-						errors[key].push(issue.message);
-						return errors;
-					},
-					{},
-				),
-				fields: {
-					description: "",
-					dueAt: "",
-					isCompleted: false,
-					isHighPriority: false,
-					isLowPriority: false,
-					isMediumPriority: true,
-					isOpen: true,
-					priority: "medium",
-					statusCode: "open",
-					title: "",
-				},
+				errors: todoErrors(parsed.error.issues),
+				fields: todoFields({}),
 				pageTitle: `Edit Todo #${todoId}`,
 				submitLabel: "Update",
 				todoId,

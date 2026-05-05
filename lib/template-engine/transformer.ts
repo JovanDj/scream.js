@@ -6,6 +6,12 @@ export class Transformer {
 		childAST: readonly ASTNode[],
 	): readonly ASTNode[] {
 		const childBlocks = this.#collectChildBlocks(childAST);
+		const parentBlocks = this.#collectBlockNames(parentAST);
+		for (const childBlock of childBlocks) {
+			if (!childBlock.value || !parentBlocks.has(childBlock.value)) {
+				throw new Error(`Unknown template block: ${childBlock.value ?? ""}`);
+			}
+		}
 		const transformed = this.#mergeBlocks(parentAST, childBlocks);
 		return this.#simplify(transformed);
 	}
@@ -17,12 +23,38 @@ export class Transformer {
 			if (n.type === "block") {
 				const exists = blocks.some((b) => b.value === n.value);
 
-				if (!exists) {
-					blocks.push(n);
+				if (exists) {
+					throw new Error(`Duplicate template block: ${n.value ?? ""}`);
 				}
+				blocks.push(n);
 			}
 		}
 		return blocks.sort((a, b) => (a.value ?? "").localeCompare(b.value ?? ""));
+	}
+
+	#collectBlockNames(nodes: readonly ASTNode[]) {
+		const blocks = new Set<string>();
+
+		for (const node of nodes) {
+			if (node.type === "block") {
+				if (!node.value) {
+					throw new Error("Template block is missing a name");
+				}
+				if (blocks.has(node.value)) {
+					throw new Error(`Duplicate template block: ${node.value}`);
+				}
+				blocks.add(node.value);
+			}
+
+			for (const childBlock of this.#collectBlockNames(node.children ?? [])) {
+				if (blocks.has(childBlock)) {
+					throw new Error(`Duplicate template block: ${childBlock}`);
+				}
+				blocks.add(childBlock);
+			}
+		}
+
+		return blocks;
 	}
 
 	#mergeBlocks(

@@ -58,7 +58,7 @@ describe("Transformer", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<ASTNode[]>(result, parentAST);
 		});
 
-		it("uses only the first matching block from child AST", (t: TestContext) => {
+		it("throws when a child defines the same block twice", (t: TestContext) => {
 			t.plan(1);
 			const parentAST: ASTNode[] = [
 				{
@@ -81,17 +81,10 @@ describe("Transformer", { concurrency: true }, () => {
 				},
 			];
 
-			const result = transformer.transform(parentAST, childAST);
-
-			const expectedAST: ASTNode[] = [
-				{
-					children: [{ children: [], type: "text", value: "Override A" }],
-					type: "block",
-					value: "content",
-				},
-			];
-
-			t.assert.deepStrictEqual<ASTNode[]>(result, expectedAST);
+			t.assert.throws(
+				() => transformer.transform(parentAST, childAST),
+				/Duplicate template block: content/,
+			);
 		});
 	});
 
@@ -274,6 +267,11 @@ describe("Transformer", { concurrency: true }, () => {
 					type: "block",
 					value: "content",
 				},
+				{
+					children: [{ children: [], type: "text", value: "Default Footer" }],
+					type: "block",
+					value: "footer",
+				},
 			];
 
 			const childAST1: ASTNode[] = [
@@ -360,6 +358,11 @@ describe("Transformer", { concurrency: true }, () => {
 					children: [{ children: [], type: "text", value: "Default" }],
 					type: "block",
 					value: "content",
+				},
+				{
+					children: [{ children: [], type: "text", value: "Default Footer" }],
+					type: "block",
+					value: "footer",
 				},
 			];
 

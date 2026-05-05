@@ -10,7 +10,6 @@
 		"@koa/router": "^14.0.0",
 		"@popperjs/core": "^2.11.8",
 		"@tsconfig/node24": "^24.0.4",
-		"@types/method-override": "^3.0.0",
 		"better-sqlite3": "^12.6.2",
 		"bootstrap": "^5.3.8",
 		"cheerio": "^1.2.0",

@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, type TestContext } from "node:test";
-import type { TemplateContext } from "./context.js";
+import type { RenderContext } from "./context.js";
 import { Evaluator } from "./evaluator.js";
 import type { ASTNode } from "./parser.js";
 
@@ -16,7 +16,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "user.name" },
 			];
-			const context: TemplateContext = { user: { name: "John" } };
+			const context: RenderContext = { user: { name: "John" } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -24,43 +24,34 @@ describe("Evaluator", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should return an empty string for undefined variables", (t: TestContext) => {
+		it("should throw for undefined variables", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "user.age" },
 			];
-			const context: TemplateContext = { user: { name: "John" } };
-			const result = evaluator.evaluate(ast, context);
+			const context: RenderContext = { user: { name: "John" } };
 
-			t.assert.deepStrictEqual<ASTNode[]>(result, [
-				{ children: [], type: "variable", value: "" },
-			]);
+			t.assert.throws(() => evaluator.evaluate(ast, context), /Missing value/);
 		});
 
-		it("should return an empty string for non-serializable or symbolic values", (t: TestContext) => {
+		it("should throw for non-serializable or symbolic values", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "user.symbol" },
 			];
-			const context: TemplateContext = { user: { symbol: Symbol("test") } };
-			const result = evaluator.evaluate(ast, context);
+			const context: RenderContext = { user: { symbol: Symbol("test") } };
 
-			t.assert.deepStrictEqual<ASTNode[]>(result, [
-				{ children: [], type: "variable", value: "" },
-			]);
+			t.assert.throws(() => evaluator.evaluate(ast, context), /Cannot render/);
 		});
 
-		it("should return an empty string for function values", (t: TestContext) => {
+		it("should throw for function values", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "user.greet" },
 			];
-			const context: TemplateContext = { user: { greet: () => "Hello" } };
-			const result = evaluator.evaluate(ast, context);
+			const context: RenderContext = { user: { greet: () => "Hello" } };
 
-			t.assert.deepStrictEqual<ASTNode[]>(result, [
-				{ children: [], type: "variable", value: "" },
-			]);
+			t.assert.throws(() => evaluator.evaluate(ast, context), /Cannot render/);
 		});
 
 		it("should resolve array elements using bracket notation", (t: TestContext) => {
@@ -68,7 +59,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "errors.title[0]" },
 			];
-			const context: TemplateContext = {
+			const context: RenderContext = {
 				errors: { title: ["First error", "Second error"] },
 			};
 			const result = evaluator.evaluate(ast, context);
@@ -78,45 +69,36 @@ describe("Evaluator", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should return an empty string for out-of-bounds array index with bracket notation", (t: TestContext) => {
+		it("should throw for out-of-bounds array index with bracket notation", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "errors.title[99]" },
 			];
-			const context: TemplateContext = { errors: { title: ["Only error"] } };
-			const result = evaluator.evaluate(ast, context);
+			const context: RenderContext = { errors: { title: ["Only error"] } };
 
-			t.assert.deepStrictEqual<ASTNode[]>(result, [
-				{ type: "variable", value: "" },
-			]);
+			t.assert.throws(() => evaluator.evaluate(ast, context), /Missing value/);
 		});
 
-		it("should return an empty string for non-array bracket access", (t: TestContext) => {
+		it("should throw for non-array bracket access", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "errors.title[0]" },
 			];
-			const context: TemplateContext = { errors: { title: "Not an array" } };
-			const result = evaluator.evaluate(ast, context);
+			const context: RenderContext = { errors: { title: "Not an array" } };
 
-			t.assert.deepStrictEqual<ASTNode[]>(result, [
-				{ type: "variable", value: "" },
-			]);
+			t.assert.throws(() => evaluator.evaluate(ast, context), /Missing value/);
 		});
 
-		it("should render arrays by joining values", (t: TestContext) => {
+		it("should throw when rendering arrays directly", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{ type: "variable", value: "errors.title" },
 			];
-			const context: TemplateContext = {
+			const context: RenderContext = {
 				errors: { title: ["First", "Second"] },
 			};
-			const result = evaluator.evaluate(ast, context);
 
-			t.assert.deepStrictEqual<ASTNode[]>(result, [
-				{ type: "variable", value: "First, Second" },
-			]);
+			t.assert.throws(() => evaluator.evaluate(ast, context), /Cannot render/);
 		});
 	});
 
@@ -126,7 +108,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "xss" },
 			];
-			const context: TemplateContext = { xss: "<script>alert('x')</script>" };
+			const context: RenderContext = { xss: "<script>alert('x')</script>" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -141,7 +123,7 @@ describe("Evaluator", { concurrency: true }, () => {
 		it("should not escape already escaped values", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [{ type: "variable", value: "safe" }];
-			const context: TemplateContext = { safe: "&lt;div&gt;" };
+			const context: RenderContext = { safe: "&lt;div&gt;" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -154,7 +136,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "val" },
 			];
-			const context: TemplateContext = { val: "Fish & Chips" };
+			const context: RenderContext = { val: "Fish & Chips" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -167,7 +149,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "val" },
 			];
-			const context: TemplateContext = { val: "<tag>content</tag>" };
+			const context: RenderContext = { val: "<tag>content</tag>" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -184,7 +166,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "quote" },
 			];
-			const context: TemplateContext = { quote: `"O'Reilly"` };
+			const context: RenderContext = { quote: `"O'Reilly"` };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -201,7 +183,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "combo" },
 			];
-			const context: TemplateContext = {
+			const context: RenderContext = {
 				combo: `<a href="x">O'Reilly & Friends</a>`,
 			};
 			const result = evaluator.evaluate(ast, context);
@@ -221,7 +203,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "val" },
 			];
-			const context: TemplateContext = { val: "&lt;safe&gt;<unsafe>" };
+			const context: RenderContext = { val: "&lt;safe&gt;<unsafe>" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -246,7 +228,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context: TemplateContext = { show: true };
+			const context: RenderContext = { show: true };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -270,7 +252,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context: TemplateContext = { show: false };
+			const context: RenderContext = { show: false };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -283,7 +265,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should fallback to alternate when condition path is missing", (t: TestContext) => {
+		it("should throw when condition path is missing", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{
@@ -294,17 +276,9 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context: TemplateContext = {};
-			const result = evaluator.evaluate(ast, context);
+			const context: RenderContext = {};
 
-			t.assert.deepStrictEqual<ASTNode[]>(result, [
-				{
-					alternate: [{ children: [], type: "text", value: "Please login" }],
-					children: [],
-					type: "if",
-					value: "user.loggedIn",
-				},
-			]);
+			t.assert.throws(() => evaluator.evaluate(ast, context), /Missing value/);
 		});
 
 		it("should support nested condition resolution", (t: TestContext) => {
@@ -318,7 +292,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context: TemplateContext = { user: { loggedIn: true } };
+			const context: RenderContext = { user: { loggedIn: true } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -341,7 +315,7 @@ describe("Evaluator", { concurrency: true }, () => {
 					value: "zero",
 				},
 			];
-			const context: TemplateContext = { zero: 0 };
+			const context: RenderContext = { zero: 0 };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -364,7 +338,7 @@ describe("Evaluator", { concurrency: true }, () => {
 					value: "empty",
 				},
 			];
-			const context: TemplateContext = { empty: "" };
+			const context: RenderContext = { empty: "" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -387,7 +361,7 @@ describe("Evaluator", { concurrency: true }, () => {
 					value: "nil",
 				},
 			];
-			const context: TemplateContext = { nil: null };
+			const context: RenderContext = { nil: null };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -400,7 +374,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should treat missing key as falsy", (t: TestContext) => {
+		it("should throw for missing condition keys", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{
@@ -410,17 +384,9 @@ describe("Evaluator", { concurrency: true }, () => {
 					value: "missing",
 				},
 			];
-			const context: TemplateContext = {};
-			const result = evaluator.evaluate(ast, context);
+			const context: RenderContext = {};
 
-			t.assert.deepStrictEqual<ASTNode[]>(result, [
-				{
-					alternate: [{ children: [], type: "text", value: "Falsy" }],
-					children: [],
-					type: "if",
-					value: "missing",
-				},
-			]);
+			t.assert.throws(() => evaluator.evaluate(ast, context), /Missing value/);
 		});
 	});
 
@@ -436,7 +402,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context: TemplateContext = { items: ["A", "B"] };
+			const context: RenderContext = { items: ["A", "B"] };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.ok(result[0]?.children);
@@ -457,7 +423,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context: TemplateContext = { user: { favorites: ["Red", "Blue"] } };
+			const context: RenderContext = { user: { favorites: ["Red", "Blue"] } };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.ok(result[0]?.children);
@@ -467,7 +433,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			);
 		});
 
-		it("should return empty children for non-array value", (t: TestContext) => {
+		it("should throw for non-array value", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{
@@ -478,13 +444,15 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context: TemplateContext = { user: { favorites: null } };
-			const result = evaluator.evaluate(ast, context);
+			const context: RenderContext = { user: { favorites: null } };
 
-			t.assert.deepStrictEqual<ASTNode[]>(result[0]?.children, []);
+			t.assert.throws(
+				() => evaluator.evaluate(ast, context),
+				/Loop collection must be an array/,
+			);
 		});
 
-		it("should return empty children if iterator is missing", (t: TestContext) => {
+		it("should throw if iterator is missing", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{
@@ -494,10 +462,12 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context: TemplateContext = { items: ["X"] };
-			const result = evaluator.evaluate(ast, context);
+			const context: RenderContext = { items: ["X"] };
 
-			t.assert.deepStrictEqual<ASTNode[]>(result[0]?.children, []);
+			t.assert.throws(
+				() => evaluator.evaluate(ast, context),
+				/Missing loop iterator/,
+			);
 		});
 
 		it("should support variables inside loop using the iterator", (t: TestContext) => {
@@ -511,7 +481,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context: TemplateContext = {
+			const context: RenderContext = {
 				items: [{ name: "Alpha" }, { name: "Beta" }],
 			};
 
@@ -534,7 +504,7 @@ describe("Evaluator", { concurrency: true }, () => {
 					value: "items",
 				},
 			];
-			const context: TemplateContext = { items: ["A", "B"] };
+			const context: RenderContext = { items: ["A", "B"] };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -560,7 +530,7 @@ describe("Evaluator", { concurrency: true }, () => {
 					value: "items",
 				},
 			];
-			const context: TemplateContext = {
+			const context: RenderContext = {
 				items: [{ name: "Alpha" }, { name: "Beta" }],
 			};
 			const result = evaluator.evaluate(ast, context);
@@ -594,7 +564,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context: TemplateContext = { name: "Alice" };
+			const context: RenderContext = { name: "Alice" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.ok(result[0]?.children);
@@ -628,7 +598,7 @@ describe("Evaluator", { concurrency: true }, () => {
 				},
 			];
 
-			const context: TemplateContext = { siteName: "test" };
+			const context: RenderContext = { siteName: "test" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<string>(result[0]?.type, "block");
@@ -645,7 +615,7 @@ describe("Evaluator", { concurrency: true }, () => {
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "emptyStr" },
 			];
-			const context: TemplateContext = { emptyStr: "" };
+			const context: RenderContext = { emptyStr: "" };
 			const result = evaluator.evaluate(ast, context);
 
 			t.assert.deepStrictEqual<ASTNode[]>(result, [
@@ -653,42 +623,33 @@ describe("Evaluator", { concurrency: true }, () => {
 			]);
 		});
 
-		it("should return an empty string for null values in context", (t: TestContext) => {
+		it("should throw for null values in output expressions", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "user.null" },
 			];
-			const context: TemplateContext = { user: { null: null } };
-			const result = evaluator.evaluate(ast, context);
+			const context: RenderContext = { user: { null: null } };
 
-			t.assert.deepStrictEqual<ASTNode[]>(result, [
-				{ children: [], type: "variable", value: "" },
-			]);
+			t.assert.throws(() => evaluator.evaluate(ast, context), /Cannot render/);
 		});
 
-		it("should handle missing context without throwing an error", (t: TestContext) => {
+		it("should throw for missing context values", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "missingKey" },
 			];
-			const context: TemplateContext = {};
-			const result = evaluator.evaluate(ast, context);
+			const context: RenderContext = {};
 
-			t.assert.deepStrictEqual<ASTNode[]>(result, [
-				{ children: [], type: "variable", value: "" },
-			]);
+			t.assert.throws(() => evaluator.evaluate(ast, context), /Missing value/);
 		});
 
-		it("should handle undefined context gracefully", (t: TestContext) => {
+		it("should throw for undefined context values", (t: TestContext) => {
 			t.plan(1);
 			const ast: readonly ASTNode[] = [
 				{ children: [], type: "variable", value: "undefinedKey" },
 			];
-			const result = evaluator.evaluate(ast, {});
 
-			t.assert.deepStrictEqual<ASTNode[]>(result, [
-				{ children: [], type: "variable", value: "" },
-			]);
+			t.assert.throws(() => evaluator.evaluate(ast, {}), /Missing value/);
 		});
 	});
 });

@@ -11,10 +11,11 @@ export class InMemoryFileLoader implements FileLoader {
 		this.#files.set(path, template);
 	}
 
-	loadFile(path: string) {
-		const template = this.#files.get(path);
+	loadView(viewName: string) {
+		const filename = viewName.includes(".") ? viewName : `${viewName}.scream`;
+		const template = this.#files.get(filename);
 
-		if (!this.#files.has(path) || !template) {
+		if (!this.#files.has(filename) || !template) {
 			throw new Error("No file.");
 		}
 

@@ -51,10 +51,11 @@ export class ScreamHttpContext implements HttpContext {
 
 	async render(template: string, locals?: Record<string, unknown>) {
 		const filename = path.extname(template) ? template : `${template}.scream`;
-		const html = await this.#templateEngine.compileFile(
-			path.join(process.cwd(), "views", filename),
-			locals || {},
-		);
+		const html = this.#templateEngine.renderView(filename, {
+			lang: "en",
+			pageTitle: "ScreamJS",
+			...(locals || {}),
+		});
 
 		this.#res
 			.writeHead(200, {

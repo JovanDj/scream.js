@@ -1,14 +1,13 @@
-import { readFile } from "node:fs/promises";
-import type { TemplateContext } from "./context.js";
+import type { RenderContext } from "./context.js";
 import { Evaluator } from "./evaluator.js";
 import { Generator } from "./generator.js";
-import { Parser } from "./parser.ts";
+import { Parser } from "./parser.js";
 import { Resolver } from "./resolver.js";
-import { SystemFileLoader } from "./system-file-loader.ts";
-import { Tokenizer } from "./tokenizer.ts";
-import { Transformer } from "./transformer.ts";
+import { SystemFileLoader } from "./system-file-loader.js";
+import { Tokenizer } from "./tokenizer.js";
+import { Transformer } from "./transformer.js";
 
-export type { TemplateContext } from "./context.js";
+export type { RenderContext } from "./context.js";
 
 export class ScreamTemplateEngine {
 	readonly #resolver: Resolver;
@@ -34,14 +33,15 @@ export class ScreamTemplateEngine {
 		this.#generator = generator;
 	}
 
-	compile(template: string, context: TemplateContext) {
+	render(template: string, context: RenderContext) {
 		const ast = this.#resolver.resolve(template);
 		const evaluatedAst = this.#evaluator.evaluate(ast, { ...context });
 		return this.#generator.generate(evaluatedAst);
 	}
 
-	async compileFile(filePath: string, options: TemplateContext) {
-		const content = await readFile(filePath, { encoding: "utf-8" });
-		return this.compile(content, { ...options });
+	renderView(viewName: string, context: RenderContext) {
+		const ast = this.#resolver.resolveView(viewName);
+		const evaluatedAst = this.#evaluator.evaluate(ast, { ...context });
+		return this.#generator.generate(evaluatedAst);
 	}
 }

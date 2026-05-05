@@ -19,7 +19,10 @@ export class ExpressApp implements Application {
 
 		app.engine("scream", async (filePath, options, callback) => {
 			try {
-				const rendered = await templateEngine.compileFile(filePath, {
+				const viewName = path.relative(viewsPath, filePath);
+				const rendered = templateEngine.renderView(viewName, {
+					lang: "en",
+					pageTitle: "ScreamJS",
 					...options,
 				});
 				callback(null, rendered);

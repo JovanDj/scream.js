@@ -1,1 +1,1 @@
-export type TemplateContext = Record<PropertyKey, unknown>;
+export type RenderContext = Record<PropertyKey, unknown>;

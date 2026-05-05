@@ -24,7 +24,29 @@ export class Resolver {
 	resolve(template: string) {
 		const tokens = this.#tokenizer.tokenize(template);
 		const ast = this.#parser.parse(tokens);
+		this.#assertUniqueBlocks(ast);
 		return this.#resolveRecursive(ast, []);
+	}
+
+	#assertUniqueBlocks(ast: readonly ASTNode[]) {
+		const blocks = new Set<string>();
+
+		for (const node of ast) {
+			if (node.type === "block") {
+				if (!node.value) {
+					throw new Error("Template block is missing a name");
+				}
+				if (blocks.has(node.value)) {
+					throw new Error(`Duplicate template block: ${node.value}`);
+				}
+				blocks.add(node.value);
+			}
+		}
+	}
+
+	resolveView(viewName: string) {
+		const template = this.#fileLoader.loadView(viewName);
+		return this.resolve(template);
 	}
 
 	#resolveRecursive(
@@ -39,6 +61,14 @@ export class Resolver {
 			return ast;
 		}
 
+		const firstMeaningfulNode = ast.find((node) => {
+			return node.type !== "text" || (node.value ?? "").trim() !== "";
+		});
+
+		if (firstMeaningfulNode !== extendsNode) {
+			throw new Error("Extends must be the first meaningful directive");
+		}
+
 		const name = extendsNode.value;
 
 		if (!name) {
@@ -51,7 +81,7 @@ export class Resolver {
 			);
 		}
 
-		const parentTemplate = this.#fileLoader.loadFile(name);
+		const parentTemplate = this.#fileLoader.loadView(name);
 		const parentTokens = this.#tokenizer.tokenize(parentTemplate);
 		const parentAst = this.#parser.parse(parentTokens);
 

@@ -23,7 +23,6 @@ export class KoaApp implements Application {
 
 	static create(): Application {
 		const koa = new KoaClass();
-		const viewsPath = path.join(process.cwd(), "views");
 		const templateEngine = ScreamTemplateEngine.create();
 
 		koa.use(bodyParser());
@@ -52,11 +51,13 @@ export class KoaApp implements Application {
 		koa.use(async (ctx, next) => {
 			ctx.render = async (view, locals = {}) => {
 				const filename = path.extname(view) ? view : `${view}.scream`;
-				const data = { ...ctx.state, ...locals };
-				const html = await templateEngine.compileFile(
-					path.join(viewsPath, filename),
-					data,
-				);
+				const data = {
+					lang: "en",
+					pageTitle: "ScreamJS",
+					...ctx.state,
+					...locals,
+				};
+				const html = templateEngine.renderView(filename, data);
 
 				ctx.type = "text/html; charset=utf-8";
 				ctx.body = html;

@@ -1,3 +1,3 @@
 export interface FileLoader {
-	loadFile(path: string): string;
+	loadView(viewName: string): string;
 }

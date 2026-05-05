@@ -2,6 +2,20 @@ import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { schema } from "@scream.js/validator/schema.js";
 
+const tagErrors = (
+	issues: readonly { message: string; path: PropertyKey[] }[],
+) => {
+	const errors = { name: "" };
+
+	for (const issue of issues) {
+		if (issue.path.join(".") === "name") {
+			errors.name ||= issue.message;
+		}
+	}
+
+	return errors;
+};
+
 export class TagController {
 	readonly #db: Database;
 
@@ -22,6 +36,7 @@ export class TagController {
 			)
 			.parse(rows);
 		return ctx.render("tag-index", {
+			errors: tagErrors([]),
 			pageTitle: "Tags",
 			tags,
 		});
@@ -52,17 +67,7 @@ export class TagController {
 				)
 				.parse(rows);
 			return ctx.render("tag-index", {
-				errors: parsed.error.issues.reduce<Record<string, string[]>>(
-					(errors, issue) => {
-						const key = issue.path.join(".");
-						if (!errors[key]) {
-							errors[key] = [];
-						}
-						errors[key].push(issue.message);
-						return errors;
-					},
-					{},
-				),
+				errors: tagErrors(parsed.error.issues),
 				pageTitle: "Tags",
 				tags,
 			});
@@ -91,7 +96,7 @@ export class TagController {
 				)
 				.parse(rows);
 			return ctx.render("tag-index", {
-				errors: { name: ["Tag name must be unique"] },
+				errors: { name: "Tag name must be unique" },
 				pageTitle: "Tags",
 				tags,
 			});

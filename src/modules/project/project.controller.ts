@@ -3,6 +3,20 @@ import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Resource } from "@scream.js/http/resource.js";
 import { schema } from "@scream.js/validator/schema.js";
 
+const projectErrors = (
+	issues: readonly { message: string; path: PropertyKey[] }[],
+) => {
+	const errors = { name: "" };
+
+	for (const issue of issues) {
+		if (issue.path.join(".") === "name") {
+			errors.name ||= issue.message;
+		}
+	}
+
+	return errors;
+};
+
 export class ProjectController implements Resource {
 	readonly #db: Database;
 
@@ -30,6 +44,7 @@ export class ProjectController implements Resource {
 			.transform((parsedRows) =>
 				parsedRows.map((row) => ({
 					id: row.id,
+					isArchived: row.status_code === "archived",
 					name: row.name,
 					statusCode: row.status_code,
 				})),
@@ -92,7 +107,7 @@ export class ProjectController implements Resource {
 
 	async create(ctx: HttpContext) {
 		return ctx.render("project-create", {
-			errors: {},
+			errors: projectErrors([]),
 			fields: {
 				name: "",
 			},
@@ -114,17 +129,7 @@ export class ProjectController implements Resource {
 			.safeParse(ctx.body());
 		if (!parsed.success) {
 			return ctx.render("project-create", {
-				errors: parsed.error.issues.reduce<Record<string, string[]>>(
-					(errors, issue) => {
-						const key = issue.path.join(".");
-						if (!errors[key]) {
-							errors[key] = [];
-						}
-						errors[key].push(issue.message);
-						return errors;
-					},
-					{},
-				),
+				errors: projectErrors(parsed.error.issues),
 				fields: {
 					name: "",
 				},
@@ -167,7 +172,7 @@ export class ProjectController implements Resource {
 			return ctx.redirect(`/projects/${result}`);
 		} catch {
 			return ctx.render("project-create", {
-				errors: { name: ["Project name must be unique"] },
+				errors: { name: "Project name must be unique" },
 				fields: {
 					name: parsed.data.name,
 				},
@@ -214,7 +219,7 @@ export class ProjectController implements Resource {
 
 		return ctx.render("project-edit", {
 			action: `/projects/${project.id}`,
-			errors: {},
+			errors: projectErrors([]),
 			fields: {
 				name: project.name,
 			},
@@ -252,17 +257,7 @@ export class ProjectController implements Resource {
 		if (!parsed.success) {
 			return ctx.render("project-edit", {
 				action: `/projects/${projectId}`,
-				errors: parsed.error.issues.reduce<Record<string, string[]>>(
-					(errors, issue) => {
-						const key = issue.path.join(".");
-						if (!errors[key]) {
-							errors[key] = [];
-						}
-						errors[key].push(issue.message);
-						return errors;
-					},
-					{},
-				),
+				errors: projectErrors(parsed.error.issues),
 				fields: {
 					name: "",
 				},
@@ -307,7 +302,7 @@ export class ProjectController implements Resource {
 		} catch {
 			return ctx.render("project-edit", {
 				action: `/projects/${projectId}`,
-				errors: { name: ["Project name must be unique"] },
+				errors: { name: "Project name must be unique" },
 				fields: {
 					name: parsed.data.name,
 				},
