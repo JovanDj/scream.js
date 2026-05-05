@@ -1,6 +1,9 @@
 import type { TemplateASTNode } from "./ast.js";
 import type { ExpressionNode, PathSegment } from "./expression.js";
-import { TemplateSyntaxError } from "./template-syntax-error.js";
+import {
+	type SourceSpan,
+	TemplateSyntaxError,
+} from "./template-syntax-error.js";
 import type { Keyword, Token } from "./tokenizer.js";
 
 type ParseResult = {
@@ -92,6 +95,9 @@ export class Parser {
 
 				case "for":
 					return this.#parseFor(tokens, index);
+
+				case "attr":
+					return this.#parseAttr(tokens, index);
 
 				default:
 					throw new TemplateSyntaxError(
@@ -265,6 +271,286 @@ export class Parser {
 				type: "for",
 			},
 		};
+	}
+
+	#parseAttr(tokens: readonly Token[], index: number): NodeResult {
+		const open = this.#expectToken(tokens, index, "openDirective");
+		this.#expectKeyword(tokens, index + 1, "attr");
+		const directive = this.#expectToken(tokens, index + 2, "attrDirective");
+		const close = this.#expectToken(tokens, index + 3, "closeDirective");
+		const parsedDirective = this.#parseAttrDirective(
+			directive.value,
+			directive.span,
+		);
+		const span = { end: close.span.end, start: open.span.start };
+
+		return {
+			nextIndex: index + 4,
+			node:
+				parsedDirective.value === undefined
+					? {
+							condition: parsedDirective.condition,
+							name: parsedDirective.name,
+							span,
+							type: "attr",
+						}
+					: {
+							condition: parsedDirective.condition,
+							name: parsedDirective.name,
+							span,
+							type: "attr",
+							value: parsedDirective.value,
+						},
+		};
+	}
+
+	#parseAttrDirective(
+		rawDirective: string,
+		span: SourceSpan,
+	): {
+		readonly name: string;
+		readonly condition: ExpressionNode;
+		readonly value?: ExpressionNode;
+	} {
+		const directive = rawDirective.trim();
+
+		if (directive.startsWith("if ")) {
+			throw new TemplateSyntaxError(
+				'Invalid attr directive: expected attribute name after "attr".',
+				{ span },
+			);
+		}
+
+		const match = directive.match(/^(.*)\s+if\s+(.+)$/);
+
+		if (!match) {
+			throw new TemplateSyntaxError(
+				'Invalid attr directive: expected "if" condition.',
+				{ span },
+			);
+		}
+
+		const beforeCondition = String(match[1]).trim();
+		const conditionExpression = String(match[2]).trim();
+		const equalsIndex = beforeCondition.indexOf("=");
+		const rawNameEnd =
+			equalsIndex === -1 ? beforeCondition.length : equalsIndex;
+		const rawName = beforeCondition.slice(0, rawNameEnd).trim();
+
+		if (!rawName) {
+			throw new TemplateSyntaxError(
+				'Invalid attr directive: expected attribute name after "attr".',
+				{ span },
+			);
+		}
+
+		if (rawName.includes(".")) {
+			throw new TemplateSyntaxError(
+				"Invalid attr directive: dynamic attribute names are not supported.",
+				{ span },
+			);
+		}
+
+		if (!/^[A-Za-z_:][A-Za-z0-9_.:-]*$/.test(rawName)) {
+			throw new TemplateSyntaxError(
+				`Invalid attr directive: invalid attribute name "${rawName}".`,
+				{ span },
+			);
+		}
+
+		const condition = this.#parseRawExpression(conditionExpression, span);
+
+		if (equalsIndex === -1) {
+			return { condition, name: rawName };
+		}
+
+		const attributeValueExpression = beforeCondition
+			.slice(equalsIndex + 1)
+			.trim();
+
+		if (!attributeValueExpression) {
+			throw new TemplateSyntaxError(
+				'Invalid attr directive: expected attribute value expression after "=".',
+				{ span },
+			);
+		}
+
+		return {
+			condition,
+			name: rawName,
+			value: this.#parseRawExpression(attributeValueExpression, span),
+		};
+	}
+
+	#parseRawExpression(rawExpression: string, span: SourceSpan): ExpressionNode {
+		const expression = rawExpression.trim();
+
+		if (!expression) {
+			throw new TemplateSyntaxError("Empty expression", { span });
+		}
+
+		const expressionStartInRaw = rawExpression.indexOf(expression);
+		const expressionSpan = {
+			end: span.start + expressionStartInRaw + expression.length,
+			start: span.start + expressionStartInRaw,
+		};
+
+		if (expression.startsWith('"') || expression.startsWith("'")) {
+			const quote = expression[0] ?? "";
+
+			if (expression.length < 2 || !expression.endsWith(quote)) {
+				throw new TemplateSyntaxError("Unclosed string literal", {
+					span: expressionSpan,
+				});
+			}
+
+			return {
+				span: expressionSpan,
+				type: "literal",
+				value: expression.slice(1, -1),
+			};
+		}
+
+		if (expression === "true") {
+			return { span: expressionSpan, type: "literal", value: true };
+		}
+
+		if (expression === "false") {
+			return { span: expressionSpan, type: "literal", value: false };
+		}
+
+		if (/^\d+$/.test(expression)) {
+			return {
+				span: expressionSpan,
+				type: "literal",
+				value: Number(expression),
+			};
+		}
+
+		return {
+			segments: this.#parseRawPathSegments(expression, expressionSpan),
+			span: expressionSpan,
+			type: "path",
+		};
+	}
+
+	#parseRawPathSegments(
+		expression: string,
+		span: SourceSpan,
+	): readonly PathSegment[] {
+		const segments: PathSegment[] = [];
+		let index = 0;
+
+		const parseIdentifier = () => {
+			const start = index;
+
+			if (!/[A-Za-z_]/.test(expression[index] ?? "")) {
+				throw new TemplateSyntaxError("Malformed path expression", {
+					span: { end: span.start + index + 1, start: span.start + index },
+				});
+			}
+
+			while (
+				index < expression.length &&
+				/[A-Za-z0-9_]/.test(expression[index] ?? "")
+			) {
+				index++;
+			}
+
+			return expression.slice(start, index);
+		};
+
+		segments.push(parseIdentifier());
+
+		while (index < expression.length) {
+			const char = expression[index];
+
+			if (char === ".") {
+				index++;
+				segments.push(parseIdentifier());
+				continue;
+			}
+
+			if (char === "[") {
+				index++;
+				const bracketValue = this.#parseRawBracketSegment(
+					expression,
+					span,
+					index,
+				);
+				segments.push(bracketValue.segment);
+				index = bracketValue.nextIndex;
+				continue;
+			}
+
+			throw new TemplateSyntaxError("Malformed path expression", {
+				span: { end: span.start + index + 1, start: span.start + index },
+			});
+		}
+
+		return segments;
+	}
+
+	#parseRawBracketSegment(
+		expression: string,
+		span: SourceSpan,
+		index: number,
+	): { readonly segment: PathSegment; readonly nextIndex: number } {
+		const char = expression[index];
+
+		if (char === '"' || char === "'") {
+			const quote = char;
+			const valueStart = index + 1;
+			let nextIndex = valueStart;
+
+			while (nextIndex < expression.length && expression[nextIndex] !== quote) {
+				nextIndex++;
+			}
+
+			if (expression[nextIndex] !== quote) {
+				throw new TemplateSyntaxError("Unclosed string literal", {
+					span: { end: span.end, start: span.start + index },
+				});
+			}
+
+			if (expression[nextIndex + 1] !== "]") {
+				throw new TemplateSyntaxError("Malformed path expression", {
+					span: { end: span.start + nextIndex + 2, start: span.start + index },
+				});
+			}
+
+			return {
+				nextIndex: nextIndex + 2,
+				segment: expression.slice(valueStart, nextIndex),
+			};
+		}
+
+		if (/[0-9]/.test(char ?? "")) {
+			const valueStart = index;
+			let nextIndex = index;
+
+			while (
+				nextIndex < expression.length &&
+				/[0-9]/.test(expression[nextIndex] ?? "")
+			) {
+				nextIndex++;
+			}
+
+			if (expression[nextIndex] !== "]") {
+				throw new TemplateSyntaxError("Malformed path expression", {
+					span: { end: span.start + nextIndex + 1, start: span.start + index },
+				});
+			}
+
+			return {
+				nextIndex: nextIndex + 1,
+				segment: Number(expression.slice(valueStart, nextIndex)),
+			};
+		}
+
+		throw new TemplateSyntaxError("Malformed path expression", {
+			span: { end: span.start + index + 1, start: span.start + index },
+		});
 	}
 
 	#parsePathExpression(

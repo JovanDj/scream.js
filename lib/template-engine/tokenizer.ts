@@ -12,7 +12,8 @@ export type Keyword =
 	| "endif"
 	| "for"
 	| "in"
-	| "endfor";
+	| "endfor"
+	| "attr";
 
 export type Token =
 	| { readonly type: "text"; readonly value: string; readonly span: SourceSpan }
@@ -40,6 +41,11 @@ export type Token =
 			readonly value: number;
 			readonly span: SourceSpan;
 	  }
+	| {
+			readonly type: "attrDirective";
+			readonly value: string;
+			readonly span: SourceSpan;
+	  }
 	| { readonly type: "dot"; readonly span: SourceSpan }
 	| { readonly type: "leftBracket"; readonly span: SourceSpan }
 	| { readonly type: "rightBracket"; readonly span: SourceSpan };
@@ -55,6 +61,7 @@ function toKeyword(value: string): Keyword | undefined {
 		case "for":
 		case "in":
 		case "endfor":
+		case "attr":
 			return value;
 		default:
 			return undefined;
@@ -103,15 +110,14 @@ export class Tokenizer {
 					});
 				}
 
+				const directiveContent = template.slice(index + 2, closeIndex);
+
 				tokens.push({
 					span: { end: index + 2, start: index },
 					type: "openDirective",
 				});
 				tokens.push(
-					...this.#tokenizeExpressionContent(
-						template.slice(index + 2, closeIndex),
-						index + 2,
-					),
+					...this.#tokenizeDirectiveContent(directiveContent, index + 2),
 				);
 				tokens.push({
 					span: { end: closeIndex + 2, start: closeIndex },
@@ -142,6 +148,58 @@ export class Tokenizer {
 		}
 
 		return tokens;
+	}
+
+	#tokenizeDirectiveContent(
+		input: string,
+		sourceOffset: number,
+	): readonly Token[] {
+		if (/^\s*attr(?:\s|$)/.test(input)) {
+			return this.#tokenizeAttrDirective(input, sourceOffset);
+		}
+
+		return this.#tokenizeExpressionContent(input, sourceOffset);
+	}
+
+	#tokenizeAttrDirective(
+		input: string,
+		sourceOffset: number,
+	): readonly Token[] {
+		const match = input.match(/^(\s*)attr(?:\s+([\s\S]*?))?\s*$/);
+
+		if (!match) {
+			throw new TemplateSyntaxError("Invalid attr directive", {
+				span: { end: sourceOffset + input.length, start: sourceOffset },
+			});
+		}
+
+		const leadingWhitespace = match[1] ?? "";
+		const rawDirective = match[2] ?? "";
+		const keywordStart = sourceOffset + leadingWhitespace.length;
+		const directiveValue = rawDirective.trim();
+		const directiveStartInInput =
+			directiveValue.length === 0
+				? input.length
+				: input.indexOf(directiveValue);
+		const directiveStart =
+			sourceOffset +
+			Math.max(directiveStartInInput, leadingWhitespace.length + 4);
+
+		return [
+			{
+				span: { end: keywordStart + "attr".length, start: keywordStart },
+				type: "keyword",
+				value: "attr",
+			},
+			{
+				span: {
+					end: directiveStart + directiveValue.length,
+					start: directiveStart,
+				},
+				type: "attrDirective",
+				value: directiveValue,
+			},
+		];
 	}
 
 	#tokenizeExpressionContent(

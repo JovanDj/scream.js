@@ -21,17 +21,21 @@ export class Evaluator {
 				return [{ type: "text", value: node.value }];
 
 			case "variable": {
-				const path = this.#getPathFromExpression(node.expression);
-				const raw = this.#resolvePath(context, path);
+				const raw = this.#evaluateExpression(node.expression, context);
 
 				return [
-					{ type: "text", value: this.#evaluateVariableValue(raw, path) },
+					{
+						type: "text",
+						value: this.#evaluateVariableValue(raw, node.expression),
+					},
 				];
 			}
 
 			case "if": {
-				const path = this.#getPathFromExpression(node.condition);
-				const conditionValue = this.#resolvePath(context, path);
+				const conditionValue = this.#evaluateExpression(
+					node.condition,
+					context,
+				);
 				const selectedBranch = conditionValue ? node.children : node.alternate;
 
 				return selectedBranch.flatMap((child) =>
@@ -40,12 +44,11 @@ export class Evaluator {
 			}
 
 			case "for": {
-				const path = this.#getPathFromExpression(node.collection);
-				const collection = this.#resolvePath(context, path);
+				const collection = this.#evaluateExpression(node.collection, context);
 
 				if (!Array.isArray(collection)) {
 					throw new RenderError("Loop collection must be an array", {
-						expression: this.#formatPath(path),
+						expression: this.#formatExpression(node.collection),
 					});
 				}
 
@@ -69,6 +72,9 @@ export class Evaluator {
 					},
 				];
 
+			case "attr":
+				return [{ type: "text", value: this.#evaluateAttr(node, context) }];
+
 			case "extends":
 				throw new RenderError(
 					"Extends nodes must be resolved before evaluation",
@@ -81,8 +87,31 @@ export class Evaluator {
 		return !!x && typeof x === "object";
 	}
 
-	#getPathFromExpression(expression: ExpressionNode) {
-		return expression.segments;
+	#isRenderableScalar(value: unknown) {
+		return (
+			value !== null &&
+			value !== undefined &&
+			!Array.isArray(value) &&
+			typeof value !== "object" &&
+			typeof value !== "function" &&
+			typeof value !== "symbol"
+		);
+	}
+
+	#evaluateExpression(expression: ExpressionNode, context: RenderContext) {
+		if (expression.type === "literal") {
+			return expression.value;
+		}
+
+		return this.#resolvePath(context, expression.segments);
+	}
+
+	#formatExpression(expression: ExpressionNode): string {
+		if (expression.type === "literal") {
+			return String(expression.value);
+		}
+
+		return this.#formatPath(expression.segments);
 	}
 
 	#formatPath(path: readonly (string | number)[]): string {
@@ -117,21 +146,43 @@ export class Evaluator {
 		}, root);
 	}
 
-	#evaluateVariableValue(value: unknown, path: readonly (string | number)[]) {
-		if (
-			value === null ||
-			value === undefined ||
-			Array.isArray(value) ||
-			typeof value === "object" ||
-			typeof value === "function" ||
-			typeof value === "symbol"
-		) {
+	#evaluateVariableValue(value: unknown, expression: ExpressionNode) {
+		if (!this.#isRenderableScalar(value)) {
 			throw new RenderError("Cannot render value", {
-				expression: this.#formatPath(path),
+				expression: this.#formatExpression(expression),
 			});
 		}
 
 		return this.#escape(String(value));
+	}
+
+	#evaluateAttr(
+		node: Extract<TemplateASTNode, { type: "attr" }>,
+		context: RenderContext,
+	) {
+		const condition = this.#evaluateExpression(node.condition, context);
+
+		if (!condition) {
+			return "";
+		}
+
+		if (!node.value) {
+			return ` ${node.name}`;
+		}
+
+		const rawValue = this.#evaluateExpression(node.value, context);
+
+		if (rawValue === undefined) {
+			return "";
+		}
+
+		if (!this.#isRenderableScalar(rawValue)) {
+			throw new RenderError("Cannot render attribute value", {
+				expression: this.#formatExpression(node.value),
+			});
+		}
+
+		return ` ${node.name}="${this.#escapeAttribute(String(rawValue))}"`;
 	}
 
 	#escape(value: string) {
@@ -150,6 +201,19 @@ export class Evaluator {
 		);
 
 		return replacedValue.replace(/[<>"'`]/g, (ch) => {
+			return ESCAPE_MAP[ch] ?? ch;
+		});
+	}
+
+	#escapeAttribute(value: string) {
+		const ESCAPE_MAP: Record<string, string> = {
+			'"': "&quot;",
+			"&": "&amp;",
+			"<": "&lt;",
+			">": "&gt;",
+		};
+
+		return value.replace(/[&"<>]/g, (ch) => {
 			return ESCAPE_MAP[ch] ?? ch;
 		});
 	}

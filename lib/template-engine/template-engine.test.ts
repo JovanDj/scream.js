@@ -260,6 +260,129 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		});
 	});
 
+	describe("Attribute directives", () => {
+		it("should render a boolean attribute when condition is true", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "<button{% attr disabled if disabled %}>Save</button>";
+
+			const result = templateEngine.render(template, { disabled: true });
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				"<button disabled>Save</button>",
+			);
+		});
+
+		it("should omit a boolean attribute when condition is false", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "<button{% attr disabled if disabled %}>Save</button>";
+
+			const result = templateEngine.render(template, { disabled: false });
+
+			t.assert.deepStrictEqual<string>(result, "<button>Save</button>");
+		});
+
+		it("should render only the selected option", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = [
+				'<option value="low"{% attr selected if fields.isLowPriority %}>Low</option>',
+				'<option value="medium"{% attr selected if fields.isMediumPriority %}>Medium</option>',
+				'<option value="high"{% attr selected if fields.isHighPriority %}>High</option>',
+			].join("");
+
+			const result = templateEngine.render(template, {
+				fields: {
+					isHighPriority: false,
+					isLowPriority: false,
+					isMediumPriority: true,
+				},
+			});
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option>',
+			);
+		});
+
+		it("should render and omit valued attributes", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				'<a{% attr target = "_blank" if external %}{% attr rel = "noreferrer" if internal %}>Open</a>';
+
+			const result = templateEngine.render(template, {
+				external: true,
+				internal: false,
+			});
+
+			t.assert.deepStrictEqual<string>(result, '<a target="_blank">Open</a>');
+		});
+
+		it("should escape attribute values", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "<input{% attr value = title if true %}>";
+
+			const result = templateEngine.render(template, {
+				title: 'A "quoted" title',
+			});
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<input value="A &quot;quoted&quot; title">',
+			);
+		});
+
+		it("should preserve false as a valued attribute", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				"<button{% attr aria-expanded = expanded if true %}>Menu</button>";
+
+			const result = templateEngine.render(template, { expanded: false });
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<button aria-expanded="false">Menu</button>',
+			);
+		});
+
+		it("should omit undefined valued attributes", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "<input{% attr value = title if true %}>";
+
+			const result = templateEngine.render(template, { title: undefined });
+
+			t.assert.deepStrictEqual<string>(result, "<input>");
+		});
+
+		it("should work inside extended templates and blocks", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"layout.scream",
+				"<main>{% block content %}{% endblock %}</main>",
+			);
+			fileLoader.setTemplate(
+				"child.scream",
+				'{% extends "layout.scream" %}{% block content %}<button{% attr disabled if disabled %}>Save</button>{% endblock %}',
+			);
+
+			const result = templateEngine.renderView("child.scream", {
+				disabled: true,
+			});
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				"<main><button disabled>Save</button></main>",
+			);
+		});
+	});
+
 	describe("Input escape", () => {
 		it("should escape HTML special characters", (t: TestContext) => {
 			t.plan(1);

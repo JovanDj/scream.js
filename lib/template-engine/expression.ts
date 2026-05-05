@@ -8,4 +8,10 @@ export type PathExpressionNode = {
 	readonly span: SourceSpan;
 };
 
-export type ExpressionNode = PathExpressionNode;
+export type LiteralExpressionNode = {
+	readonly type: "literal";
+	readonly value: string | number | boolean;
+	readonly span: SourceSpan;
+};
+
+export type ExpressionNode = PathExpressionNode | LiteralExpressionNode;

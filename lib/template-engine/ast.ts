@@ -7,7 +7,8 @@ export type TemplateASTNode =
 	| IfNode
 	| ForNode
 	| ExtendsNode
-	| BlockNode;
+	| BlockNode
+	| AttrNode;
 
 export type TextNode = {
 	readonly type: "text";
@@ -47,5 +48,13 @@ export type BlockNode = {
 	readonly type: "block";
 	readonly name: string;
 	readonly children: readonly TemplateASTNode[];
+	readonly span: SourceSpan;
+};
+
+export type AttrNode = {
+	readonly type: "attr";
+	readonly name: string;
+	readonly condition: ExpressionNode;
+	readonly value?: ExpressionNode;
 	readonly span: SourceSpan;
 };
