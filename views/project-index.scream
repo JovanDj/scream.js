@@ -25,7 +25,8 @@
                         <td>{{ project.statusCode }}</td>
                         <td class="d-flex gap-1">
                             <a class="btn btn-sm btn-outline-primary" href="/projects/{{ project.id }}/edit">Edit</a>
-                            <form action="/projects/{{ project.id }}/delete" method="POST" class="d-inline">
+                            <form action="/projects/{{ project.id }}" method="POST" class="d-inline">
+                                <input type="hidden" name="_method" value="DELETE">
                                 <button class="btn btn-sm btn-danger" type="submit">Delete</button>
                             </form>
                             {% if project.isArchived %}

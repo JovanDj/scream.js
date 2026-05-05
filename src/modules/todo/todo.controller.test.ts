@@ -148,11 +148,11 @@ describe("todo controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /todos/create with missing title shows errors", async (t: TestContext) => {
+	it("POST /todos with missing title shows errors", async (t: TestContext) => {
 		t.plan(1);
 		const { port, cleanup } = await setupServer();
 		try {
-			const res = await fetch(`http://localhost:${port}/todos/create`, {
+			const res = await fetch(`http://localhost:${port}/todos`, {
 				body: "title=",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -197,11 +197,11 @@ describe("todo controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /todos/create with invalid dueAt shows errors", async (t: TestContext) => {
+	it("POST /todos with invalid dueAt shows errors", async (t: TestContext) => {
 		t.plan(2);
 		const { port, cleanup } = await setupServer();
 		try {
-			const res = await fetch(`http://localhost:${port}/todos/create`, {
+			const res = await fetch(`http://localhost:${port}/todos`, {
 				body: "title=HasDate&dueAt=not-a-date",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -222,7 +222,7 @@ describe("todo controller", { concurrency: true }, () => {
 		t.plan(3);
 		const { port, cleanup } = await setupServer();
 		try {
-			const createRes = await fetch(`http://localhost:${port}/todos/create`, {
+			const createRes = await fetch(`http://localhost:${port}/todos`, {
 				body: "title=SomeTitle",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -243,6 +243,103 @@ describe("todo controller", { concurrency: true }, () => {
 
 			t.assert.match(html, /SomeTitle/);
 			t.assert.match(html, new RegExp(`Todo \\| ${todoId}`));
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id with _method=PATCH updates the todo", async (t: TestContext) => {
+		t.plan(3);
+		const { port, cleanup } = await setupServer();
+		try {
+			const createRes = await fetch(`http://localhost:${port}/todos`, {
+				body: "title=Before",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const todoId = createRes.headers.get("Location")?.split("/").pop();
+			t.assert.ok(todoId, "Location header should include the todo id");
+
+			const updateRes = await fetch(
+				`http://localhost:${port}/todos/${todoId}`,
+				{
+					body: "_method=PATCH&title=After&description=&priority=medium&statusCode=open&dueAt=",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+					},
+					method: "POST",
+					redirect: "manual",
+					signal: t.signal,
+				},
+			);
+
+			t.assert.deepStrictEqual(updateRes.status, 302);
+			t.assert.deepStrictEqual(
+				updateRes.headers.get("Location"),
+				`/todos/${todoId}`,
+			);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id with _method=DELETE destroys the todo", async (t: TestContext) => {
+		t.plan(3);
+		const { port, cleanup } = await setupServer();
+		try {
+			const createRes = await fetch(`http://localhost:${port}/todos`, {
+				body: "title=DeleteMe",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const todoId = createRes.headers.get("Location")?.split("/").pop();
+			t.assert.ok(todoId, "Location header should include the todo id");
+
+			const deleteRes = await fetch(
+				`http://localhost:${port}/todos/${todoId}`,
+				{
+					body: "_method=DELETE",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+					},
+					method: "POST",
+					redirect: "manual",
+					signal: t.signal,
+				},
+			);
+
+			const showRes = await fetch(`http://localhost:${port}/todos/${todoId}`, {
+				signal: t.signal,
+			});
+			t.assert.deepStrictEqual(deleteRes.headers.get("Location"), "/todos");
+			t.assert.deepStrictEqual(showRes.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id with unsupported _method does not route", async (t: TestContext) => {
+		t.plan(1);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(`http://localhost:${port}/todos/1`, {
+				body: "_method=PUT&title=Nope",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				signal: t.signal,
+			});
+
+			t.assert.deepStrictEqual(res.status, 404);
 		} finally {
 			await cleanup();
 		}

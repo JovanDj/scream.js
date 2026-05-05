@@ -489,7 +489,7 @@ export class TodosController implements Resource {
 			.parse(row);
 
 		return ctx.render("edit", {
-			action: `/todos/${todo.id}/edit`,
+			action: `/todos/${todo.id}`,
 			errors: {},
 			fields: {
 				description: todo.description,
@@ -562,7 +562,7 @@ export class TodosController implements Resource {
 			.safeParse(ctx.body());
 		if (!parsed.success) {
 			return ctx.render("edit", {
-				action: `/todos/${todoId}/edit`,
+				action: `/todos/${todoId}`,
 				errors: parsed.error.issues.reduce<Record<string, string[]>>(
 					(errors, issue) => {
 						const key = issue.path.join(".");
@@ -715,7 +715,7 @@ export class TodosController implements Resource {
 		return ctx.redirect(`/todos/${result.id}`);
 	}
 
-	async delete(ctx: HttpContext) {
+	async destroy(ctx: HttpContext) {
 		const parsedTodoId = schema.coerce
 			.number()
 			.int()

@@ -18,8 +18,8 @@ export class TagModule implements HttpModule {
 
 	mount(app: Application) {
 		app.get("/tags", (ctx) => this.#tagController.index(ctx));
-		app.post("/tags/create", (ctx) => this.#tagController.store(ctx));
-		app.post("/tags/:id/delete", (ctx) => this.#tagController.delete(ctx));
+		app.post("/tags", (ctx) => this.#tagController.store(ctx));
+		app.delete("/tags/:id", (ctx) => this.#tagController.destroy(ctx));
 		app.post("/todos/:id/tags", (ctx) => this.#tagController.assignToTodo(ctx));
 	}
 }

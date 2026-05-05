@@ -98,7 +98,7 @@ export class TagController {
 		}
 	}
 
-	async delete(ctx: HttpContext) {
+	async destroy(ctx: HttpContext) {
 		const parsedTagId = schema.coerce
 			.number()
 			.int()

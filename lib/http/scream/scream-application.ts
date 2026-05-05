@@ -31,14 +31,22 @@ export class ScreamApp implements Application {
 		return this.#registerRoute("POST", path, handler);
 	}
 
+	patch(path: string, handler: Handler) {
+		return this.#registerRoute("PATCH", path, handler);
+	}
+
+	delete(path: string, handler: Handler) {
+		return this.#registerRoute("DELETE", path, handler);
+	}
+
 	resource(path: string, resource: Readonly<Resource>) {
 		this.get(`${path}`, async (ctx) => resource.index(ctx));
 		this.get(`${path}/create`, async (ctx) => resource.create(ctx));
 		this.post(`${path}`, async (ctx) => resource.store(ctx));
 		this.get(`${path}/:id`, async (ctx) => resource.show(ctx));
 		this.get(`${path}/:id/edit`, async (ctx) => resource.edit(ctx));
-		this.post(`${path}/:id/edit`, async (ctx) => resource.update(ctx));
-		this.post(`${path}/:id/delete`, async (ctx) => resource.delete(ctx));
+		this.patch(`${path}/:id`, async (ctx) => resource.update(ctx));
+		this.delete(`${path}/:id`, async (ctx) => resource.destroy(ctx));
 		return this;
 	}
 

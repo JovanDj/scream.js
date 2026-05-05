@@ -16,7 +16,7 @@ test("shows validation error when submitting empty form", async ({ page }) => {
 	await expect(page.locator(".invalid-feedback")).toBeVisible();
 	await expect(page.locator("#title")).toHaveClass(/is-invalid/);
 
-	await expect(page).toHaveURL(/\/todos\/create$/);
+	await expect(page).toHaveURL(/\/todos$/);
 });
 
 test("label click focuses the title input", async ({ page }) => {
@@ -35,7 +35,7 @@ test("pressing Enter submits the form when empty and shows error", async ({
 	await page.keyboard.press("Enter");
 
 	await expect(page.locator(".invalid-feedback")).toBeVisible();
-	await expect(page).toHaveURL(/\/todos\/create$/);
+	await expect(page).toHaveURL(/\/todos$/);
 });
 
 test("creates a todo with valid title and redirects", async ({ page }) => {

@@ -24,10 +24,10 @@ export interface Update {
 	update(ctx: Readonly<HttpContext>): Promise<void>;
 }
 
-export interface Delete {
-	delete(ctx: Readonly<HttpContext>): Promise<void>;
+export interface Destroy {
+	destroy(ctx: Readonly<HttpContext>): Promise<void>;
 }
 
 export interface Readable extends Index, Show {}
-export interface Writable extends Create, Store, Edit, Update, Delete {}
+export interface Writable extends Create, Store, Edit, Update, Destroy {}
 export interface Resource extends Readable, Writable {}

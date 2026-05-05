@@ -90,10 +90,10 @@ describe("project controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /projects/create shows validation errors for a missing name", async (t: TestContext) => {
+	it("POST /projects shows validation errors for a missing name", async (t: TestContext) => {
 		const { cleanup, port } = await setupServer();
 		try {
-			const response = await fetch(`http://localhost:${port}/projects/create`, {
+			const response = await fetch(`http://localhost:${port}/projects`, {
 				body: "name=",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -110,10 +110,10 @@ describe("project controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /projects/create redirects to the created project", async (t: TestContext) => {
+	it("POST /projects redirects to the created project", async (t: TestContext) => {
 		const { cleanup, port } = await setupServer();
 		try {
-			const response = await fetch(`http://localhost:${port}/projects/create`, {
+			const response = await fetch(`http://localhost:${port}/projects`, {
 				body: "name=Created+Project",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -130,11 +130,11 @@ describe("project controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /projects/create renders the form when the name is duplicated", async (t: TestContext) => {
+	it("POST /projects renders the form when the name is duplicated", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
 		try {
 			await insertProject(db, "Duplicate");
-			const response = await fetch(`http://localhost:${port}/projects/create`, {
+			const response = await fetch(`http://localhost:${port}/projects`, {
 				body: "name=Duplicate",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -151,20 +151,17 @@ describe("project controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /projects/:id/edit returns 404 for a missing project", async (t: TestContext) => {
+	it("POST /projects/:id with _method=PATCH returns 404 for a missing project", async (t: TestContext) => {
 		const { cleanup, port } = await setupServer();
 		try {
-			const response = await fetch(
-				`http://localhost:${port}/projects/99999/edit`,
-				{
-					body: "name=Missing",
-					headers: {
-						"Content-Type": "application/x-www-form-urlencoded",
-					},
-					method: "POST",
-					signal: t.signal,
+			const response = await fetch(`http://localhost:${port}/projects/99999`, {
+				body: "_method=PATCH&name=Missing",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
 				},
-			);
+				method: "POST",
+				signal: t.signal,
+			});
 
 			t.assert.deepStrictEqual(response.status, 404);
 		} finally {
@@ -172,13 +169,13 @@ describe("project controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /projects/:id/edit returns 404 for an invalid project id", async (t: TestContext) => {
+	it("POST /projects/:id with _method=PATCH returns 404 for an invalid project id", async (t: TestContext) => {
 		const { cleanup, port } = await setupServer();
 		try {
 			const response = await fetch(
-				`http://localhost:${port}/projects/not-a-number/edit`,
+				`http://localhost:${port}/projects/not-a-number`,
 				{
-					body: "name=Invalid",
+					body: "_method=PATCH&name=Invalid",
 					headers: {
 						"Content-Type": "application/x-www-form-urlencoded",
 					},

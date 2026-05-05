@@ -4,6 +4,7 @@ import Router from "@koa/router";
 import { ScreamTemplateEngine } from "@scream.js/template-engine/template-engine.js";
 import type Koa from "koa";
 import KoaClass from "koa";
+import methodOverride from "koa-override";
 
 import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
@@ -26,6 +27,27 @@ export class KoaApp implements Application {
 		const templateEngine = ScreamTemplateEngine.create();
 
 		koa.use(bodyParser());
+		koa.use(async (ctx, next) => {
+			const body = ctx.request.body;
+			if (ctx.method === "POST" && body && typeof body === "object") {
+				const method = String(
+					(body as Record<string, unknown>)["_method"] ?? "",
+				).toUpperCase();
+				if (method && method !== "PATCH" && method !== "DELETE") {
+					delete (body as Record<string, unknown>)["_method"];
+				}
+			}
+			ctx.request.headers["x-http-method-override"] = "";
+			await next();
+		});
+		koa.use(methodOverride({ allowedMethods: ["POST"] }));
+		koa.use(async (ctx, next) => {
+			const body = ctx.request.body;
+			if (body && typeof body === "object") {
+				delete (body as Record<string, unknown>)["_method"];
+			}
+			await next();
+		});
 
 		koa.use(async (ctx, next) => {
 			ctx.render = async (view, locals = {}) => {
@@ -66,6 +88,22 @@ export class KoaApp implements Application {
 		return this;
 	}
 
+	patch(path: string, handler: Handler) {
+		this.#router.patch(path, async (ctx) => {
+			const context = this.#createContext(ctx);
+			await handler(context);
+		});
+		return this;
+	}
+
+	delete(path: string, handler: Handler) {
+		this.#router.delete(path, async (ctx) => {
+			const context = this.#createContext(ctx);
+			await handler(context);
+		});
+		return this;
+	}
+
 	resource(path: string, resource: Resource) {
 		const router = new Router({ prefix: path });
 
@@ -73,19 +111,15 @@ export class KoaApp implements Application {
 
 		router.get("/create", (ctx) => resource.create(this.#createContext(ctx)));
 
-		router.post("/create", (ctx) => resource.store(this.#createContext(ctx)));
+		router.post("/", (ctx) => resource.store(this.#createContext(ctx)));
 
 		router.get("/:id/edit", (ctx) => resource.edit(this.#createContext(ctx)));
 
 		router.get("/:id", (ctx) => resource.show(this.#createContext(ctx)));
 
-		router.post("/:id/edit", (ctx) =>
-			resource.update(this.#createContext(ctx)),
-		);
+		router.patch("/:id", (ctx) => resource.update(this.#createContext(ctx)));
 
-		router.post("/:id/delete", (ctx) =>
-			resource.delete(this.#createContext(ctx)),
-		);
+		router.delete("/:id", (ctx) => resource.destroy(this.#createContext(ctx)));
 
 		this.#router.use(router.routes());
 

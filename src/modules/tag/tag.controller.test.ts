@@ -83,10 +83,10 @@ describe("tag controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /tags/create shows validation errors for a missing name", async (t: TestContext) => {
+	it("POST /tags shows validation errors for a missing name", async (t: TestContext) => {
 		const { cleanup, port } = await setupServer();
 		try {
-			const response = await fetch(`http://localhost:${port}/tags/create`, {
+			const response = await fetch(`http://localhost:${port}/tags`, {
 				body: "name=",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -103,10 +103,10 @@ describe("tag controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /tags/create redirects after creating a tag", async (t: TestContext) => {
+	it("POST /tags redirects after creating a tag", async (t: TestContext) => {
 		const { cleanup, port } = await setupServer();
 		try {
-			const response = await fetch(`http://localhost:${port}/tags/create`, {
+			const response = await fetch(`http://localhost:${port}/tags`, {
 				body: "name=alpha",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -123,11 +123,11 @@ describe("tag controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /tags/create renders the index when the name is duplicated", async (t: TestContext) => {
+	it("POST /tags renders the index when the name is duplicated", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
 		try {
 			await insertTag(db, "alpha");
-			const response = await fetch(`http://localhost:${port}/tags/create`, {
+			const response = await fetch(`http://localhost:${port}/tags`, {
 				body: "name=alpha",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -144,16 +144,17 @@ describe("tag controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /tags/:id/delete returns 404 for a missing tag", async (t: TestContext) => {
+	it("POST /tags/:id with _method=DELETE returns 404 for a missing tag", async (t: TestContext) => {
 		const { cleanup, port } = await setupServer();
 		try {
-			const response = await fetch(
-				`http://localhost:${port}/tags/99999/delete`,
-				{
-					method: "POST",
-					signal: t.signal,
+			const response = await fetch(`http://localhost:${port}/tags/99999`, {
+				body: "_method=DELETE",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
 				},
-			);
+				method: "POST",
+				signal: t.signal,
+			});
 
 			t.assert.deepStrictEqual(response.status, 404);
 		} finally {
@@ -161,12 +162,16 @@ describe("tag controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /tags/:id/delete returns 404 for an invalid tag id", async (t: TestContext) => {
+	it("POST /tags/:id with _method=DELETE returns 404 for an invalid tag id", async (t: TestContext) => {
 		const { cleanup, port } = await setupServer();
 		try {
 			const response = await fetch(
-				`http://localhost:${port}/tags/not-a-number/delete`,
+				`http://localhost:${port}/tags/not-a-number`,
 				{
+					body: "_method=DELETE",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+					},
 					method: "POST",
 					signal: t.signal,
 				},

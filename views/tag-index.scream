@@ -5,7 +5,7 @@
     <section class="page-shell">
         <h1 class="page-title mb-3">Tags</h1>
 
-        <form action="/tags/create" method="POST" class="mb-4">
+        <form action="/tags" method="POST" class="mb-4">
             <div class="row g-2">
                 <div class="col-9">
                     {% if errors.name %}
@@ -35,7 +35,8 @@
                     <tr>
                         <td>{{ tag.name }}</td>
                         <td>
-                            <form action="/tags/{{ tag.id }}/delete" method="POST">
+                            <form action="/tags/{{ tag.id }}" method="POST">
+                                <input type="hidden" name="_method" value="DELETE">
                                 <button class="btn btn-sm btn-danger" type="submit">Delete</button>
                             </form>
                         </td>

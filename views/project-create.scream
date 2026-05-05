@@ -4,7 +4,7 @@
 <div class="container py-4 px-3 mx-auto">
     <section class="page-shell">
         <h1 class="page-title mb-3">Create Project</h1>
-        <form action="/projects/create" method="POST">
+        <form action="/projects" method="POST">
             <div class="mb-3">
                 <label class="form-label" for="name">Name</label>
                 {% if errors.name %}

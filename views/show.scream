@@ -19,7 +19,8 @@
             </p>
             <div class="d-flex gap-2 flex-wrap">
                 <a class="btn btn-outline-primary" href="/todos/{{ todoId }}/edit">Edit</a>
-                <form action="/todos/{{ todoId }}/delete" method="POST" class="d-inline">
+                <form action="/todos/{{ todoId }}" method="POST" class="d-inline">
+                    <input type="hidden" name="_method" value="DELETE">
                     <button type="submit" class="btn btn-danger">Delete</button>
                 </form>
                 <form action="/todos/{{ todoId }}/toggle" method="POST" class="d-inline">

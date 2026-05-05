@@ -39,7 +39,7 @@ test("shows validation error when clearing the title and submitting", async ({
 
 	await expect(page.locator(".invalid-feedback")).toBeVisible();
 	await expect(page.locator("#title")).toHaveClass(/is-invalid/);
-	await expect(page).toHaveURL(new RegExp(`/todos/${id}/edit$`));
+	await expect(page).toHaveURL(new RegExp(`/todos/${id}$`));
 });
 
 test("label click focuses the title input", async ({ page }) => {

@@ -6,6 +6,7 @@
         <h1 class="page-title mb-3">{{ pageTitle }}</h1>
 
         <form action="{{ action }}" method="POST">
+            <input type="hidden" name="_method" value="PATCH">
             <div class="mb-3">
                 <label for="title" class="form-label">Title</label>
                 {% if errors.title %}
@@ -58,7 +59,8 @@
             <form action="/todos/{{ todoId }}/toggle" method="POST" class="d-inline">
                 <button type="submit" class="btn btn-outline-secondary">Toggle Status</button>
             </form>
-            <form action="/todos/{{ todoId }}/delete" method="POST" class="d-inline">
+            <form action="/todos/{{ todoId }}" method="POST" class="d-inline">
+                <input type="hidden" name="_method" value="DELETE">
                 <button type="submit" class="btn btn-danger">Delete</button>
             </form>
         </div>

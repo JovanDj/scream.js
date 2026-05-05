@@ -213,7 +213,7 @@ export class ProjectController implements Resource {
 			.parse(row);
 
 		return ctx.render("project-edit", {
-			action: `/projects/${project.id}/edit`,
+			action: `/projects/${project.id}`,
 			errors: {},
 			fields: {
 				name: project.name,
@@ -251,7 +251,7 @@ export class ProjectController implements Resource {
 			.safeParse(ctx.body());
 		if (!parsed.success) {
 			return ctx.render("project-edit", {
-				action: `/projects/${projectId}/edit`,
+				action: `/projects/${projectId}`,
 				errors: parsed.error.issues.reduce<Record<string, string[]>>(
 					(errors, issue) => {
 						const key = issue.path.join(".");
@@ -306,7 +306,7 @@ export class ProjectController implements Resource {
 			return ctx.redirect(`/projects/${result.id}`);
 		} catch {
 			return ctx.render("project-edit", {
-				action: `/projects/${projectId}/edit`,
+				action: `/projects/${projectId}`,
 				errors: { name: ["Project name must be unique"] },
 				fields: {
 					name: parsed.data.name,
@@ -318,7 +318,7 @@ export class ProjectController implements Resource {
 		}
 	}
 
-	async delete(ctx: HttpContext) {
+	async destroy(ctx: HttpContext) {
 		const parsedProjectId = schema.coerce
 			.number()
 			.int()

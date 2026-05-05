@@ -5,6 +5,7 @@
     <section class="page-shell">
         <h1 class="page-title mb-3">{{ pageTitle }}</h1>
         <form action="{{ action }}" method="POST">
+            <input type="hidden" name="_method" value="PATCH">
             <div class="mb-3">
                 <label class="form-label" for="name">Name</label>
                 {% if errors.name %}
@@ -21,7 +22,8 @@
         </form>
 
         <div class="d-flex gap-2 flex-wrap mt-3">
-            <form action="/projects/{{ project.id }}/delete" method="POST" class="d-inline">
+            <form action="/projects/{{ project.id }}" method="POST" class="d-inline">
+                <input type="hidden" name="_method" value="DELETE">
                 <button class="btn btn-danger" type="submit">Delete</button>
             </form>
 
