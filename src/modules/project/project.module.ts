@@ -17,7 +17,10 @@ export class ProjectModule implements HttpModule {
 	}
 
 	mount(app: Application) {
-		app.resource("/projects", this.#projectController);
+		app
+			.get("/projects", (ctx) => this.#projectController.index(ctx))
+			.post("/projects", (ctx) => this.#projectController.store(ctx))
+			.get("/projects/:id", (ctx) => this.#projectController.show(ctx));
 		app.post("/projects/:id/archive", (ctx) =>
 			this.#projectController.archive(ctx),
 		);

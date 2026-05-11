@@ -10,9 +10,6 @@
 
             <form method="GET" action="/todos" class="mb-3">
                 <input type="hidden" name="status" value="{{ status }}">
-                {% if hasProjectId %}
-                <input type="hidden" name="projectId" value="{{ projectId }}">
-                {% endif %}
                 <div class="row g-2">
                     <div class="col-8">
                         <input class="form-control" name="search" placeholder="Search todos" value="{{ search }}" type="text">
@@ -27,8 +24,6 @@
                 <a class="btn btn-sm btn-outline-secondary" href="{{ filters.all }}">All</a>
                 <a class="btn btn-sm btn-outline-secondary" href="{{ filters.open }}">Open</a>
                 <a class="btn btn-sm btn-outline-secondary" href="{{ filters.completed }}">Completed</a>
-                <a class="btn btn-sm btn-outline-secondary" href="{{ filters.dueToday }}">Due Today</a>
-                <a class="btn btn-sm btn-outline-secondary" href="{{ filters.overdue }}">Overdue</a>
             </div>
 
             {% if todos.length %}
@@ -37,9 +32,7 @@
                     <thead>
                         <tr>
                             <th>Title</th>
-                            <th>Priority</th>
                             <th>Status</th>
-                            <th>Due</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -47,16 +40,9 @@
                         {% for todo in todos %}
                         <tr data-testid="todo-row">
                             <td><a data-testid="todo-title" href="/todos/{{ todo.id }}">{{ todo.title }}</a></td>
-                            <td>{{ todo.priority }}</td>
                             <td><span class="badge text-bg-secondary">{{ todo.statusCode }}</span></td>
-                            <td>{% if todo.dueDate %}{{ todo.dueDate }}{% else %}-{% endif %}</td>
                             <td class="d-flex gap-1">
                                 <a class="btn btn-sm btn-outline-primary" href="/todos/{{ todo.id }}/edit">Edit</a>
-                                <form action="/todos/{{ todo.id }}/toggle" method="POST" class="d-inline">
-                                    <button class="btn btn-sm btn-outline-secondary" type="submit">
-                                        {% if todo.isCompleted %}Reopen{% else %}Complete{% endif %}
-                                    </button>
-                                </form>
                             </td>
                         </tr>
                         {% endfor %}

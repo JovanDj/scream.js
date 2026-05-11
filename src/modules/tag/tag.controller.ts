@@ -159,14 +159,7 @@ export class TagController {
 
 			if (tagIds.length > 0) {
 				const matchedTags = await tx("tags").whereIn("id", tagIds).select("id");
-				const matchedTagIds = schema
-					.array(
-						schema.object({
-							id: schema.coerce.number().int().positive(),
-						}),
-					)
-					.parse(matchedTags)
-					.map((row) => row.id);
+				const matchedTagIds = matchedTags.map((row) => row.id);
 				if (matchedTagIds.length !== tagIds.length) {
 					return false;
 				}

@@ -18,6 +18,5 @@ export class TodoModule implements HttpModule {
 
 	mount(app: Application) {
 		app.resource("/todos", this.#todosController);
-		app.post("/todos/:id/toggle", (ctx) => this.#todosController.toggle(ctx));
 	}
 }

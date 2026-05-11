@@ -1,5 +1,4 @@
 import type { Server } from "node:http";
-import type { AddressInfo } from "node:net";
 import type { Application } from "./application.js";
 
 export type HttpServerOptions = {
@@ -28,16 +27,7 @@ export class HttpServer {
 	}
 
 	get port() {
-		const address = this.#server.address();
-		if (!this.#isAddressInfo(address)) {
-			throw new Error("Failed to resolve server port");
-		}
-
-		return address.port;
-	}
-
-	get server() {
-		return this.#server;
+		return (this.#server.address() as { port: number }).port;
 	}
 
 	async shutdown() {
@@ -55,9 +45,5 @@ export class HttpServer {
 				}
 			});
 		});
-	}
-
-	#isAddressInfo(address: unknown): address is AddressInfo {
-		return !!address && typeof address === "object" && "port" in address;
 	}
 }

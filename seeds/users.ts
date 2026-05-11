@@ -2,10 +2,6 @@ import type { Knex } from "knex";
 
 const lookupId = async (trx: Knex.Transaction, table: string, code: string) => {
 	const row = await trx(table).where({ code }).first("id");
-	if (!row) {
-		throw new Error(`Missing lookup row in ${table}: ${code}`);
-	}
-
 	return Number(row["id"]);
 };
 

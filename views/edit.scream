@@ -18,35 +18,11 @@
             </div>
 
             <div class="mb-3">
-                <label for="description" class="form-label">Description</label>
-                <textarea id="description" name="description" class="form-control" rows="3">{{ fields.description }}</textarea>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label for="priority" class="form-label">Priority</label>
-                    <select id="priority" name="priority" class="form-select">
-						<option value="low"{% attr selected if fields.isLowPriority %}>Low</option>
-						<option value="medium"{% attr selected if fields.isMediumPriority %}>Medium</option>
-						<option value="high"{% attr selected if fields.isHighPriority %}>High</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="statusCode" class="form-label">Status</label>
-                    <select id="statusCode" name="statusCode" class="form-select">
-						<option value="open"{% attr selected if fields.isOpen %}>Open</option>
-						<option value="completed"{% attr selected if fields.isCompleted %}>Completed</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="dueAt" class="form-label">Due Date</label>
-                    {% if errors.dueAt %}
-                    <input type="date" id="dueAt" name="dueAt" class="form-control is-invalid" value="{{ fields.dueAt }}">
-                    <div class="invalid-feedback d-block">{{ errors.dueAt }}</div>
-                    {% else %}
-                    <input type="date" id="dueAt" name="dueAt" class="form-control" value="{{ fields.dueAt }}">
-                    {% endif %}
-                </div>
+                <label for="statusCode" class="form-label">Status</label>
+                <select id="statusCode" name="statusCode" class="form-select">
+					<option value="open"{% attr selected if fields.isOpen %}>Open</option>
+					<option value="completed"{% attr selected if fields.isCompleted %}>Completed</option>
+                </select>
             </div>
 
             <div class="d-flex gap-2 flex-wrap mt-3">
@@ -56,9 +32,6 @@
         </form>
 
         <div class="d-flex gap-2 flex-wrap mt-3">
-            <form action="/todos/{{ todoId }}/toggle" method="POST" class="d-inline">
-                <button type="submit" class="btn btn-outline-secondary">Toggle Status</button>
-            </form>
             <form action="/todos/{{ todoId }}" method="POST" class="d-inline">
                 <input type="hidden" name="_method" value="DELETE">
                 <button type="submit" class="btn btn-danger">Delete</button>

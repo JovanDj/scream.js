@@ -5,7 +5,6 @@
     <section class="page-shell">
         <div class="page-head">
             <h1 class="page-title">Projects</h1>
-            <a href="/projects/create" class="btn btn-primary btn-sm">Create Project</a>
         </div>
 
         {% if projects.length %}
@@ -15,7 +14,6 @@
                     <tr>
                         <th>Name</th>
                         <th>Status</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -23,22 +21,6 @@
                     <tr>
                         <td><a href="/projects/{{ project.id }}">{{ project.name }}</a></td>
                         <td>{{ project.statusCode }}</td>
-                        <td class="d-flex gap-1">
-                            <a class="btn btn-sm btn-outline-primary" href="/projects/{{ project.id }}/edit">Edit</a>
-                            <form action="/projects/{{ project.id }}" method="POST" class="d-inline">
-                                <input type="hidden" name="_method" value="DELETE">
-                                <button class="btn btn-sm btn-danger" type="submit">Delete</button>
-                            </form>
-                            {% if project.isArchived %}
-                            <form action="/projects/{{ project.id }}/unarchive" method="POST" class="d-inline">
-                                <button class="btn btn-sm btn-outline-secondary" type="submit">Unarchive</button>
-                            </form>
-                            {% else %}
-                            <form action="/projects/{{ project.id }}/archive" method="POST" class="d-inline">
-                                <button class="btn btn-sm btn-outline-secondary" type="submit">Archive</button>
-                            </form>
-                            {% endif %}
-                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

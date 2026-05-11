@@ -63,48 +63,32 @@ export class ExpressApp implements Application {
 	}
 
 	get(path: string, handler: Handler) {
-		this.#express.get(path, async (req, res, next) => {
-			try {
-				await handler(ExpressHttpContext.create(req, res));
-			} catch (error) {
-				next(error);
-			}
+		this.#express.get(path, async (req, res) => {
+			await handler(ExpressHttpContext.create(req, res));
 		});
 
 		return this;
 	}
 
 	post(path: string, handler: Handler) {
-		this.#express.post(path, async (req, res, next) => {
-			try {
-				await handler(ExpressHttpContext.create(req, res));
-			} catch (error) {
-				next(error);
-			}
+		this.#express.post(path, async (req, res) => {
+			await handler(ExpressHttpContext.create(req, res));
 		});
 
 		return this;
 	}
 
 	patch(path: string, handler: Handler) {
-		this.#express.patch(path, async (req, res, next) => {
-			try {
-				await handler(ExpressHttpContext.create(req, res));
-			} catch (error) {
-				next(error);
-			}
+		this.#express.patch(path, async (req, res) => {
+			await handler(ExpressHttpContext.create(req, res));
 		});
 
 		return this;
 	}
 
 	delete(path: string, handler: Handler) {
-		this.#express.delete(path, async (req, res, next) => {
-			try {
-				await handler(ExpressHttpContext.create(req, res));
-			} catch (error) {
-				next(error);
-			}
+		this.#express.delete(path, async (req, res) => {
+			await handler(ExpressHttpContext.create(req, res));
 		});
 
 		return this;

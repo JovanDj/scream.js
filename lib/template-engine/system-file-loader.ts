@@ -15,11 +15,7 @@ export class SystemFileLoader implements FileLoader {
 		const resolvedPath = path.resolve(this.#viewsRoot, viewName);
 		const relativePath = path.relative(this.#viewsRoot, resolvedPath);
 
-		if (
-			path.isAbsolute(viewName) ||
-			relativePath.startsWith("..") ||
-			path.isAbsolute(relativePath)
-		) {
+		if (path.isAbsolute(viewName) || relativePath.startsWith("..")) {
 			throw new Error(`Invalid view name: ${viewName}`);
 		}
 

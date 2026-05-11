@@ -8,25 +8,11 @@
                 <span data-testid="todo-title-show" class="h5 d-inline">{{ todoTitle }}</span>
                 <span class="badge text-bg-secondary ms-2" data-testid="todo-status">{{ todoStatusCode }}</span>
             </div>
-            {% if todoDescription %}
-                <p class="muted mb-2">{{ todoDescription }}</p>
-            {% endif %}
-            <p class="mb-3">
-                <span class="badge text-bg-secondary">{{ todoPriority }}</span>
-                {% if todoDueAt %}
-                <span class="ms-2 muted">Due: {{ todoDueAt }}</span>
-                {% endif %}
-            </p>
             <div class="d-flex gap-2 flex-wrap">
                 <a class="btn btn-outline-primary" href="/todos/{{ todoId }}/edit">Edit</a>
                 <form action="/todos/{{ todoId }}" method="POST" class="d-inline">
                     <input type="hidden" name="_method" value="DELETE">
                     <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
-                <form action="/todos/{{ todoId }}/toggle" method="POST" class="d-inline">
-                    <button type="submit" class="btn btn-outline-secondary">
-                        {% if todoIsCompleted %}Reopen{% else %}Complete{% endif %}
-                    </button>
                 </form>
             </div>
         </section>

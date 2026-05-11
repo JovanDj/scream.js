@@ -16,7 +16,6 @@
                 <a href="/" class="app-brand">ScreamJS Todo</a>
                 <nav class="app-nav d-flex gap-3">
                     <a href="/todos">Todos</a>
-                    <a href="/projects">Projects</a>
                     <a href="/tags">Tags</a>
                 </nav>
             </div>

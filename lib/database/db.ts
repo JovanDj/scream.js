@@ -2,8 +2,6 @@ import knex, { type Knex } from "knex";
 import config from "./knexfile.js";
 
 export type Database = Knex;
-export type DatabaseTransaction = Knex.Transaction;
-export type DatabaseHandle = Database | DatabaseTransaction;
 
 export const createDB = (env?: string): Database => {
 	const resolvedEnv = env ?? process.env["NODE_ENV"] ?? "development";

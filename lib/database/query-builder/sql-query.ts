@@ -1,21 +1,12 @@
 export type SqlPrimitive = string | number | boolean | null;
-export type SqlArray = readonly SqlPrimitive[];
 
-export type SqlQuery = {
-	sql: string;
-	params: readonly SqlPrimitive[];
-};
+export type SqlQuery = { params: readonly SqlPrimitive[]; sql: string };
 
-export type SqlValue = SqlPrimitive | SqlArray | SqlQuery | undefined;
-
-export const isSqlPrimitive = (val: unknown): val is SqlPrimitive => {
-	return (
-		typeof val === "string" ||
-		typeof val === "number" ||
-		typeof val === "boolean" ||
-		val === null
-	);
-};
+export type SqlValue =
+	| SqlPrimitive
+	| readonly SqlPrimitive[]
+	| SqlQuery
+	| undefined;
 
 export const isSqlQuery = (val: unknown): val is SqlQuery => {
 	if (!val || typeof val !== "object") {
