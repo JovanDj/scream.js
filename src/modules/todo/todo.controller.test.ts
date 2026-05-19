@@ -26,6 +26,32 @@ describe("todo controller", { concurrency: true }, () => {
 		return { cleanup, port: httpServer.port };
 	};
 
+	const createTodo = async (input: {
+		port: number;
+		signal: AbortSignal;
+		title: string;
+	}) => {
+		const res = await fetch(`http://localhost:${input.port}/todos`, {
+			body: new URLSearchParams({ title: input.title }),
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			method: "POST",
+			redirect: "manual",
+			signal: input.signal,
+		});
+		const location = res.headers.get("Location");
+		if (!location) {
+			throw new Error("Location header should include the todo id");
+		}
+		const id = location.split("/").pop();
+		if (!id) {
+			throw new Error("Location header should end with the todo id");
+		}
+
+		return { id, location };
+	};
+
 	it("GET / responds with 200", async (t: TestContext) => {
 		t.plan(1);
 		const { port, cleanup } = await setupServer();
@@ -129,7 +155,7 @@ describe("todo controller", { concurrency: true }, () => {
 	});
 
 	it("preserves status in the search form and filter links", async (t: TestContext) => {
-		t.plan(3);
+		t.plan(4);
 		const { port, cleanup } = await setupServer();
 		try {
 			const res = await fetch(
@@ -141,8 +167,26 @@ describe("todo controller", { concurrency: true }, () => {
 			const html = await res.text();
 
 			t.assert.match(html, /name="status" value="open"/);
+			t.assert.match(html, /href="\/todos\?status=open&amp;search=milk"/);
 			t.assert.match(html, /href="\/todos\?status=completed&amp;search=milk"/);
 			t.assert.match(html, /href="\/todos\?search=milk"/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /todos/create renders the new todo form", async (t: TestContext) => {
+		t.plan(3);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(`http://localhost:${port}/todos/create`, {
+				signal: t.signal,
+			});
+			const html = await res.text();
+
+			t.assert.deepStrictEqual<number>(res.status, 200);
+			t.assert.match(html, /New Todo/);
+			t.assert.match(html, /<form action="\/todos" method="POST">/);
 		} finally {
 			await cleanup();
 		}
@@ -163,6 +207,30 @@ describe("todo controller", { concurrency: true }, () => {
 
 			const html = await res.text();
 			t.assert.match(html, /Required/i);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos with a valid title redirects and persists the todo", async (t: TestContext) => {
+		t.plan(4);
+		const { port, cleanup } = await setupServer();
+		try {
+			const { id, location } = await createTodo({
+				port,
+				signal: t.signal,
+				title: "PersistedTitle",
+			});
+
+			const res = await fetch(`http://localhost:${port}/todos/${id}`, {
+				signal: t.signal,
+			});
+			const html = await res.text();
+
+			t.assert.deepStrictEqual(location, `/todos/${id}`);
+			t.assert.deepStrictEqual<number>(res.status, 200);
+			t.assert.match(html, /PersistedTitle/);
+			t.assert.match(html, new RegExp(`Todo \\| ${id}`));
 		} finally {
 			await cleanup();
 		}
@@ -287,6 +355,228 @@ describe("todo controller", { concurrency: true }, () => {
 		}
 	});
 
+	it("GET /todos/:id/edit renders the edit form with existing data", async (t: TestContext) => {
+		t.plan(4);
+		const { port, cleanup } = await setupServer();
+		try {
+			const { id } = await createTodo({
+				port,
+				signal: t.signal,
+				title: "ExistingTitle",
+			});
+
+			const res = await fetch(`http://localhost:${port}/todos/${id}/edit`, {
+				signal: t.signal,
+			});
+			const html = await res.text();
+
+			t.assert.deepStrictEqual<number>(res.status, 200);
+			t.assert.match(html, new RegExp(`Edit Todo #${id}`));
+			t.assert.match(html, /value="ExistingTitle"/);
+			t.assert.match(html, /<option value="open" selected>Open<\/option>/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /todos/:id/edit returns 404 for an invalid id", async (t: TestContext) => {
+		t.plan(1);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(
+				`http://localhost:${port}/todos/not-a-number/edit`,
+				{
+					signal: t.signal,
+				},
+			);
+
+			t.assert.deepStrictEqual<number>(res.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /todos/:id/edit returns 404 for a missing todo", async (t: TestContext) => {
+		t.plan(1);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(`http://localhost:${port}/todos/99999/edit`, {
+				signal: t.signal,
+			});
+
+			t.assert.deepStrictEqual<number>(res.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id with _method=PATCH and empty title renders edit errors", async (t: TestContext) => {
+		t.plan(3);
+		const { port, cleanup } = await setupServer();
+		try {
+			const { id } = await createTodo({
+				port,
+				signal: t.signal,
+				title: "NeedsValidation",
+			});
+
+			const res = await fetch(`http://localhost:${port}/todos/${id}`, {
+				body: new URLSearchParams({
+					_method: "PATCH",
+					statusCode: "open",
+					title: "",
+				}),
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				signal: t.signal,
+			});
+			const html = await res.text();
+
+			t.assert.deepStrictEqual<number>(res.status, 200);
+			t.assert.match(html, /Required/);
+			t.assert.match(html, new RegExp(`Edit Todo #${id}`));
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id with _method=PATCH marks the todo completed", async (t: TestContext) => {
+		t.plan(4);
+		const { port, cleanup } = await setupServer();
+		try {
+			const { id } = await createTodo({
+				port,
+				signal: t.signal,
+				title: "CompleteFromIntegration",
+			});
+
+			const updateRes = await fetch(`http://localhost:${port}/todos/${id}`, {
+				body: new URLSearchParams({
+					_method: "PATCH",
+					statusCode: "completed",
+					title: "CompleteFromIntegration",
+				}),
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const showRes = await fetch(`http://localhost:${port}/todos/${id}`, {
+				signal: t.signal,
+			});
+			const html = await showRes.text();
+
+			t.assert.deepStrictEqual<number>(updateRes.status, 302);
+			t.assert.deepStrictEqual(
+				updateRes.headers.get("Location"),
+				`/todos/${id}`,
+			);
+			t.assert.deepStrictEqual<number>(showRes.status, 200);
+			t.assert.match(html, /completed/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id with _method=PATCH clears completed state", async (t: TestContext) => {
+		t.plan(3);
+		const { port, cleanup } = await setupServer();
+		try {
+			const { id } = await createTodo({
+				port,
+				signal: t.signal,
+				title: "ReopenFromIntegration",
+			});
+
+			await fetch(`http://localhost:${port}/todos/${id}`, {
+				body: new URLSearchParams({
+					_method: "PATCH",
+					statusCode: "completed",
+					title: "ReopenFromIntegration",
+				}),
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const reopenRes = await fetch(`http://localhost:${port}/todos/${id}`, {
+				body: new URLSearchParams({
+					_method: "PATCH",
+					statusCode: "open",
+					title: "ReopenFromIntegration",
+				}),
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const showRes = await fetch(`http://localhost:${port}/todos/${id}`, {
+				signal: t.signal,
+			});
+			const html = await showRes.text();
+
+			t.assert.deepStrictEqual<number>(reopenRes.status, 302);
+			t.assert.deepStrictEqual<number>(showRes.status, 200);
+			t.assert.match(html, /open/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id with _method=PATCH returns 404 for an invalid id", async (t: TestContext) => {
+		t.plan(1);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(`http://localhost:${port}/todos/not-a-number`, {
+				body: new URLSearchParams({
+					_method: "PATCH",
+					statusCode: "open",
+					title: "Invalid",
+				}),
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				signal: t.signal,
+			});
+
+			t.assert.deepStrictEqual<number>(res.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id with _method=PATCH returns 404 for a missing todo", async (t: TestContext) => {
+		t.plan(1);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(`http://localhost:${port}/todos/99999`, {
+				body: new URLSearchParams({
+					_method: "PATCH",
+					statusCode: "open",
+					title: "Missing",
+				}),
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				signal: t.signal,
+			});
+
+			t.assert.deepStrictEqual<number>(res.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
 	it("POST /todos/:id with _method=DELETE destroys the todo", async (t: TestContext) => {
 		t.plan(3);
 		const { port, cleanup } = await setupServer();
@@ -321,6 +611,44 @@ describe("todo controller", { concurrency: true }, () => {
 			});
 			t.assert.deepStrictEqual(deleteRes.headers.get("Location"), "/todos");
 			t.assert.deepStrictEqual(showRes.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id with _method=DELETE returns 404 for an invalid id", async (t: TestContext) => {
+		t.plan(1);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(`http://localhost:${port}/todos/not-a-number`, {
+				body: "_method=DELETE",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				signal: t.signal,
+			});
+
+			t.assert.deepStrictEqual<number>(res.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id with _method=DELETE returns 404 for a missing todo", async (t: TestContext) => {
+		t.plan(1);
+		const { port, cleanup } = await setupServer();
+		try {
+			const res = await fetch(`http://localhost:${port}/todos/99999`, {
+				body: "_method=DELETE",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				signal: t.signal,
+			});
+
+			t.assert.deepStrictEqual<number>(res.status, 404);
 		} finally {
 			await cleanup();
 		}

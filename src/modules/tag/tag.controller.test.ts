@@ -139,6 +139,7 @@ describe("tag controller", { concurrency: true }, () => {
 
 			t.assert.deepStrictEqual(response.status, 200);
 			t.assert.match(html, /Tag name must be unique/);
+			t.assert.match(html, /alpha/);
 		} finally {
 			await cleanup();
 		}
@@ -178,6 +179,29 @@ describe("tag controller", { concurrency: true }, () => {
 			);
 
 			t.assert.deepStrictEqual(response.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /tags/:id with _method=DELETE redirects after deleting a tag", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			const tag = await insertTag(db, "remove-me");
+			const response = await fetch(`http://localhost:${port}/tags/${tag.id}`, {
+				body: "_method=DELETE",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const deleted = await db("tags").where({ id: tag.id }).first("id");
+
+			t.assert.deepStrictEqual(response.status, 302);
+			t.assert.deepStrictEqual(response.headers.get("Location"), "/tags");
+			t.assert.deepStrictEqual(deleted, undefined);
 		} finally {
 			await cleanup();
 		}
@@ -278,6 +302,44 @@ describe("tag controller", { concurrency: true }, () => {
 				response.headers.get("Location"),
 				`/todos/${todo.id}/edit`,
 			);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id/tags redirects after clearing all assigned tags", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			const todo = await insertTodo(db, "Todo");
+			const tag = await insertTag(db, "alpha");
+			await db("todo_tags").insert({
+				created_at: new Date().toISOString(),
+				tag_id: tag.id,
+				todo_id: todo.id,
+			});
+
+			const response = await fetch(
+				`http://localhost:${port}/todos/${todo.id}/tags`,
+				{
+					body: "",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+					},
+					method: "POST",
+					redirect: "manual",
+					signal: t.signal,
+				},
+			);
+			const remaining = await db("todo_tags")
+				.where({ todo_id: todo.id })
+				.first("todo_id");
+
+			t.assert.deepStrictEqual(response.status, 302);
+			t.assert.deepStrictEqual(
+				response.headers.get("Location"),
+				`/todos/${todo.id}/edit`,
+			);
+			t.assert.deepStrictEqual(remaining, undefined);
 		} finally {
 			await cleanup();
 		}

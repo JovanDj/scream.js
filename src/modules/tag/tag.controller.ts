@@ -24,6 +24,10 @@ export class TagController {
 	}
 
 	async index(ctx: HttpContext) {
+		return this.#renderIndex(ctx, tagErrors([]));
+	}
+
+	async #renderIndex(ctx: HttpContext, errors: { name: string }) {
 		const rows = await this.#db("tags")
 			.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
 			.orderBy("tags.name", "asc");
@@ -36,7 +40,7 @@ export class TagController {
 			)
 			.parse(rows);
 		return ctx.render("tag-index", {
-			errors: tagErrors([]),
+			errors,
 			pageTitle: "Tags",
 			tags,
 		});
@@ -55,22 +59,7 @@ export class TagController {
 			})
 			.safeParse(ctx.body());
 		if (!parsed.success) {
-			const rows = await this.#db("tags")
-				.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
-				.orderBy("tags.name", "asc");
-			const tags = schema
-				.array(
-					schema.object({
-						id: schema.coerce.number().int().positive(),
-						name: schema.string(),
-					}),
-				)
-				.parse(rows);
-			return ctx.render("tag-index", {
-				errors: tagErrors(parsed.error.issues),
-				pageTitle: "Tags",
-				tags,
-			});
+			return this.#renderIndex(ctx, tagErrors(parsed.error.issues));
 		}
 
 		try {
@@ -84,22 +73,7 @@ export class TagController {
 			});
 			return ctx.redirect("/tags");
 		} catch {
-			const rows = await this.#db("tags")
-				.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
-				.orderBy("tags.name", "asc");
-			const tags = schema
-				.array(
-					schema.object({
-						id: schema.coerce.number().int().positive(),
-						name: schema.string(),
-					}),
-				)
-				.parse(rows);
-			return ctx.render("tag-index", {
-				errors: { name: "Tag name must be unique" },
-				pageTitle: "Tags",
-				tags,
-			});
+			return this.#renderIndex(ctx, { name: "Tag name must be unique" });
 		}
 	}
 

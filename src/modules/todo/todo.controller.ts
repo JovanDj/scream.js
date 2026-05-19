@@ -210,7 +210,6 @@ export class TodosController implements Resource {
 				pageTitle: "New Todo",
 			});
 		}
-
 		const result = await this.#db.transaction(async (tx) => {
 			const priority = await tx("todo_priorities")
 				.where({ code: "medium" })

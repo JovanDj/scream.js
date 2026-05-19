@@ -225,4 +225,72 @@ describe("project controller", { concurrency: true }, () => {
 			await cleanup();
 		}
 	});
+
+	it("POST /projects/:id/archive returns 404 for an invalid project id", async (t: TestContext) => {
+		const { cleanup, port } = await setupServer();
+		try {
+			const response = await fetch(
+				`http://localhost:${port}/projects/not-a-number/archive`,
+				{
+					method: "POST",
+					signal: t.signal,
+				},
+			);
+
+			t.assert.deepStrictEqual(response.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /projects/:id/archive returns 404 for a missing project", async (t: TestContext) => {
+		const { cleanup, port } = await setupServer();
+		try {
+			const response = await fetch(
+				`http://localhost:${port}/projects/99999/archive`,
+				{
+					method: "POST",
+					signal: t.signal,
+				},
+			);
+
+			t.assert.deepStrictEqual(response.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /projects/:id/unarchive returns 404 for an invalid project id", async (t: TestContext) => {
+		const { cleanup, port } = await setupServer();
+		try {
+			const response = await fetch(
+				`http://localhost:${port}/projects/not-a-number/unarchive`,
+				{
+					method: "POST",
+					signal: t.signal,
+				},
+			);
+
+			t.assert.deepStrictEqual(response.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /projects/:id/unarchive returns 404 for a missing project", async (t: TestContext) => {
+		const { cleanup, port } = await setupServer();
+		try {
+			const response = await fetch(
+				`http://localhost:${port}/projects/99999/unarchive`,
+				{
+					method: "POST",
+					signal: t.signal,
+				},
+			);
+
+			t.assert.deepStrictEqual(response.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
 });
