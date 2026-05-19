@@ -4,7 +4,7 @@ import type { Resource } from "./resource.js";
 
 export interface Application {
 	get(path: string, handler: Handler): this;
-	post(path: string, handler: Handler): this;
+	post(path: string, handler: Handler): void;
 	patch(path: string, handler: Handler): this;
 	delete(path: string, handler: Handler): this;
 	resource(path: string, resource: Readonly<Resource>): this;

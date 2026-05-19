@@ -74,8 +74,6 @@ export class ExpressApp implements Application {
 		this.#express.post(path, async (req, res) => {
 			await handler(ExpressHttpContext.create(req, res));
 		});
-
-		return this;
 	}
 
 	patch(path: string, handler: Handler) {
@@ -99,12 +97,14 @@ export class ExpressApp implements Application {
 	}
 
 	resource(path: string, resource: Readonly<Resource>) {
-		return this.get(path, (ctx) => resource.index(ctx))
-			.get(`${path}/create`, (ctx) => resource.create(ctx))
-			.post(path, (ctx) => resource.store(ctx))
-			.get(`${path}/:id/edit`, (ctx) => resource.edit(ctx))
-			.get(`${path}/:id`, (ctx) => resource.show(ctx))
-			.patch(`${path}/:id`, (ctx) => resource.update(ctx))
-			.delete(`${path}/:id`, (ctx) => resource.destroy(ctx));
+		this.get(path, (ctx) => resource.index(ctx));
+		this.get(`${path}/create`, (ctx) => resource.create(ctx));
+		this.post(path, (ctx) => resource.store(ctx));
+		this.get(`${path}/:id/edit`, (ctx) => resource.edit(ctx));
+		this.get(`${path}/:id`, (ctx) => resource.show(ctx));
+		this.patch(`${path}/:id`, (ctx) => resource.update(ctx));
+		this.delete(`${path}/:id`, (ctx) => resource.destroy(ctx));
+
+		return this;
 	}
 }
