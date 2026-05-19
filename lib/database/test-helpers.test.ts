@@ -33,4 +33,36 @@ describe("databaseTestFixture", { concurrency: true }, () => {
 			await fixtureB.cleanup();
 		}
 	});
+
+	it("runs seed and prepare hooks when requested", async (t: TestContext) => {
+		const fixture = await databaseTestFixture.setup({
+			prepare: async (db) => {
+				const status = await db("todo_statuses")
+					.where({ code: "open" })
+					.first("id");
+				const priority = await db("todo_priorities")
+					.where({ code: "medium" })
+					.first("id");
+				const now = new Date().toISOString();
+
+				await db("todos").insert({
+					created_at: now,
+					description: "",
+					priority_id: Number(priority?.["id"]),
+					status_id: Number(status?.["id"]),
+					title: "Prepared",
+					updated_at: now,
+				});
+			},
+			seed: true,
+		});
+
+		try {
+			const prepared = await fixture.db("todos").where({ title: "Prepared" });
+
+			t.assert.deepStrictEqual(prepared.length, 1);
+		} finally {
+			await fixture.cleanup();
+		}
+	});
 });
