@@ -5,6 +5,7 @@ export type RenderErrorOptions = {
 
 export class RenderError extends Error {
 	readonly expression: string | undefined;
+	readonly renderMessage: string;
 	readonly viewName: string | undefined;
 
 	constructor(message: string, options: RenderErrorOptions = {}) {
@@ -12,6 +13,7 @@ export class RenderError extends Error {
 		const expression = options.expression ? ` "${options.expression}"` : "";
 		super(`RenderError: ${message}${expression}${location}`);
 		this.expression = options.expression;
+		this.renderMessage = message;
 		this.viewName = options.viewName;
 	}
 }

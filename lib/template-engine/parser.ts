@@ -1,242 +1,449 @@
-import type { Token } from "./tokenizer.js";
-
-export type ASTNode = {
-	readonly type: "text" | "variable" | "if" | "for" | "extends" | "block";
-	readonly value?: string;
-	readonly path?: (string | number)[];
-	readonly children?: readonly ASTNode[];
-	readonly alternate?: readonly ASTNode[];
-	readonly iterator?: string;
-};
+import type { TemplateASTNode } from "./ast.js";
+import type { ExpressionNode, PathSegment } from "./expression.js";
+import { TemplateSyntaxError } from "./template-syntax-error.js";
+import type { Keyword, Token } from "./tokenizer.js";
 
 type ParseResult = {
-	readonly ast: readonly ASTNode[];
+	readonly ast: readonly TemplateASTNode[];
 	readonly nextIndex: number;
 };
 
 type NodeResult = {
-	readonly node: ASTNode;
+	readonly node: TemplateASTNode;
 	readonly nextIndex: number;
 };
 
 export class Parser {
-	parse(tokens: readonly Token[]) {
-		return this.#parseTemplate(tokens, 0).ast;
+	parse(tokens: readonly Token[]): readonly TemplateASTNode[] {
+		const result = this.#parseTemplate(tokens, 0, []);
+
+		if (result.nextIndex !== tokens.length) {
+			const token = tokens[result.nextIndex];
+			if (token) {
+				throw new TemplateSyntaxError("Unexpected trailing syntax", {
+					span: token.span,
+				});
+			}
+			throw new TemplateSyntaxError("Unexpected trailing syntax");
+		}
+
+		return result.ast;
 	}
 
 	#parseTemplate(
 		tokens: readonly Token[],
 		index: number,
-		stopTokens: readonly Token["type"][] = [],
+		stopKeywords: readonly Keyword[],
 	): ParseResult {
-		if (index >= tokens.length) {
-			if (stopTokens.length > 0) {
-				throw new Error("Unexpected end inside block");
+		const ast: TemplateASTNode[] = [];
+		let nextIndex = index;
+
+		while (nextIndex < tokens.length) {
+			if (this.#isStopDirective(tokens, nextIndex, stopKeywords)) {
+				return { ast, nextIndex };
 			}
-			return { ast: [], nextIndex: index };
+
+			const result = this.#parseNode(tokens, nextIndex);
+			ast.push(result.node);
+			nextIndex = result.nextIndex;
 		}
 
+		if (stopKeywords.length > 0) {
+			throw new TemplateSyntaxError("Unexpected end inside block");
+		}
+
+		return { ast, nextIndex };
+	}
+
+	#parseNode(tokens: readonly Token[], index: number): NodeResult {
 		const token = tokens[index];
+
 		if (!token) {
-			throw new Error("Unknown token");
+			throw new TemplateSyntaxError("Unexpected end of input");
 		}
 
-		if (stopTokens.includes(token.type)) {
-			return { ast: [], nextIndex: index };
+		if (token.type === "text") {
+			return { nextIndex: index + 1, node: token };
 		}
 
-		if (
-			stopTokens.length === 0 &&
-			(token.type === "endif" ||
-				token.type === "else" ||
-				token.type === "endfor" ||
-				token.type === "endblock")
-		) {
-			throw new Error(`Unexpected token: ${token.type}`);
+		if (token.type === "openVariable") {
+			return this.#parseVariable(tokens, index);
 		}
 
-		const { node, nextIndex } = this.#parseNextNode(tokens, index);
-		const { ast: restNodes, nextIndex: finalIndex } = this.#parseTemplate(
-			tokens,
-			nextIndex,
-			stopTokens,
-		);
+		if (token.type === "openDirective") {
+			const firstDirectiveToken = tokens[index + 1];
+			if (firstDirectiveToken?.type === "identifier") {
+				throw new TemplateSyntaxError("Unknown directive", {
+					span: firstDirectiveToken.span,
+				});
+			}
 
-		return { ast: [node, ...restNodes], nextIndex: finalIndex };
+			const keyword = this.#expectKeyword(tokens, index + 1);
+
+			switch (keyword.value) {
+				case "extends":
+					return this.#parseExtends(tokens, index);
+
+				case "block":
+					return this.#parseBlock(tokens, index);
+
+				case "if":
+					return this.#parseIf(tokens, index);
+
+				case "for":
+					return this.#parseFor(tokens, index);
+
+				default:
+					throw new TemplateSyntaxError(
+						`Unexpected directive: ${keyword.value}`,
+						{ span: keyword.span },
+					);
+			}
+		}
+
+		throw new TemplateSyntaxError(`Unexpected token: ${token.type}`, {
+			span: token.span,
+		});
 	}
 
-	#parseNextNode(tokens: readonly Token[], index: number): NodeResult {
-		const token = tokens[index];
-		if (!token) {
-			throw new Error("Unexpected end of input");
+	#parseVariable(tokens: readonly Token[], index: number): NodeResult {
+		const open = this.#expectToken(tokens, index, "openVariable");
+		const firstExpressionToken = tokens[index + 1];
+
+		if (firstExpressionToken?.type === "closeVariable") {
+			throw new TemplateSyntaxError("Empty variable expression", {
+				span: { end: firstExpressionToken.span.end, start: open.span.start },
+			});
 		}
 
-		switch (token.type) {
-			case "text":
-				return this.#parseText(index, token);
-
-			case "variable":
-				return this.#parseVariable(index, tokens);
-
-			case "block":
-				return this.#parseBlock(tokens, index);
-
-			case "if":
-				return this.#parseIf(tokens, index);
-
-			case "for":
-				return this.#parseFor(tokens, index);
-
-			case "extends":
-				return this.#parseExtends(index, token);
-
-			default:
-				throw new Error(`Unexpected token: ${token.type}`);
-		}
-	}
-
-	#parseExtends(
-		index: number,
-		token: { type: "extends"; template: string },
-	): NodeResult {
-		return {
-			nextIndex: index + 1,
-			node: { type: "extends", value: token.template },
-		};
-	}
-
-	#parseVariable(index: number, tokens: readonly Token[]): NodeResult {
-		const { path, nextIndex } = this.#parsePath(tokens, index + 1, []);
-		return { nextIndex, node: { path, type: "variable" } };
-	}
-
-	#parsePath(
-		tokens: readonly Token[],
-		index: number,
-		acc: (string | number)[],
-	): { path: (string | number)[]; nextIndex: number } {
-		if (index >= tokens.length) {
-			return { nextIndex: index, path: acc };
-		}
-
-		const token = tokens[index];
-		if (!token) {
-			throw new Error("Unknown token");
-		}
-
-		switch (token.type) {
-			case "identifier":
-				return this.#parsePath(tokens, index + 1, [...acc, token.name]);
-
-			case "number":
-				return this.#parsePath(tokens, index + 1, [...acc, token.value]);
-
-			case "string":
-				return this.#parsePath(tokens, index + 1, [...acc, token.value]);
-
-			case "dot":
-				return this.#parsePath(tokens, index + 1, acc);
-
-			default:
-				return { nextIndex: index, path: acc };
-		}
-	}
-
-	#parseText(
-		index: number,
-		token: { type: "text"; value: string },
-	): NodeResult {
-		return {
-			nextIndex: index + 1,
-			node: { type: "text", value: token.value },
-		};
-	}
-
-	#parseBlock(tokens: readonly Token[], index: number): NodeResult {
-		const startToken = tokens[index];
-		if (!startToken || startToken.type !== "block") {
-			throw new Error("Missing start token for block");
-		}
-		const { ast: children, nextIndex } = this.#parseTemplate(
+		const { expression, nextIndex } = this.#parsePathExpression(
 			tokens,
 			index + 1,
-			["endblock"],
+			"closeVariable",
 		);
-		if (tokens[nextIndex]?.type !== "endblock") {
-			throw new Error("Missing endblock for block");
-		}
-		return {
-			nextIndex: nextIndex + 1,
-			node: { children, type: "block", value: startToken.name },
-		};
-	}
-
-	#parseIf(tokens: readonly Token[], index: number): NodeResult {
-		const start = tokens[index];
-
-		if (!start || start.type !== "if") {
-			throw new Error("Invalid if token");
-		}
-
-		const thenRes = this.#parseTemplate(tokens, index + 1, ["else", "endif"]);
-		const next = tokens[thenRes.nextIndex];
-
-		if (next?.type === "else") {
-			const elseRes = this.#parseTemplate(tokens, thenRes.nextIndex + 1, [
-				"endif",
-			]);
-			if (tokens[elseRes.nextIndex]?.type !== "endif") {
-				throw new Error(`Missing endif for if starting at ${index}`);
-			}
-			return {
-				nextIndex: elseRes.nextIndex + 1,
-				node: {
-					alternate: elseRes.ast,
-					children: thenRes.ast,
-					type: "if",
-					value: start.condition,
-				},
-			};
-		}
-
-		if (next?.type !== "endif") {
-			throw new Error(`Missing endif for if starting at ${index}`);
-		}
-
-		return {
-			nextIndex: thenRes.nextIndex + 1,
-			node: { children: thenRes.ast, type: "if", value: start.condition },
-		};
-	}
-
-	#loopStack: string[] = [];
-
-	#parseFor(tokens: readonly Token[], index: number): NodeResult {
-		const startToken = tokens[index];
-		if (!startToken || startToken.type !== "for") {
-			throw new Error("Invalid for token");
-		}
-
-		this.#loopStack.push(startToken.iterator);
-		const { ast: children, nextIndex } = this.#parseTemplate(
-			tokens,
-			index + 1,
-			["endfor"],
-		);
-		this.#loopStack.pop();
-
-		if (tokens[nextIndex]?.type !== "endfor") {
-			throw new Error("Missing endfor for loop");
-		}
+		const close = this.#expectToken(tokens, nextIndex, "closeVariable");
 
 		return {
 			nextIndex: nextIndex + 1,
 			node: {
-				children,
-				iterator: startToken.iterator,
-				type: "for",
-				value: startToken.collection,
+				expression,
+				span: { end: close.span.end, start: open.span.start },
+				type: "variable",
 			},
 		};
+	}
+
+	#parseExtends(tokens: readonly Token[], index: number): NodeResult {
+		const open = this.#expectToken(tokens, index, "openDirective");
+		this.#expectKeyword(tokens, index + 1, "extends");
+		const template = this.#expectToken(tokens, index + 2, "string");
+		const close = this.#expectToken(tokens, index + 3, "closeDirective");
+
+		return {
+			nextIndex: index + 4,
+			node: {
+				span: { end: close.span.end, start: open.span.start },
+				template: template.value,
+				type: "extends",
+			},
+		};
+	}
+
+	#parseBlock(tokens: readonly Token[], index: number): NodeResult {
+		const open = this.#expectToken(tokens, index, "openDirective");
+		this.#expectKeyword(tokens, index + 1, "block");
+		const name = this.#expectToken(tokens, index + 2, "identifier");
+		this.#expectToken(tokens, index + 3, "closeDirective");
+
+		const children = this.#parseTemplate(tokens, index + 4, ["endblock"]);
+		const close = this.#parseClosingDirective(
+			tokens,
+			children.nextIndex,
+			"endblock",
+			name.value,
+		);
+
+		return {
+			nextIndex: close.nextIndex,
+			node: {
+				children: children.ast,
+				name: name.value,
+				span: { end: close.span.end, start: open.span.start },
+				type: "block",
+			},
+		};
+	}
+
+	#parseIf(tokens: readonly Token[], index: number): NodeResult {
+		const open = this.#expectToken(tokens, index, "openDirective");
+		this.#expectKeyword(tokens, index + 1, "if");
+		const condition = this.#parsePathExpression(
+			tokens,
+			index + 2,
+			"closeDirective",
+		);
+		this.#expectToken(tokens, condition.nextIndex, "closeDirective");
+
+		const children = this.#parseTemplate(tokens, condition.nextIndex + 1, [
+			"else",
+			"endif",
+		]);
+
+		if (this.#isStopDirective(tokens, children.nextIndex, ["else"])) {
+			const elseClose = this.#parseClosingDirective(
+				tokens,
+				children.nextIndex,
+				"else",
+			);
+			const alternate = this.#parseTemplate(tokens, elseClose.nextIndex, [
+				"endif",
+			]);
+			const close = this.#parseClosingDirective(
+				tokens,
+				alternate.nextIndex,
+				"endif",
+			);
+
+			return {
+				nextIndex: close.nextIndex,
+				node: {
+					alternate: alternate.ast,
+					children: children.ast,
+					condition: condition.expression,
+					span: { end: close.span.end, start: open.span.start },
+					type: "if",
+				},
+			};
+		}
+
+		const close = this.#parseClosingDirective(
+			tokens,
+			children.nextIndex,
+			"endif",
+		);
+
+		return {
+			nextIndex: close.nextIndex,
+			node: {
+				alternate: [],
+				children: children.ast,
+				condition: condition.expression,
+				span: { end: close.span.end, start: open.span.start },
+				type: "if",
+			},
+		};
+	}
+
+	#parseFor(tokens: readonly Token[], index: number): NodeResult {
+		const open = this.#expectToken(tokens, index, "openDirective");
+		this.#expectKeyword(tokens, index + 1, "for");
+		const iterator = this.#expectToken(tokens, index + 2, "identifier");
+		this.#expectKeyword(tokens, index + 3, "in");
+		const collection = this.#parsePathExpression(
+			tokens,
+			index + 4,
+			"closeDirective",
+		);
+		this.#expectToken(tokens, collection.nextIndex, "closeDirective");
+
+		const children = this.#parseTemplate(tokens, collection.nextIndex + 1, [
+			"endfor",
+		]);
+		const close = this.#parseClosingDirective(
+			tokens,
+			children.nextIndex,
+			"endfor",
+		);
+
+		return {
+			nextIndex: close.nextIndex,
+			node: {
+				children: children.ast,
+				collection: collection.expression,
+				iterator: iterator.value,
+				span: { end: close.span.end, start: open.span.start },
+				type: "for",
+			},
+		};
+	}
+
+	#parsePathExpression(
+		tokens: readonly Token[],
+		index: number,
+		stopTokenType: "closeVariable" | "closeDirective",
+	): { expression: ExpressionNode; nextIndex: number } {
+		const maybeStop = tokens[index];
+		if (maybeStop?.type === stopTokenType) {
+			throw new TemplateSyntaxError("Empty expression", {
+				span: maybeStop.span,
+			});
+		}
+
+		const first = this.#expectToken(tokens, index, "identifier");
+		const segments: PathSegment[] = [first.value];
+		let lastSpan = first.span;
+		let nextIndex = index + 1;
+
+		while (nextIndex < tokens.length) {
+			const token = tokens[nextIndex];
+
+			if (!token) {
+				throw new TemplateSyntaxError("Unexpected end in expression");
+			}
+
+			if (token.type === stopTokenType) {
+				return {
+					expression: {
+						segments,
+						span: { end: lastSpan.end, start: first.span.start },
+						type: "path",
+					},
+					nextIndex,
+				};
+			}
+
+			if (token.type === "dot") {
+				const segment = this.#expectPathPropertyToken(tokens, nextIndex + 1);
+				segments.push(segment.value);
+				lastSpan = segment.span;
+				nextIndex += 2;
+				continue;
+			}
+
+			if (token.type === "leftBracket") {
+				const segment = tokens[nextIndex + 1];
+
+				if (
+					!segment ||
+					(segment.type !== "string" && segment.type !== "number")
+				) {
+					throw new TemplateSyntaxError("Malformed path expression", {
+						span: token.span,
+					});
+				}
+
+				const close = this.#expectToken(tokens, nextIndex + 2, "rightBracket");
+				segments.push(segment.value);
+				lastSpan = close.span;
+				nextIndex += 3;
+				continue;
+			}
+
+			throw new TemplateSyntaxError("Malformed path expression", {
+				span: token.span,
+			});
+		}
+
+		throw new TemplateSyntaxError("Unexpected end in expression", {
+			span: lastSpan,
+		});
+	}
+
+	#parseClosingDirective(
+		tokens: readonly Token[],
+		index: number,
+		keyword: Keyword,
+		expectedName?: string,
+	): { nextIndex: number; span: { start: number; end: number } } {
+		const open = this.#expectToken(tokens, index, "openDirective");
+		this.#expectKeyword(tokens, index + 1, keyword);
+		let closeIndex = index + 2;
+
+		if (expectedName !== undefined) {
+			const maybeName = tokens[closeIndex];
+
+			if (maybeName?.type === "identifier") {
+				if (maybeName.value !== expectedName) {
+					throw new TemplateSyntaxError(
+						`Mismatched endblock name. Expected "${expectedName}", received "${maybeName.value}".`,
+						{ span: maybeName.span },
+					);
+				}
+				closeIndex++;
+			}
+		}
+
+		const close = this.#expectToken(tokens, closeIndex, "closeDirective");
+
+		return {
+			nextIndex: closeIndex + 1,
+			span: { end: close.span.end, start: open.span.start },
+		};
+	}
+
+	#isStopDirective(
+		tokens: readonly Token[],
+		index: number,
+		stopKeywords: readonly Keyword[],
+	) {
+		const open = tokens[index];
+		const keyword = tokens[index + 1];
+
+		return (
+			open?.type === "openDirective" &&
+			keyword?.type === "keyword" &&
+			stopKeywords.includes(keyword.value)
+		);
+	}
+
+	#expectKeyword(tokens: readonly Token[], index: number, value?: Keyword) {
+		const token = tokens[index];
+
+		if (!token || token.type !== "keyword") {
+			if (value !== undefined) {
+				throw new TemplateSyntaxError(`Expected ${value} directive`, {
+					...(token === undefined ? {} : { span: token.span }),
+				});
+			}
+
+			if (token) {
+				throw new TemplateSyntaxError("Expected keyword token", {
+					span: token.span,
+				});
+			}
+			throw new TemplateSyntaxError("Expected keyword token");
+		}
+
+		if (value !== undefined && token.value !== value) {
+			throw new TemplateSyntaxError(`Expected ${value} directive`, {
+				span: token.span,
+			});
+		}
+
+		return token;
+	}
+
+	#expectPathPropertyToken(tokens: readonly Token[], index: number) {
+		const token = tokens[index];
+
+		if (!token || (token.type !== "identifier" && token.type !== "keyword")) {
+			if (token) {
+				throw new TemplateSyntaxError("Expected identifier token", {
+					span: token.span,
+				});
+			}
+			throw new TemplateSyntaxError("Expected identifier token");
+		}
+
+		return token;
+	}
+
+	#expectToken<T extends Token["type"]>(
+		tokens: readonly Token[],
+		index: number,
+		type: T,
+	): Extract<Token, { type: T }> {
+		const token = tokens[index];
+
+		if (!token || token.type !== type) {
+			if (token) {
+				throw new TemplateSyntaxError(`Expected ${type} token`, {
+					span: token.span,
+				});
+			}
+			throw new TemplateSyntaxError(`Expected ${type} token`);
+		}
+
+		return token as Extract<Token, { type: T }>;
 	}
 }

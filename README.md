@@ -250,21 +250,23 @@ template source/name
 -> tokenizer
 -> parser
 -> transformer
+-> evaluator
 -> generator
 -> HTML
 ```
 
 | Stage | Responsibility |
 | --- | --- |
-| Resolver | Load and statically compose templates |
+| Resolver | Load template source |
 | Tokenizer | Turn source into tokens |
 | Parser | Turn tokens into AST |
-| Transformer | Transform AST only |
-| Generator | Render AST with context |
+| Transformer | Resolve layouts and transform AST |
+| Evaluator | Render AST with context into render nodes |
+| Generator | Serialize render nodes to HTML |
 
 Every stage receives structured input, returns structured output, and does not do another stage's job.
 
-Layout resolution and includes belong in the resolver, not the transformer, tokenizer, parser, or generator. The resolver returns a merged template source string, not a template graph.
+Layout resolution belongs in the transformer, after tokenization and parsing. The resolver only loads source; it does not parse template grammar or merge layouts.
 
 Template loading and inheritance:
 
@@ -276,11 +278,10 @@ Template loading and inheritance:
 * parent block fallback content renders when not overridden
 * unknown child block overrides fail loudly
 * missing templates fail loudly
-* include/layout cycles fail loudly and report the cycle path
-* includes use static string literals only
-* includes resolve recursively
+* layout cycles fail loudly and report the cycle path
+* includes are planned for the same static composition model
 * no dynamic includes
-* includes resolve from the configured views root
+* includes will resolve from the configured views root
 * no `./` or `../` relative paths
 * absolute paths and traversal outside views root are rejected
 * explicit file extensions are required
@@ -294,23 +295,15 @@ Template expressions:
 * no arbitrary JavaScript
 * no complex inline computation
 * no `Math`, `process`, globals, imports, or arbitrary object method calls
-* helper calls are limited to explicitly provided view helpers
-* top-level helpers are allowed
-* `route(...)` is a top-level helper
 * `csrfToken` is a value, not a helper function
-* comments use `{# comment #}`
-* comments are removed from output
-* comments are allowed anywhere whitespace is allowed
-* comments are not allowed inside expressions
 * whitespace trimming syntax is excluded
+* helper calls and template comments are planned, not current syntax
 
 Allowed expression examples:
 
 ```scream
 {{ user.name }}
 {{ todo.title }}
-{{ route("todos.show", { id: todo.id }) }}
-{{ errors.field("title") }}
 ```
 
 ## Controllers
@@ -354,6 +347,6 @@ Uses **Biome** for linting and formatting.
 5. Add CSRF middleware and expose `csrfToken` automatically to views.
 6. Define `FormErrors` as one renderable error contract.
 7. Define the validation result shape as a discriminated union.
-8. Refactor the template engine pipeline so layout/include resolution lives in a resolver stage.
+8. Refactor the template engine pipeline so layout resolution lives in the AST transformer stage.
 9. Restrict template syntax to static composition, escaped output, and simple expressions.
 10. Prove everything with one boring CRUD app.

@@ -1,24 +1,43 @@
 import type { FileLoader } from "./file-loader.js";
 
 export class InMemoryFileLoader implements FileLoader {
-	readonly #files: Map<string, string>;
-
-	constructor() {
-		this.#files = new Map<string, string>();
-	}
+	readonly #files: { filename: string; template: string }[] = [];
 
 	setTemplate(path: string, template: string) {
-		this.#files.set(path, template);
+		const existingFile = this.#files.find((file) => file.filename === path);
+
+		if (existingFile) {
+			existingFile.template = template;
+			return;
+		}
+
+		this.#files.push({ filename: path, template });
 	}
 
 	loadView(viewName: string) {
-		const filename = viewName.includes(".") ? viewName : `${viewName}.scream`;
-		const template = this.#files.get(filename);
+		this.#assertValidViewName(viewName);
+		const file = this.#files.find((entry) => entry.filename === viewName);
 
-		if (!this.#files.has(filename) || !template) {
-			throw new Error("No file.");
+		if (!file) {
+			throw new Error(`No file: ${viewName}`);
 		}
 
-		return template;
+		return file.template;
+	}
+
+	#assertValidViewName(viewName: string) {
+		const normalizedViewName = viewName.replaceAll("\\", "/");
+
+		if (
+			viewName.includes(":") ||
+			normalizedViewName.startsWith("/") ||
+			normalizedViewName.startsWith("./") ||
+			normalizedViewName.startsWith("../") ||
+			normalizedViewName.includes("/./") ||
+			normalizedViewName.includes("/../") ||
+			!normalizedViewName.endsWith(".scream")
+		) {
+			throw new Error(`Invalid view name: ${viewName}`);
+		}
 	}
 }

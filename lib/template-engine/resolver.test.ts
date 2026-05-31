@@ -1,161 +1,76 @@
 import { beforeEach, describe, it, type TestContext } from "node:test";
 
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
-import { type ASTNode, Parser } from "./parser.js";
 import { Resolver } from "./resolver.js";
-import { Tokenizer } from "./tokenizer.js";
-import { Transformer } from "./transformer.js";
 
 describe("Resolver", { concurrency: true }, () => {
 	let fileLoader: InMemoryFileLoader;
-	let tokenizer: Tokenizer;
-	let parser: Parser;
-	let transformer: Transformer;
 	let resolver: Resolver;
 
 	beforeEach(() => {
 		fileLoader = new InMemoryFileLoader();
-		tokenizer = new Tokenizer();
-		parser = new Parser();
-		transformer = new Transformer();
-		resolver = new Resolver(fileLoader, tokenizer, parser, transformer);
+		resolver = new Resolver(fileLoader);
 	});
 
 	it("resolves a template without inheritance", (t: TestContext) => {
 		t.plan(1);
 		const template = "<h1>Hello</h1>";
-		const ast = resolver.resolve(template);
 
-		t.assert.deepStrictEqual<ASTNode[]>(ast, [
-			{ type: "text", value: "<h1>Hello</h1>" },
-		]);
+		const result = resolver.resolve(template);
+
+		t.assert.deepStrictEqual<string>(result, "<h1>Hello</h1>");
 	});
 
-	it("resolves a template with single-level inheritance and full block override", (t: TestContext) => {
+	it("resolves a template with extends unchanged", (t: TestContext) => {
 		t.plan(1);
-		fileLoader.setTemplate(
-			"layout.html",
-			`
-        <header>{% block header %}Default Header{% endblock header %}</header>
-        <main>{% block content %}Default Content{% endblock content %}</main>`,
-		);
+		const template = `{% extends "layout.scream" %}{% block content %}Child{% endblock %}`;
 
-		const template = `{% extends "layout.html" %}
-        {% block header %}Custom Header{% endblock header %}
-        {% block content %}Custom Content{% endblock content %}`;
+		const result = resolver.resolve(template);
 
-		const ast = resolver.resolve(template);
-
-		t.assert.deepStrictEqual<ASTNode[]>(ast, [
-			{
-				type: "text",
-				value: "\n        <header>",
-			},
-			{
-				children: [
-					{
-						type: "text",
-						value: "Custom Header",
-					},
-				],
-				type: "block",
-				value: "header",
-			},
-			{
-				type: "text",
-				value: "</header>\n        <main>",
-			},
-			{
-				children: [
-					{
-						type: "text",
-						value: "Custom Content",
-					},
-				],
-				type: "block",
-				value: "content",
-			},
-			{
-				type: "text",
-				value: "</main>",
-			},
-		]);
+		t.assert.deepStrictEqual<string>(result, template);
 	});
 
-	it("resolves nested inheritance with partial block override", (t: TestContext) => {
+	it("resolves a view by logical name", (t: TestContext) => {
 		t.plan(1);
-		fileLoader.setTemplate(
-			"base.html",
-			`
-        <header>{% block header %}Base Header{% endblock header %}</header>
-        <main>{% block content %}Base Content{% endblock content %}</main>`,
-		);
+		fileLoader.setTemplate("home.scream", "Hello, {{ name }}!");
 
-		fileLoader.setTemplate(
-			"mid.html",
-			`{% extends "base.html" %}
-        {% block header %}Mid Header{% endblock header %}`,
-		);
+		const result = resolver.resolveView("home.scream");
 
-		const template = `{% extends "mid.html" %}
-        {% block content %}Leaf Content{% endblock content %}`;
-
-		const ast = resolver.resolve(template);
-
-		t.assert.deepStrictEqual<ASTNode[]>(ast, [
-			{
-				type: "text",
-				value: "\n        <header>",
-			},
-			{
-				children: [{ type: "text", value: "Mid Header" }],
-				type: "block",
-				value: "header",
-			},
-			{
-				type: "text",
-				value: "</header>\n        <main>",
-			},
-			{
-				children: [{ type: "text", value: "Leaf Content" }],
-				type: "block",
-				value: "content",
-			},
-			{ type: "text", value: "</main>" },
-		]);
+		t.assert.deepStrictEqual<string>(result, "Hello, {{ name }}!");
 	});
 
-	it("preserves default block content when not overridden", (t: TestContext) => {
+	it("resolves an empty in-memory template", (t: TestContext) => {
 		t.plan(1);
-		fileLoader.setTemplate(
-			"layout.html",
-			`
-        <nav>{% block nav %}Default Nav{% endblock nav %}</nav>`,
-		);
+		fileLoader.setTemplate("empty.scream", "");
 
-		const template = `{% extends "layout.html" %}`;
+		const result = resolver.resolveView("empty.scream");
 
-		const ast = resolver.resolve(template);
-
-		t.assert.deepStrictEqual<ASTNode[]>(ast, [
-			{ type: "text", value: "\n        <nav>" },
-			{
-				children: [{ type: "text", value: "Default Nav" }],
-				type: "block",
-				value: "nav",
-			},
-			{ type: "text", value: "</nav>" },
-		]);
+		t.assert.deepStrictEqual<string>(result, "");
 	});
 
-	it("throws on cyclic inheritance", (t: TestContext) => {
+	it("rejects view names without a scream extension", (t: TestContext) => {
 		t.plan(1);
-		fileLoader.setTemplate("a.html", `{% extends "b.html" %}`);
-		fileLoader.setTemplate("b.html", `{% extends "a.html" %}`);
+		fileLoader.setTemplate("home.scream", "Hello");
 
-		t.assert.throws(
-			() => resolver.resolve(`{% extends "a.html" %}`),
-			/ cyclic extends /i,
-		);
+		const act = () => resolver.resolveView("home");
+
+		t.assert.throws(act, /Invalid view name: home/);
+	});
+
+	it("rejects view names with unsupported extensions", (t: TestContext) => {
+		t.plan(1);
+		fileLoader.setTemplate("home.scream", "Hello");
+
+		const act = () => resolver.resolveView("home.html");
+
+		t.assert.throws(act, /Invalid view name: home\.html/);
+	});
+
+	it("rejects relative view traversal", (t: TestContext) => {
+		t.plan(1);
+
+		const act = () => resolver.resolveView("../home.scream");
+
+		t.assert.throws(act, /Invalid view name: \.\.\/home\.scream/);
 	});
 });

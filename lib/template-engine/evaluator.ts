@@ -1,32 +1,79 @@
+import type { TemplateASTNode } from "./ast.js";
 import type { RenderContext } from "./context.js";
-import type { ASTNode } from "./parser.js";
+import type { ExpressionNode } from "./expression.js";
 import { RenderError } from "./render-error.js";
+import type { RenderNode } from "./render-node.js";
 
 export class Evaluator {
-	evaluate(ast: readonly ASTNode[], context: RenderContext) {
-		return ast.map((node) => this.#evaluateNode(node, context));
+	evaluate(
+		ast: readonly TemplateASTNode[],
+		context: RenderContext,
+	): readonly RenderNode[] {
+		return ast.flatMap((node) => this.#evaluateNode(node, context));
 	}
 
-	#evaluateNode(node: ASTNode, context: RenderContext) {
+	#evaluateNode(
+		node: TemplateASTNode,
+		context: RenderContext,
+	): readonly RenderNode[] {
 		switch (node.type) {
 			case "text":
-			case "extends":
-				return node;
+				return [{ type: "text", value: node.value }];
 
-			case "variable":
-				return this.#evaluateVariable(node, context);
+			case "variable": {
+				const path = this.#getPathFromExpression(node.expression);
+				const raw = this.#resolvePath(context, path);
 
-			case "if":
-				return this.#evaluateIf(node, context);
+				return [
+					{ type: "text", value: this.#evaluateVariableValue(raw, path) },
+				];
+			}
 
-			case "for":
-				return this.#evaluateFor(node, context);
+			case "if": {
+				const path = this.#getPathFromExpression(node.condition);
+				const conditionValue = this.#resolvePath(context, path);
+				const selectedBranch = conditionValue ? node.children : node.alternate;
+
+				return selectedBranch.flatMap((child) =>
+					this.#evaluateNode(child, context),
+				);
+			}
+
+			case "for": {
+				const path = this.#getPathFromExpression(node.collection);
+				const collection = this.#resolvePath(context, path);
+
+				if (!Array.isArray(collection)) {
+					throw new RenderError("Loop collection must be an array", {
+						expression: this.#formatPath(path),
+					});
+				}
+
+				return collection.flatMap((item) =>
+					node.children.flatMap((child) =>
+						this.#evaluateNode(child, {
+							...context,
+							[node.iterator]: item,
+						}),
+					),
+				);
+			}
 
 			case "block":
-				return this.#evaluateBlock(node, context);
+				return [
+					{
+						children: node.children.flatMap((child) =>
+							this.#evaluateNode(child, context),
+						),
+						type: "block",
+					},
+				];
 
-			default:
-				throw new Error(`Unknown node type: ${node.type}`);
+			case "extends":
+				throw new RenderError(
+					"Extends nodes must be resolved before evaluation",
+					{ expression: node.template },
+				);
 		}
 	}
 
@@ -34,56 +81,40 @@ export class Evaluator {
 		return !!x && typeof x === "object";
 	}
 
-	#getPathFromNode(node: ASTNode) {
-		if (Array.isArray(node.path)) {
-			return node.path;
-		}
-
-		const raw = node.value ?? "";
-		return Array.from(
-			raw.matchAll(/([a-zA-Z0-9_]+)|\[(\d+)\]/g),
-			(m) => m[1] ?? Number(m[2]),
-		);
+	#getPathFromExpression(expression: ExpressionNode) {
+		return expression.segments;
 	}
 
-	#formatPath(path: readonly (string | number)[]) {
+	#formatPath(path: readonly (string | number)[]): string {
 		return path
-			.map((part) => (typeof part === "number" ? `[${part}]` : part))
-			.join(".");
+			.map((part, index) => {
+				if (typeof part === "number") {
+					return `[${part}]`;
+				}
+
+				return index === 0 ? part : `.${part}`;
+			})
+			.join("");
 	}
 
 	#resolvePath(root: unknown, path: readonly (string | number)[]) {
-		let acc = root;
+		const expression = this.#formatPath(path);
 
-		for (const key of path) {
-			if (Array.isArray(acc) && typeof key === "number") {
-				if (key in acc) {
-					acc = acc[key];
-					continue;
+		return path.reduce<unknown>((acc, key) => {
+			if (Array.isArray(acc)) {
+				if (key === "length") {
+					return acc.length;
 				}
-				throw new RenderError("Missing value", {
-					expression: this.#formatPath(path),
-				});
+
+				if (typeof key === "number" && key >= 0 && key < acc.length) {
+					return acc[key];
+				}
+			} else if (this.#isRecord(acc) && Object.hasOwn(acc, key)) {
+				return acc[key];
 			}
 
-			if (this.#isRecord(acc) && key in acc) {
-				acc = acc[key];
-				continue;
-			}
-
-			throw new RenderError("Missing value", {
-				expression: this.#formatPath(path),
-			});
-		}
-
-		return acc;
-	}
-
-	#evaluateVariable(node: ASTNode, context: RenderContext) {
-		const path = this.#getPathFromNode(node);
-		const raw = this.#resolvePath(context, path);
-
-		return { ...node, value: this.#evaluateVariableValue(raw, path) };
+			throw new RenderError("Missing value", { expression });
+		}, root);
 	}
 
 	#evaluateVariableValue(value: unknown, path: readonly (string | number)[]) {
@@ -121,73 +152,5 @@ export class Evaluator {
 		return replacedValue.replace(/[<>"'`]/g, (ch) => {
 			return ESCAPE_MAP[ch] ?? ch;
 		});
-	}
-
-	#evaluateIf(node: ASTNode, context: RenderContext): ASTNode {
-		const path = (node.value ?? "")
-			.split(".")
-			.map((s) => s.trim())
-			.filter(Boolean);
-
-		const condValue = this.#resolvePath(context, path);
-
-		const truthy = Boolean(condValue);
-		const evaluatedChildren = truthy
-			? (node.children ?? []).map((child) => this.#evaluateNode(child, context))
-			: [];
-
-		const evaluatedAlternate =
-			!truthy && node.alternate
-				? node.alternate.map((child) => this.#evaluateNode(child, context))
-				: [];
-
-		return {
-			...node,
-			alternate: evaluatedAlternate,
-			children: evaluatedChildren,
-		};
-	}
-
-	#evaluateFor(node: ASTNode, context: RenderContext): ASTNode {
-		const path = (node.value ?? "")
-			.split(".")
-			.map((s) => s.trim())
-			.filter(Boolean);
-
-		const collection = this.#resolvePath(context, path);
-
-		if (!Array.isArray(collection)) {
-			throw new RenderError("Loop collection must be an array", {
-				expression: node.value,
-			});
-		}
-
-		if (!node.iterator) {
-			throw new RenderError("Missing loop iterator", {
-				expression: node.value,
-			});
-		}
-
-		const iteratorKey = node.iterator;
-
-		const expandedChildren = collection.flatMap((item) =>
-			(node.children ?? []).map((child) =>
-				this.#evaluateNode(child, { ...context, [iteratorKey]: item }),
-			),
-		);
-
-		return {
-			...node,
-			children: expandedChildren,
-		};
-	}
-
-	#evaluateBlock(node: ASTNode, context: RenderContext): ASTNode {
-		return {
-			...node,
-			children: (node.children ?? []).map((child) =>
-				this.#evaluateNode(child, context),
-			),
-		};
 	}
 }

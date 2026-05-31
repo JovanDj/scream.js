@@ -12,4 +12,4 @@
             </div>
         </section>
     </div>
-{% endblock content %}w
+{% endblock content %}

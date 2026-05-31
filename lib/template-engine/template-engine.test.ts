@@ -14,12 +14,15 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		const fileLoader = new InMemoryFileLoader();
 		const tokenizer = new Tokenizer();
 		const parser = new Parser();
-		const transformer = new Transformer();
-		const resolver = new Resolver(fileLoader, tokenizer, parser, transformer);
+		const resolver = new Resolver(fileLoader);
+		const transformer = new Transformer(fileLoader, tokenizer, parser);
 		const evaluator = new Evaluator();
 		const generator = new Generator();
 		const templateEngine = new ScreamTemplateEngine(
 			resolver,
+			tokenizer,
+			parser,
+			transformer,
 			evaluator,
 			generator,
 		);
@@ -62,6 +65,19 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
 
+		it("should replace keyword-like object keys", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ user.if }} {{ user.in }} {{ user.for }}";
+			const context: RenderContext = {
+				user: { for: "loop", if: "condition", in: "collection" },
+			};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "condition collection loop");
+		});
+
 		it("should replace multiple variables", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
@@ -81,8 +97,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const { templateEngine } = setupTemplateEngine();
 			const template = "Hello, {{ name }}! Welcome to {{ place }}.";
 			const context: RenderContext = { name: "John" };
+			const act = () => templateEngine.render(template, context);
 
-			t.assert.throws(() => templateEngine.render(template, context), /place/);
+			t.assert.throws(act, /place/);
 		});
 
 		it("should return an empty string for an empty template", (t: TestContext) => {
@@ -156,11 +173,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const { templateEngine } = setupTemplateEngine();
 			const template = "Hello, {{ }}!";
 			const context: RenderContext = { "": "" };
+			const act = () => templateEngine.render(template, context);
 
-			t.assert.throws(
-				() => templateEngine.render(template, context),
-				/Cannot render/,
-			);
+			t.assert.throws(act, /Empty/);
 		});
 
 		it("should return the template unchanged if no variables exist", (t: TestContext) => {
@@ -185,10 +200,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				obj: { key: "value" },
 			};
 
-			t.assert.throws(
-				() => templateEngine.render(template, context),
-				/Cannot render/,
-			);
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, /Cannot render/);
 		});
 
 		it("should ignore malformed placeholders", (t: TestContext) => {
@@ -197,12 +211,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const template = "Hello, { name }} and {{ place }";
 			const context: RenderContext = { name: "John", place: "Serbia" };
 
-			const result = templateEngine.render(template, context);
+			const act = () => templateEngine.render(template, context);
 
-			t.assert.deepStrictEqual<string>(
-				result,
-				"Hello, { name }} and {{ place }",
-			);
+			t.assert.throws(act, /Unclosed variable tag/);
 		});
 
 		it("should throw for non-serializable or symbolic values", (t: TestContext) => {
@@ -210,10 +221,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const { templateEngine } = setupTemplateEngine();
 			const template = "{{ magic }}";
 			const context: RenderContext = { magic: Symbol("test") };
-			t.assert.throws(
-				() => templateEngine.render(template, context),
-				/Cannot render/,
-			);
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, /Cannot render/);
 		});
 
 		it("should throw if dot notation path hits non-object before reaching key", (t: TestContext) => {
@@ -221,10 +231,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const { templateEngine } = setupTemplateEngine();
 			const template = "{{ user.name.first }}";
 			const context: RenderContext = { user: { name: "John" } };
-			t.assert.throws(
-				() => templateEngine.render(template, context),
-				/Missing value/,
-			);
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, /Missing value/);
 		});
 	});
 
@@ -262,10 +271,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const template = "Hello, {{ name }} and {{ title }}!";
 			const context: RenderContext = { name: "<Admin>", title: undefined };
 
-			t.assert.throws(
-				() => templateEngine.render(template, context),
-				/Cannot render/,
-			);
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, /Cannot render/);
 		});
 
 		it("should escape all HTML special characters", (t: TestContext) => {
@@ -404,7 +412,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.render(template, context);
 
-			t.assert.deepStrictEqual<string>(result, "Welcome, John!");
+			t.assert.deepStrictEqual<string>(result, " Welcome, John! ");
 		});
 
 		it("should handle conditionals with else", (t: TestContext) => {
@@ -416,7 +424,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.render(template, context);
 
-			t.assert.deepStrictEqual<string>(result, "Please log in.");
+			t.assert.deepStrictEqual<string>(result, " Please log in. ");
 		});
 
 		it("should throw for missing variables in conditionals", (t: TestContext) => {
@@ -426,10 +434,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				"{% if isAdmin %} Admin Panel {% else %} User Panel {% endif %}";
 			const context: RenderContext = {};
 
-			t.assert.throws(
-				() => templateEngine.render(template, context),
-				/isAdmin/,
-			);
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, /isAdmin/);
 		});
 
 		it("should handle conditionals with content outside", (t: TestContext) => {
@@ -498,10 +505,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				"{% if condition1 %}Outer{% if condition2 %}Inner{% endif %}{% endif %}";
 			const context: RenderContext = {};
 
-			t.assert.throws(
-				() => templateEngine.render(template, context),
-				/condition1/,
-			);
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, /condition1/);
 		});
 
 		it("should handle multiple independent conditionals", (t: TestContext) => {
@@ -577,10 +583,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 					"{% if items.length %}Items exist{% else %}No items{% endif %}";
 				const context: RenderContext = {};
 
-				t.assert.throws(
-					() => templateEngine.render(template, context),
-					/items/,
-				);
+				const act = () => templateEngine.render(template, context);
+
+				t.assert.throws(act, /items/);
 			});
 
 			it("should evaluate truthy deeply nested dot notation expressions", (t: TestContext) => {
@@ -604,10 +609,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
 				const context: RenderContext = { user: { profile: {} } };
 
-				t.assert.throws(
-					() => templateEngine.render(template, context),
-					/user\.profile\.name/,
-				);
+				const act = () => templateEngine.render(template, context);
+
+				t.assert.throws(act, /user\.profile\.name/);
 			});
 
 			it("should throw when intermediate dot notation condition value is not an object", (t: TestContext) => {
@@ -617,10 +621,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
 				const context: RenderContext = { user: { profile: null } };
 
-				t.assert.throws(
-					() => templateEngine.render(template, context),
-					/user\.profile\.name/,
-				);
+				const act = () => templateEngine.render(template, context);
+
+				t.assert.throws(act, /user\.profile\.name/);
 			});
 
 			it("should throw when top-level dot notation condition value is not an object", (t: TestContext) => {
@@ -630,10 +633,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
 				const context: RenderContext = { user: "notAnObject" };
 
-				t.assert.throws(
-					() => templateEngine.render(template, context),
-					/user\.profile\.name/,
-				);
+				const act = () => templateEngine.render(template, context);
+
+				t.assert.throws(act, /user\.profile\.name/);
 			});
 		});
 
@@ -646,7 +648,26 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			const result = templateEngine.render(template, context);
 
-			t.assert.deepStrictEqual<string>(result, "A B  C  D E");
+			t.assert.deepStrictEqual<string>(result, "A  B  C  D  E");
+		});
+
+		it("should handle nested conditionals containing nested loops", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				"{% if show %}{% for group in groups %}{% if group.visible %}{% for item in group.items %}{{ group.name }}:{{ item }};{% endfor %}{% endif %}{% endfor %}{% else %}Hidden{% endif %}";
+			const context: RenderContext = {
+				groups: [
+					{ items: ["A", "B"], name: "one", visible: true },
+					{ items: ["C"], name: "two", visible: false },
+					{ items: ["D"], name: "three", visible: true },
+				],
+				show: true,
+			};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "one:A;one:B;three:D;");
 		});
 	});
 
@@ -696,10 +717,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const template = "{% for item in items %} {{ item }} {% endfor %}";
 			const context: RenderContext = { items: "not an array" };
 
-			t.assert.throws(
-				() => templateEngine.render(template, context),
-				/Loop collection must be an array/,
-			);
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, /Loop collection must be an array/);
 		});
 
 		it("should shadow parent context variables in for loop", (t: TestContext) => {
@@ -719,10 +739,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
 			const context: RenderContext = {};
 
-			t.assert.throws(
-				() => templateEngine.render(template, context),
-				/letters/,
-			);
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, /letters/);
 		});
 
 		it("should allow iterator shadowing without leaking outer values", (t: TestContext) => {
@@ -770,10 +789,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const template =
 				"{% for item in user.items %}{{ item.name }} {% endfor %}";
 			const context: RenderContext = {};
-			t.assert.throws(
-				() => templateEngine.render(template, context),
-				/user\.items/,
-			);
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, /user\.items/);
 		});
 
 		it("should throw for collections with null or undefined values", (t: TestContext) => {
@@ -784,14 +802,16 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const contextWithNull: RenderContext = { items: null };
 			const contextWithUndefined: RenderContext = {};
 
+			const renderWithNullCollection = () =>
+				templateEngine.render(template, contextWithNull);
+			const renderWithUndefinedCollection = () =>
+				templateEngine.render(template, contextWithUndefined);
+
 			t.assert.throws(
-				() => templateEngine.render(template, contextWithNull),
+				renderWithNullCollection,
 				/Loop collection must be an array/,
 			);
-			t.assert.throws(
-				() => templateEngine.render(template, contextWithUndefined),
-				/items/,
-			);
+			t.assert.throws(renderWithUndefinedCollection, /items/);
 		});
 
 		it("should iterate over a collection of objects and use dot notation", (t: TestContext) => {
@@ -829,8 +849,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const template =
 				"{% for item in items %}{{ item }} {% endfor %}{{ item }}";
 			const context: RenderContext = { items: ["One"] };
+			const act = () => templateEngine.render(template, context);
 
-			t.assert.throws(() => templateEngine.render(template, context), /item/);
+			t.assert.throws(act, /item/);
 		});
 	});
 
@@ -840,11 +861,11 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const { templateEngine, fileLoader } = setupTemplateEngine();
 
 			fileLoader.setTemplate(
-				"layout.html",
+				"layout.scream",
 				"<header>{% block header %}Default Header{% endblock header %}</header><main>{% block content %}Default Content{% endblock content %}</main><footer>{% block footer %}Default Footer{% endblock footer %}</footer>",
 			);
 
-			const childTemplate = `{% extends "layout.html" %}
+			const childTemplate = `{% extends "layout.scream" %}
 			{% block header %}Custom Header{% endblock header %}
 			{% block content %}Custom Content{% endblock content %}
 			{% block footer %}Custom Footer{% endblock footer %}`;
@@ -860,10 +881,10 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const { templateEngine, fileLoader } = setupTemplateEngine();
 			fileLoader.setTemplate(
-				"layout.html",
+				"layout.scream",
 				"<header>{% block header %}Default Header{% endblock header %}</header><main>{% block content %}Default Content{% endblock content %}</main><footer>{% block footer %}Default Footer{% endblock footer %}</footer>",
 			);
-			const childTemplate = `{% extends "layout.html" %}
+			const childTemplate = `{% extends "layout.scream" %}
 			{% block content %}Only Content Changed{% endblock content %}`;
 
 			const result = templateEngine.render(childTemplate, {});
@@ -879,9 +900,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const layoutWithExtraBlock =
 				"<main>{% block content %}Default Content{% endblock content %}</main>{% block sidebar %}Default Sidebar{% endblock sidebar %}";
 
-			fileLoader.setTemplate("layout.html", layoutWithExtraBlock);
+			fileLoader.setTemplate("layout.scream", layoutWithExtraBlock);
 
-			const childTemplate = `{% extends "layout.html" %}
+			const childTemplate = `{% extends "layout.scream" %}
 			{% block content %}Main Page{% endblock content %}`;
 
 			const result = templateEngine.render(childTemplate, {});
@@ -895,16 +916,16 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
-				"base.html",
+				"base.scream",
 				`<header>{% block header %}Base Header{% endblock header %}</header><main>{% block content %}Base Content{% endblock content %}</main><footer>{% block footer %}Base Footer{% endblock footer %}</footer>`,
 			);
 
 			fileLoader.setTemplate(
-				"parent.html",
-				`{% extends "base.html" %}{% block header %}Parent Header{% endblock header %}{% block content %}Parent Content{% endblock content %}`,
+				"parent.scream",
+				`{% extends "base.scream" %}{% block header %}Parent Header{% endblock header %}{% block content %}Parent Content{% endblock content %}`,
 			);
 
-			const childTemplate = `{% extends "parent.html" %}{% block content %}Child Content{% endblock content %}`;
+			const childTemplate = `{% extends "parent.scream" %}{% block content %}Child Content{% endblock content %}`;
 
 			const result = templateEngine.render(childTemplate, {});
 
@@ -918,18 +939,18 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
-				"base.html",
+				"base.scream",
 				"<main>{% block content %}Base{% endblock content %}</main>",
 			);
 			fileLoader.setTemplate(
-				"level1.html",
-				`{% extends "base.html" %}{% block content %}Level1{% endblock content %}`,
+				"level1.scream",
+				`{% extends "base.scream" %}{% block content %}Level1{% endblock content %}`,
 			);
 			fileLoader.setTemplate(
-				"level2.html",
-				`{% extends "level1.html" %}{% block content %}Level2{% endblock content %}`,
+				"level2.scream",
+				`{% extends "level1.scream" %}{% block content %}Level2{% endblock content %}`,
 			);
-			const childTemplate = `{% extends "level2.html" %}{% block content %}Level3{% endblock content %}`;
+			const childTemplate = `{% extends "level2.scream" %}{% block content %}Level3{% endblock content %}`;
 
 			const result = templateEngine.render(childTemplate, {});
 			t.assert.deepStrictEqual<string>(result, "<main>Level3</main>");
@@ -939,14 +960,14 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
-				"base.html",
+				"base.scream",
 				`<header>{% block header %}Base Header{% endblock header %}</header><main>{% block content %}Base Content{% endblock content %}</main>`,
 			);
 			fileLoader.setTemplate(
-				"parent.html",
-				`{% extends "base.html" %}{% block header %}Parent Header{% endblock header %}`,
+				"parent.scream",
+				`{% extends "base.scream" %}{% block header %}Parent Header{% endblock header %}`,
 			);
-			const childTemplate = `{% extends "parent.html" %}{% block content %}Child Content{% endblock content %}`;
+			const childTemplate = `{% extends "parent.scream" %}{% block content %}Child Content{% endblock content %}`;
 
 			const result = templateEngine.render(childTemplate, {});
 			t.assert.deepStrictEqual<string>(
@@ -959,16 +980,16 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
-				"base.html",
+				"base.scream",
 				`<header>{% block header %}Base Header{% endblock header %}</header><main>{% block content %}Base Content{% endblock content %}</main>`,
 			);
 
 			fileLoader.setTemplate(
-				"parent.html",
-				`{% extends "base.html" %}{% block header %}Parent Header{% endblock header %}`,
+				"parent.scream",
+				`{% extends "base.scream" %}{% block header %}Parent Header{% endblock header %}`,
 			);
 
-			const childTemplate = `{% extends "parent.html" %}{% block content %}Child Content{% endblock content %}`;
+			const childTemplate = `{% extends "parent.scream" %}{% block content %}Child Content{% endblock content %}`;
 
 			const result = templateEngine.render(childTemplate, {});
 
@@ -982,76 +1003,131 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
-				"a.html",
-				`{% extends "b.html" %}{% block content %}A{% endblock %}`,
+				"a.scream",
+				`{% extends "b.scream" %}{% block content %}A{% endblock %}`,
 			);
 			fileLoader.setTemplate(
-				"b.html",
-				`{% extends "a.html" %}{% block content %}B{% endblock %}`,
+				"b.scream",
+				`{% extends "a.scream" %}{% block content %}B{% endblock %}`,
 			);
 
-			t.assert.throws(
-				() =>
-					templateEngine.render(
-						`{% extends "a.html" %}{% block content %}Root{% endblock %}`,
-						{},
-					),
-				/ cyclic extends /i,
-			);
+			const act = () =>
+				templateEngine.render(
+					`{% extends "a.scream" %}{% block content %}Root{% endblock %}`,
+					{},
+				);
+
+			t.assert.throws(act, / cyclic extends /i);
 		});
 
 		it("should throw when extends is not the first meaningful directive", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
-				"layout.html",
+				"layout.scream",
 				"<main>{% block content %}Default{% endblock %}</main>",
 			);
 
-			t.assert.throws(
-				() =>
-					templateEngine.render(
-						`<p>Before</p>{% extends "layout.html" %}{% block content %}Child{% endblock %}`,
-						{},
-					),
-				/Extends must be the first meaningful directive/,
-			);
+			const act = () =>
+				templateEngine.render(
+					`<p>Before</p>{% extends "layout.scream" %}{% block content %}Child{% endblock %}`,
+					{},
+				);
+
+			t.assert.throws(act, /Extends must be the first meaningful directive/);
 		});
 
 		it("should throw when a child overrides an unknown block", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
-				"layout.html",
+				"layout.scream",
 				"<main>{% block content %}Default{% endblock %}</main>",
 			);
 
-			t.assert.throws(
-				() =>
-					templateEngine.render(
-						`{% extends "layout.html" %}{% block sidebar %}Child{% endblock %}`,
-						{},
-					),
-				/Unknown template block: sidebar/,
-			);
+			const act = () =>
+				templateEngine.render(
+					`{% extends "layout.scream" %}{% block sidebar %}Child{% endblock %}`,
+					{},
+				);
+
+			t.assert.throws(act, /Unknown template block: sidebar/);
 		});
 
 		it("should throw when a child overrides the same block twice", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
-				"layout.html",
+				"layout.scream",
 				"<main>{% block content %}Default{% endblock %}</main>",
 			);
 
-			t.assert.throws(
-				() =>
-					templateEngine.render(
-						`{% extends "layout.html" %}{% block content %}One{% endblock %}{% block content %}Two{% endblock %}`,
-						{},
-					),
-				/Duplicate template block: content/,
+			const act = () =>
+				templateEngine.render(
+					`{% extends "layout.scream" %}{% block content %}One{% endblock %}{% block content %}Two{% endblock %}`,
+					{},
+				);
+
+			t.assert.throws(act, /Duplicate template block: content/);
+		});
+
+		it("should throw when an extending template defines a nested block", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"layout.scream",
+				"<main>{% block content %}Default{% endblock %}</main>",
 			);
+
+			const act = () =>
+				templateEngine.render(
+					`{% extends "layout.scream" %}{% block content %}{% block nested %}Nested{% endblock %}{% endblock %}`,
+					{},
+				);
+
+			t.assert.throws(
+				act,
+				/Nested template blocks are not allowed in extending templates/,
+			);
+		});
+
+		it("should throw when extends appears inside a conditional", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"layout.scream",
+				"<main>{% block content %}Default{% endblock %}</main>",
+			);
+			const template = `{% if show %}{% extends "layout.scream" %}{% endif %}`;
+			const context: RenderContext = { show: false };
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(
+				act,
+				/Extends directives are only allowed at the top level/,
+			);
+		});
+
+		it("should include view names in syntax errors", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("broken.scream", `{% include "nav.scream" %}`);
+
+			const act = () => templateEngine.renderView("broken.scream", {});
+
+			t.assert.throws(act, /Unknown directive.*in broken\.scream/);
+		});
+
+		it("should include layout view names in syntax errors", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("layout.scream", `{% include "nav.scream" %}`);
+			const template = `{% extends "layout.scream" %}{% block content %}Child{% endblock %}`;
+
+			const act = () => templateEngine.render(template, {});
+
+			t.assert.throws(act, /Unknown directive.*in layout\.scream/);
 		});
 
 		it("should render a view by logical view name", (t: TestContext) => {
@@ -1059,7 +1135,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate("home.scream", "Hello, {{ name }}!");
 
-			const result = templateEngine.renderView("home", { name: "John" });
+			const result = templateEngine.renderView("home.scream", { name: "John" });
 
 			t.assert.deepStrictEqual<string>(result, "Hello, John!");
 		});

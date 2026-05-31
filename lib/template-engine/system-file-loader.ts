@@ -11,8 +11,8 @@ export class SystemFileLoader implements FileLoader {
 	}
 
 	loadView(viewName: string) {
-		const filename = path.extname(viewName) ? viewName : `${viewName}.scream`;
-		const resolvedPath = path.resolve(this.#viewsRoot, filename);
+		this.#assertValidViewName(viewName);
+		const resolvedPath = path.resolve(this.#viewsRoot, viewName);
 		const relativePath = path.relative(this.#viewsRoot, resolvedPath);
 
 		if (
@@ -24,5 +24,19 @@ export class SystemFileLoader implements FileLoader {
 		}
 
 		return fs.readFileSync(resolvedPath, "utf-8");
+	}
+
+	#assertValidViewName(viewName: string) {
+		const normalizedViewName = viewName.replaceAll("\\", "/");
+
+		if (
+			path.extname(viewName) !== ".scream" ||
+			normalizedViewName.startsWith("./") ||
+			normalizedViewName.startsWith("../") ||
+			normalizedViewName.includes("/./") ||
+			normalizedViewName.includes("/../")
+		) {
+			throw new Error(`Invalid view name: ${viewName}`);
+		}
 	}
 }
