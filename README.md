@@ -250,7 +250,7 @@ template source/name
 -> TemplateCompiler
    -> tokenizer
    -> parser
-   -> transformer
+   -> layout inheritance resolution
 -> TemplateRenderer
 -> HTML
 ```
@@ -258,15 +258,24 @@ template source/name
 | Stage | Responsibility |
 | --- | --- |
 | FileLoader | Load named template source |
-| TemplateCompiler | Coordinate tokenization, parsing, and AST transformation |
+| TemplateCompiler | Coordinate tokenization, parsing, named parent view compilation, and layout inheritance resolution |
 | Tokenizer | Turn source into tokens |
 | Parser | Turn tokens into AST |
-| Transformer | Resolve layouts and transform AST |
-| TemplateRenderer | Render transformed AST with context into HTML |
+| TemplateRenderer | Render compiled AST with context into HTML |
 
 Every stage receives structured input, returns structured output, and does not do another stage's job.
 
-Layout resolution belongs in the transformer, after tokenization and parsing. Named view loading belongs to `FileLoader`; it does not parse template grammar or merge layouts.
+Layout inheritance is compile-time behavior. It is currently owned by `TemplateCompiler` because the only AST transformation needed by the engine is static layout resolution. A separate transform pipeline should be introduced only when multiple independent compile-time AST transforms exist.
+
+Named view loading belongs to `FileLoader`; it does not parse template grammar or merge layouts.
+
+Current implementation notes:
+
+* rendering is split into compile-time work (`TemplateCompiler`) and render-time work (`TemplateRenderer`)
+* `ScreamTemplateEngine.create(fileLoader)` is the public composition path for wiring the default tokenizer, parser, evaluator, and generator
+* `renderView()` resolves source through `FileLoader` and reports named-view syntax or render failures with the relevant view name
+* render contexts are strict: missing values, invalid direct object/array rendering, and invalid loop collections fail loudly
+* template-engine coverage is intentionally black-box at the public `ScreamTemplateEngine` boundary
 
 Template loading and inheritance:
 
@@ -347,6 +356,6 @@ Uses **Biome** for linting and formatting.
 5. Add CSRF middleware and expose `csrfToken` automatically to views.
 6. Define `FormErrors` as one renderable error contract.
 7. Define the validation result shape as a discriminated union.
-8. Refactor the template engine pipeline so layout resolution lives in the AST transformer stage.
+8. Keep template layout inheritance as compiler-owned static composition.
 9. Restrict template syntax to static composition, escaped output, and simple expressions.
 10. Prove everything with one boring CRUD app.

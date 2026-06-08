@@ -1054,6 +1054,43 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.throws(act, / cyclic extends /i);
 		});
 
+		it("should throw on self-referencing layout extends", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"layout.scream",
+				`{% extends "layout.scream" %}{% block content %}Layout{% endblock %}`,
+			);
+
+			const act = () => templateEngine.renderView("layout.scream", {});
+
+			t.assert.throws(
+				act,
+				/Cyclic extends detected: layout\.scream -> layout\.scream/,
+			);
+		});
+
+		it("should throw on cycles reached from anonymous templates", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"a.scream",
+				`{% extends "b.scream" %}{% block content %}A{% endblock %}`,
+			);
+			fileLoader.setTemplate(
+				"b.scream",
+				`{% extends "a.scream" %}{% block content %}B{% endblock %}`,
+			);
+			const template = `{% extends "a.scream" %}{% block content %}Root{% endblock %}`;
+
+			const act = () => templateEngine.render(template, {});
+
+			t.assert.throws(
+				act,
+				/Cyclic extends detected: a\.scream -> b\.scream -> a\.scream/,
+			);
+		});
+
 		it("should throw when extends is not the first meaningful directive", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
@@ -1187,6 +1224,20 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const template = `{% extends "layout.scream" %}{% block content %}Child{% endblock %}`;
 
 			const act = () => templateEngine.render(template, {});
+
+			t.assert.throws(act, /Unknown directive.*in layout\.scream/);
+		});
+
+		it("should include parent layout view names in syntax errors", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("layout.scream", `{% include "nav.scream" %}`);
+			fileLoader.setTemplate(
+				"page.scream",
+				`{% extends "layout.scream" %}{% block content %}Page{% endblock %}`,
+			);
+
+			const act = () => templateEngine.renderView("page.scream", {});
 
 			t.assert.throws(act, /Unknown directive.*in layout\.scream/);
 		});

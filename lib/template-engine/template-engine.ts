@@ -9,7 +9,6 @@ import { TemplateCompiler } from "./template-compiler.js";
 import { TemplateRenderer } from "./template-renderer.js";
 import { TemplateSyntaxError } from "./template-syntax-error.js";
 import { Tokenizer } from "./tokenizer.js";
-import { Transformer } from "./transformer.js";
 
 export type { TemplateASTNode } from "./ast.js";
 export type { RenderContext } from "./context.js";
@@ -18,28 +17,20 @@ export type { RenderNode } from "./render-node.js";
 export { TemplateSyntaxError } from "./template-syntax-error.js";
 
 export class ScreamTemplateEngine {
-	readonly #fileLoader: FileLoader;
 	readonly #compiler: TemplateCompiler;
 	readonly #renderer: TemplateRenderer;
 
 	static create(fileLoader: FileLoader = new SystemFileLoader()) {
 		const tokenizer = new Tokenizer();
 		const parser = new Parser();
-		const transformer = new Transformer(fileLoader, tokenizer, parser);
 
 		return new ScreamTemplateEngine(
-			fileLoader,
-			new TemplateCompiler(tokenizer, parser, transformer),
+			new TemplateCompiler(fileLoader, tokenizer, parser),
 			new TemplateRenderer(new Evaluator(), new Generator()),
 		);
 	}
 
-	constructor(
-		fileLoader: FileLoader,
-		compiler: TemplateCompiler,
-		renderer: TemplateRenderer,
-	) {
-		this.#fileLoader = fileLoader;
+	constructor(compiler: TemplateCompiler, renderer: TemplateRenderer) {
 		this.#compiler = compiler;
 		this.#renderer = renderer;
 	}
@@ -51,10 +42,10 @@ export class ScreamTemplateEngine {
 	}
 
 	renderView(viewName: string, context: RenderContext) {
-		const template = this.#fileLoader.loadView(viewName);
-
 		try {
-			return this.render(template, context);
+			const ast = this.#compiler.compileView(viewName);
+
+			return this.#renderer.render(ast, { ...context });
 		} catch (error) {
 			throw this.#withViewName(error, viewName);
 		}
