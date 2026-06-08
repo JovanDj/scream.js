@@ -132,7 +132,7 @@ _Avoid_: Generic error
 - Duplicate block names were not clearly defined; resolved: a template may declare or override each **Template block** name only once.
 - Template references were filesystem-shaped; resolved: use **View names** confined to the views root, using `.scream` templates.
 - `filePath` appeared in the template engine API; resolved: file paths are adapter details, while framework-facing rendering uses **View names**.
-- Top-level rendering and inheritance used separate file-loading paths; resolved: all template loading should go through the same **View name** resolver.
+- Top-level rendering and inheritance used separate file-loading paths; resolved: all named template loading should go through **FileLoader** with **View names**.
 - RenderContext can contain functions; resolved: templates may call only **RenderHelpers** under `$`, not arbitrary application data functions.
 - Template expressions could grow into a scripting language; resolved: keep **Template expressions** limited to path lookup, truthiness checks, loop references, and helper calls.
 - Strict rendering needs actionable failures; resolved: rendering failures should use **RenderError** with view, location, and expression details when available.

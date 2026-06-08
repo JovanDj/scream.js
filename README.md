@@ -246,27 +246,27 @@ The template pipeline is:
 
 ```text
 template source/name
--> resolver
--> tokenizer
--> parser
--> transformer
--> evaluator
--> generator
+-> FileLoader for named views
+-> TemplateCompiler
+   -> tokenizer
+   -> parser
+   -> transformer
+-> TemplateRenderer
 -> HTML
 ```
 
 | Stage | Responsibility |
 | --- | --- |
-| Resolver | Load template source |
+| FileLoader | Load named template source |
+| TemplateCompiler | Coordinate tokenization, parsing, and AST transformation |
 | Tokenizer | Turn source into tokens |
 | Parser | Turn tokens into AST |
 | Transformer | Resolve layouts and transform AST |
-| Evaluator | Render AST with context into render nodes |
-| Generator | Serialize render nodes to HTML |
+| TemplateRenderer | Render transformed AST with context into HTML |
 
 Every stage receives structured input, returns structured output, and does not do another stage's job.
 
-Layout resolution belongs in the transformer, after tokenization and parsing. The resolver only loads source; it does not parse template grammar or merge layouts.
+Layout resolution belongs in the transformer, after tokenization and parsing. Named view loading belongs to `FileLoader`; it does not parse template grammar or merge layouts.
 
 Template loading and inheritance:
 

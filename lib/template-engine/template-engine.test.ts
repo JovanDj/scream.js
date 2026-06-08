@@ -1,31 +1,12 @@
 import { describe, it, type TestContext } from "node:test";
 import type { RenderContext } from "./context.js";
-import { Evaluator } from "./evaluator.js";
-import { Generator } from "./generator.js";
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
-import { Parser } from "./parser.js";
-import { Resolver } from "./resolver.js";
 import { ScreamTemplateEngine } from "./template-engine.js";
-import { Tokenizer } from "./tokenizer.js";
-import { Transformer } from "./transformer.js";
 
 describe("ScreamTemplateEngine", { concurrency: true }, () => {
 	const setupTemplateEngine = () => {
 		const fileLoader = new InMemoryFileLoader();
-		const tokenizer = new Tokenizer();
-		const parser = new Parser();
-		const resolver = new Resolver(fileLoader);
-		const transformer = new Transformer(fileLoader, tokenizer, parser);
-		const evaluator = new Evaluator();
-		const generator = new Generator();
-		const templateEngine = new ScreamTemplateEngine(
-			resolver,
-			tokenizer,
-			parser,
-			transformer,
-			evaluator,
-			generator,
-		);
+		const templateEngine = ScreamTemplateEngine.create(fileLoader);
 
 		return { fileLoader, templateEngine };
 	};
@@ -63,6 +44,28 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const result = templateEngine.render(template, context);
 
 			t.assert.deepStrictEqual<string>(result, "Hello, John!");
+		});
+
+		it("should replace a bracket string path", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = `{{ user["display-name"] }}`;
+			const context: RenderContext = { user: { "display-name": "Ada" } };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "Ada");
+		});
+
+		it("should replace an array index path", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ errors.title[0] }}";
+			const context: RenderContext = { errors: { title: ["Required"] } };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "Required");
 		});
 
 		it("should replace keyword-like object keys", (t: TestContext) => {
@@ -203,6 +206,26 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const act = () => templateEngine.render(template, context);
 
 			t.assert.throws(act, /Cannot render/);
+		});
+
+		it("should throw for direct object rendering", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ user }}";
+			const context: RenderContext = { user: { name: "John" } };
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, /Cannot render value/);
+		});
+
+		it("should throw for direct array rendering", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ items }}";
+			const context: RenderContext = { items: ["a", "b"] };
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, /Cannot render value/);
 		});
 
 		it("should ignore malformed placeholders", (t: TestContext) => {
@@ -400,6 +423,17 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const result = templateEngine.render(template, context);
 
 			t.assert.deepStrictEqual<string>(result, "Value: &lt;script&gt;");
+		});
+
+		it("should not re-escape known safe entities while escaping raw HTML", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ value }}";
+			const context: RenderContext = { value: "&lt;safe&gt;<unsafe>" };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "&lt;safe&gt;&lt;unsafe&gt;");
 		});
 	});
 
@@ -1071,6 +1105,23 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.throws(act, /Duplicate template block: content/);
 		});
 
+		it("should throw when a layout defines the same block twice", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"layout.scream",
+				"{% block content %}One{% endblock %}{% block content %}Two{% endblock %}",
+			);
+
+			const act = () =>
+				templateEngine.render(
+					`{% extends "layout.scream" %}{% block content %}Child{% endblock %}`,
+					{},
+				);
+
+			t.assert.throws(act, /Duplicate template block: content/);
+		});
+
 		it("should throw when an extending template defines a nested block", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
@@ -1119,6 +1170,16 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.throws(act, /Unknown directive.*in broken\.scream/);
 		});
 
+		it("should include view names in render errors", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("broken.scream", "{{ missing }}");
+
+			const act = () => templateEngine.renderView("broken.scream", {});
+
+			t.assert.throws(act, /missing.*in broken\.scream/);
+		});
+
 		it("should include layout view names in syntax errors", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
@@ -1138,6 +1199,44 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const result = templateEngine.renderView("home.scream", { name: "John" });
 
 			t.assert.deepStrictEqual<string>(result, "Hello, John!");
+		});
+	});
+
+	describe("Syntax errors", () => {
+		it("should throw for unknown directives", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = `{% include "x.scream" %}`;
+			const act = () => templateEngine.render(template, {});
+
+			t.assert.throws(act, /Unknown directive/);
+		});
+
+		it("should throw for unclosed directive tags", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% if user";
+			const act = () => templateEngine.render(template, { user: true });
+
+			t.assert.throws(act, /Unclosed directive tag/);
+		});
+
+		it("should throw for malformed paths", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ user. }}";
+			const act = () => templateEngine.render(template, { user: {} });
+
+			t.assert.throws(act, /Expected identifier token|Malformed path/);
+		});
+
+		it("should throw for mismatched endblock names", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{% block header %}Header{% endblock content %}";
+			const act = () => templateEngine.render(template, {});
+
+			t.assert.throws(act, /Mismatched endblock name/);
 		});
 	});
 });
