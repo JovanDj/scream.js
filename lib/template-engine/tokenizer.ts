@@ -50,23 +50,10 @@ export type Token =
 	| { readonly type: "leftBracket"; readonly span: SourceSpan }
 	| { readonly type: "rightBracket"; readonly span: SourceSpan };
 
-function toKeyword(value: string): Keyword | undefined {
-	switch (value) {
-		case "extends":
-		case "block":
-		case "endblock":
-		case "if":
-		case "else":
-		case "endif":
-		case "for":
-		case "in":
-		case "endfor":
-		case "attr":
-			return value;
-		default:
-			return undefined;
-	}
-}
+type TokenizeResult = {
+	readonly tokens: readonly Token[];
+	readonly nextIndex: number;
+};
 
 export class Tokenizer {
 	tokenize(template: string): readonly Token[] {
@@ -75,72 +62,10 @@ export class Tokenizer {
 
 		while (index < template.length) {
 			const oldIndex = index;
+			const result = this.#tokenizeAt(template, index);
 
-			if (template.startsWith("{{", index)) {
-				const closeIndex = template.indexOf("}}", index + 2);
-
-				if (closeIndex === -1) {
-					throw new TemplateSyntaxError("Unclosed variable tag", {
-						span: { end: template.length, start: index },
-					});
-				}
-
-				tokens.push({
-					span: { end: index + 2, start: index },
-					type: "openVariable",
-				});
-				tokens.push(
-					...this.#tokenizeExpressionContent(
-						template.slice(index + 2, closeIndex),
-						index + 2,
-					),
-				);
-				tokens.push({
-					span: { end: closeIndex + 2, start: closeIndex },
-					type: "closeVariable",
-				});
-
-				index = closeIndex + 2;
-			} else if (template.startsWith("{%", index)) {
-				const closeIndex = template.indexOf("%}", index + 2);
-
-				if (closeIndex === -1) {
-					throw new TemplateSyntaxError("Unclosed directive tag", {
-						span: { end: template.length, start: index },
-					});
-				}
-
-				const directiveContent = template.slice(index + 2, closeIndex);
-
-				tokens.push({
-					span: { end: index + 2, start: index },
-					type: "openDirective",
-				});
-				tokens.push(
-					...this.#tokenizeDirectiveContent(directiveContent, index + 2),
-				);
-				tokens.push({
-					span: { end: closeIndex + 2, start: closeIndex },
-					type: "closeDirective",
-				});
-
-				index = closeIndex + 2;
-			} else {
-				const nextVariableIndex = template.indexOf("{{", index);
-				const nextDirectiveIndex = template.indexOf("{%", index);
-				const endIndex = Math.min(
-					nextVariableIndex === -1 ? template.length : nextVariableIndex,
-					nextDirectiveIndex === -1 ? template.length : nextDirectiveIndex,
-				);
-
-				tokens.push({
-					span: { end: endIndex, start: index },
-					type: "text",
-					value: template.slice(index, endIndex),
-				});
-
-				index = endIndex;
-			}
+			tokens.push(...result.tokens);
+			index = result.nextIndex;
 
 			if (index <= oldIndex) {
 				throw new Error(`Tokenizer failed to advance at index ${oldIndex}`);
@@ -148,6 +73,94 @@ export class Tokenizer {
 		}
 
 		return tokens;
+	}
+
+	#tokenizeAt(template: string, index: number): TokenizeResult {
+		if (template.startsWith("{{", index)) {
+			return this.#tokenizeVariableTag(template, index);
+		}
+
+		if (template.startsWith("{%", index)) {
+			return this.#tokenizeDirectiveTag(template, index);
+		}
+
+		return this.#tokenizeText(template, index);
+	}
+
+	#tokenizeVariableTag(template: string, index: number): TokenizeResult {
+		const closeIndex = template.indexOf("}}", index + 2);
+
+		if (closeIndex === -1) {
+			throw new TemplateSyntaxError("Unclosed variable tag", {
+				span: { end: template.length, start: index },
+			});
+		}
+
+		return {
+			nextIndex: closeIndex + 2,
+			tokens: [
+				{
+					span: { end: index + 2, start: index },
+					type: "openVariable",
+				},
+				...this.#tokenizeExpressionContent(
+					template.slice(index + 2, closeIndex),
+					index + 2,
+				),
+				{
+					span: { end: closeIndex + 2, start: closeIndex },
+					type: "closeVariable",
+				},
+			],
+		};
+	}
+
+	#tokenizeDirectiveTag(template: string, index: number): TokenizeResult {
+		const closeIndex = template.indexOf("%}", index + 2);
+
+		if (closeIndex === -1) {
+			throw new TemplateSyntaxError("Unclosed directive tag", {
+				span: { end: template.length, start: index },
+			});
+		}
+
+		return {
+			nextIndex: closeIndex + 2,
+			tokens: [
+				{
+					span: { end: index + 2, start: index },
+					type: "openDirective",
+				},
+				...this.#tokenizeDirectiveContent(
+					template.slice(index + 2, closeIndex),
+					index + 2,
+				),
+				{
+					span: { end: closeIndex + 2, start: closeIndex },
+					type: "closeDirective",
+				},
+			],
+		};
+	}
+
+	#tokenizeText(template: string, index: number): TokenizeResult {
+		const nextVariableIndex = template.indexOf("{{", index);
+		const nextDirectiveIndex = template.indexOf("{%", index);
+		const endIndex = Math.min(
+			nextVariableIndex === -1 ? template.length : nextVariableIndex,
+			nextDirectiveIndex === -1 ? template.length : nextDirectiveIndex,
+		);
+
+		return {
+			nextIndex: endIndex,
+			tokens: [
+				{
+					span: { end: endIndex, start: index },
+					type: "text",
+					value: template.slice(index, endIndex),
+				},
+			],
+		};
 	}
 
 	#tokenizeDirectiveContent(
@@ -232,22 +245,12 @@ export class Tokenizer {
 					value += input[index++];
 				}
 
-				const keyword = toKeyword(value);
-
-				if (keyword) {
-					tokens.push({
-						span: { end: sourceOffset + index, start: sourceOffset + start },
-						type: "keyword",
-						value: keyword,
-					});
-				} else {
-					tokens.push({
-						span: { end: sourceOffset + index, start: sourceOffset + start },
-						type: "identifier",
-						value,
-					});
-				}
-
+				tokens.push(
+					this.#tokenizeWord(value, {
+						end: sourceOffset + index,
+						start: sourceOffset + start,
+					}),
+				);
 				continue;
 			}
 
@@ -327,5 +330,70 @@ export class Tokenizer {
 		}
 
 		return tokens;
+	}
+
+	#tokenizeWord(
+		value: string,
+		span: SourceSpan,
+	): Extract<Token, { readonly type: "keyword" | "identifier" }> {
+		const keyword = this.#toKeyword(value);
+
+		if (keyword) {
+			return {
+				span,
+				type: "keyword",
+				value: keyword,
+			};
+		}
+
+		return {
+			span,
+			type: "identifier",
+			value,
+		};
+	}
+
+	#toKeyword(value: string): Keyword | undefined {
+		if (value === "extends") {
+			return value;
+		}
+
+		if (value === "block") {
+			return value;
+		}
+
+		if (value === "endblock") {
+			return value;
+		}
+
+		if (value === "if") {
+			return value;
+		}
+
+		if (value === "else") {
+			return value;
+		}
+
+		if (value === "endif") {
+			return value;
+		}
+
+		if (value === "for") {
+			return value;
+		}
+
+		if (value === "in") {
+			return value;
+		}
+
+		if (value === "endfor") {
+			return value;
+		}
+
+		if (value === "attr") {
+			return value;
+		}
+
+		return undefined;
 	}
 }

@@ -6,12 +6,10 @@ export class Generator {
 	}
 
 	#generateNode(node: RenderNode): string {
-		switch (node.type) {
-			case "text":
-				return node.value;
-
-			case "block":
-				return this.generate(node.children);
+		if (node.type === "text") {
+			return node.value;
 		}
+
+		return this.generate(node.children);
 	}
 }

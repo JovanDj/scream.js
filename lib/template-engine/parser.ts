@@ -74,41 +74,47 @@ export class Parser {
 		}
 
 		if (token.type === "openDirective") {
-			const firstDirectiveToken = tokens[index + 1];
-			if (firstDirectiveToken?.type === "identifier") {
-				throw new TemplateSyntaxError("Unknown directive", {
-					span: firstDirectiveToken.span,
-				});
-			}
-
-			const keyword = this.#expectKeyword(tokens, index + 1);
-
-			switch (keyword.value) {
-				case "extends":
-					return this.#parseExtends(tokens, index);
-
-				case "block":
-					return this.#parseBlock(tokens, index);
-
-				case "if":
-					return this.#parseIf(tokens, index);
-
-				case "for":
-					return this.#parseFor(tokens, index);
-
-				case "attr":
-					return this.#parseAttr(tokens, index);
-
-				default:
-					throw new TemplateSyntaxError(
-						`Unexpected directive: ${keyword.value}`,
-						{ span: keyword.span },
-					);
-			}
+			return this.#parseDirective(tokens, index);
 		}
 
 		throw new TemplateSyntaxError(`Unexpected token: ${token.type}`, {
 			span: token.span,
+		});
+	}
+
+	#parseDirective(tokens: readonly Token[], index: number): NodeResult {
+		const firstDirectiveToken = tokens[index + 1];
+
+		if (firstDirectiveToken?.type === "identifier") {
+			throw new TemplateSyntaxError("Unknown directive", {
+				span: firstDirectiveToken.span,
+			});
+		}
+
+		const keyword = this.#expectKeyword(tokens, index + 1);
+
+		if (keyword.value === "extends") {
+			return this.#parseExtends(tokens, index);
+		}
+
+		if (keyword.value === "block") {
+			return this.#parseBlock(tokens, index);
+		}
+
+		if (keyword.value === "if") {
+			return this.#parseIf(tokens, index);
+		}
+
+		if (keyword.value === "for") {
+			return this.#parseFor(tokens, index);
+		}
+
+		if (keyword.value === "attr") {
+			return this.#parseAttr(tokens, index);
+		}
+
+		throw new TemplateSyntaxError(`Unexpected directive: ${keyword.value}`, {
+			span: keyword.span,
 		});
 	}
 

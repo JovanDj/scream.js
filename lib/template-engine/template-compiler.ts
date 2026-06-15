@@ -136,18 +136,25 @@ export class TemplateCompiler {
 
 	#assertNoNestedExtends(ast: readonly TemplateASTNode[]) {
 		for (const node of ast) {
-			if (node.type === "block") {
-				this.#assertNoExtends(node.children);
-			}
+			this.#assertNoNestedExtendsInNode(node);
+		}
+	}
 
-			if (node.type === "if") {
-				this.#assertNoExtends(node.children);
-				this.#assertNoExtends(node.alternate);
-			}
+	#assertNoNestedExtendsInNode(node: TemplateASTNode) {
+		if (node.type === "block") {
+			this.#assertNoExtends(node.children);
+			return;
+		}
 
-			if (node.type === "for") {
-				this.#assertNoExtends(node.children);
-			}
+		if (node.type === "if") {
+			this.#assertNoExtends(node.children);
+			this.#assertNoExtends(node.alternate);
+			return;
+		}
+
+		if (node.type === "for") {
+			this.#assertNoExtends(node.children);
+			return;
 		}
 	}
 
@@ -201,19 +208,28 @@ export class TemplateCompiler {
 	) {
 		for (const node of nodes) {
 			visit(node);
+			this.#walkNodeChildren(node, visit);
+		}
+	}
 
-			if (node.type === "block") {
-				this.#walkNodes(node.children, visit);
-			}
+	#walkNodeChildren(
+		node: TemplateASTNode,
+		visit: (node: TemplateASTNode) => void,
+	) {
+		if (node.type === "block") {
+			this.#walkNodes(node.children, visit);
+			return;
+		}
 
-			if (node.type === "if") {
-				this.#walkNodes(node.children, visit);
-				this.#walkNodes(node.alternate, visit);
-			}
+		if (node.type === "if") {
+			this.#walkNodes(node.children, visit);
+			this.#walkNodes(node.alternate, visit);
+			return;
+		}
 
-			if (node.type === "for") {
-				this.#walkNodes(node.children, visit);
-			}
+		if (node.type === "for") {
+			this.#walkNodes(node.children, visit);
+			return;
 		}
 	}
 
@@ -293,39 +309,51 @@ export class TemplateCompiler {
 		parentAst: readonly TemplateASTNode[],
 		childBlocks: readonly BlockNode[],
 	): readonly TemplateASTNode[] {
-		return parentAst.map((node): TemplateASTNode => {
-			if (node.type === "block") {
-				const childBlock = this.#findBlock(childBlocks, node.name);
+		return parentAst.map((node) => this.#mergeNode(node, childBlocks));
+	}
 
-				if (childBlock) {
-					return {
-						...node,
-						children: childBlock.children,
-					};
-				}
+	#mergeNode(
+		node: TemplateASTNode,
+		childBlocks: readonly BlockNode[],
+	): TemplateASTNode {
+		if (node.type === "block") {
+			return this.#mergeBlockNode(node, childBlocks);
+		}
 
-				return {
-					...node,
-					children: this.#mergeBlocks(node.children, childBlocks),
-				};
-			}
+		if (node.type === "if") {
+			return {
+				...node,
+				alternate: this.#mergeBlocks(node.alternate, childBlocks),
+				children: this.#mergeBlocks(node.children, childBlocks),
+			};
+		}
 
-			if (node.type === "if") {
-				return {
-					...node,
-					alternate: this.#mergeBlocks(node.alternate, childBlocks),
-					children: this.#mergeBlocks(node.children, childBlocks),
-				};
-			}
+		if (node.type === "for") {
+			return {
+				...node,
+				children: this.#mergeBlocks(node.children, childBlocks),
+			};
+		}
 
-			if (node.type === "for") {
-				return {
-					...node,
-					children: this.#mergeBlocks(node.children, childBlocks),
-				};
-			}
+		return node;
+	}
 
-			return node;
-		});
+	#mergeBlockNode(
+		node: BlockNode,
+		childBlocks: readonly BlockNode[],
+	): TemplateASTNode {
+		const childBlock = this.#findBlock(childBlocks, node.name);
+
+		if (childBlock) {
+			return {
+				...node,
+				children: childBlock.children,
+			};
+		}
+
+		return {
+			...node,
+			children: this.#mergeBlocks(node.children, childBlocks),
+		};
 	}
 }

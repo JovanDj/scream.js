@@ -16,71 +16,67 @@ export class Evaluator {
 		node: TemplateASTNode,
 		context: RenderContext,
 	): readonly RenderNode[] {
-		switch (node.type) {
-			case "text":
-				return [{ type: "text", value: node.value }];
-
-			case "variable": {
-				const raw = this.#evaluateExpression(node.expression, context);
-
-				return [
-					{
-						type: "text",
-						value: this.#evaluateVariableValue(raw, node.expression),
-					},
-				];
-			}
-
-			case "if": {
-				const conditionValue = this.#evaluateExpression(
-					node.condition,
-					context,
-				);
-				const selectedBranch = conditionValue ? node.children : node.alternate;
-
-				return selectedBranch.flatMap((child) =>
-					this.#evaluateNode(child, context),
-				);
-			}
-
-			case "for": {
-				const collection = this.#evaluateExpression(node.collection, context);
-
-				if (!Array.isArray(collection)) {
-					throw new RenderError("Loop collection must be an array", {
-						expression: this.#formatExpression(node.collection),
-					});
-				}
-
-				return collection.flatMap((item) =>
-					node.children.flatMap((child) =>
-						this.#evaluateNode(child, {
-							...context,
-							[node.iterator]: item,
-						}),
-					),
-				);
-			}
-
-			case "block":
-				return [
-					{
-						children: node.children.flatMap((child) =>
-							this.#evaluateNode(child, context),
-						),
-						type: "block",
-					},
-				];
-
-			case "attr":
-				return [{ type: "text", value: this.#evaluateAttr(node, context) }];
-
-			case "extends":
-				throw new RenderError(
-					"Extends nodes must be resolved before evaluation",
-					{ expression: node.template },
-				);
+		if (node.type === "text") {
+			return [{ type: "text", value: node.value }];
 		}
+
+		if (node.type === "variable") {
+			const raw = this.#evaluateExpression(node.expression, context);
+
+			return [
+				{
+					type: "text",
+					value: this.#evaluateVariableValue(raw, node.expression),
+				},
+			];
+		}
+
+		if (node.type === "if") {
+			const conditionValue = this.#evaluateExpression(node.condition, context);
+			const selectedBranch = conditionValue ? node.children : node.alternate;
+
+			return selectedBranch.flatMap((child) =>
+				this.#evaluateNode(child, context),
+			);
+		}
+
+		if (node.type === "for") {
+			const collection = this.#evaluateExpression(node.collection, context);
+
+			if (!Array.isArray(collection)) {
+				throw new RenderError("Loop collection must be an array", {
+					expression: this.#formatExpression(node.collection),
+				});
+			}
+
+			return collection.flatMap((item) =>
+				node.children.flatMap((child) =>
+					this.#evaluateNode(child, {
+						...context,
+						[node.iterator]: item,
+					}),
+				),
+			);
+		}
+
+		if (node.type === "block") {
+			return [
+				{
+					children: node.children.flatMap((child) =>
+						this.#evaluateNode(child, context),
+					),
+					type: "block",
+				},
+			];
+		}
+
+		if (node.type === "attr") {
+			return [{ type: "text", value: this.#evaluateAttr(node, context) }];
+		}
+
+		throw new RenderError("Extends nodes must be resolved before evaluation", {
+			expression: node.template,
+		});
 	}
 
 	#isRecord(x: unknown): x is Record<string, unknown> {
@@ -138,7 +134,9 @@ export class Evaluator {
 				if (typeof key === "number" && key >= 0 && key < acc.length) {
 					return acc[key];
 				}
-			} else if (this.#isRecord(acc) && Object.hasOwn(acc, key)) {
+			}
+
+			if (this.#isRecord(acc) && Object.hasOwn(acc, key)) {
 				return acc[key];
 			}
 
