@@ -1,5 +1,4 @@
 import { describe, it, type TestContext } from "node:test";
-import type { RenderContext } from "./context.js";
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
 import { ScreamTemplateEngine } from "./template-engine.js";
 
@@ -11,1361 +10,553 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		return { fileLoader, templateEngine };
 	};
 
-	describe("Variable replacement", () => {
-		it("should replace a single variable", (t: TestContext) => {
+	describe("attribute references", () => {
+		it("renders scalar attributes with HTML escaping", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
 
-			const template = "Hello, {{ name }}!";
-			const context: RenderContext = { name: "John" };
+			const result = templateEngine.render("Hello, {{ name }}!", {
+				name: "<Admin>",
+			});
 
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Hello, John!");
+			t.assert.deepStrictEqual<string>(result, "Hello, &lt;Admin&gt;!");
 		});
 
-		it("should replace an object key", (t: TestContext) => {
-			t.plan(1);
+		it("renders missing attributes as an empty string", (t: TestContext) => {
+			t.plan(3);
 			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, {{ user.name }}!";
-			const context: RenderContext = { user: { name: "John" } };
 
-			const result = templateEngine.render(template, context);
+			const result = templateEngine.render("Hello, {{ name }}!", {});
 
-			t.assert.deepStrictEqual<string>(result, "Hello, John!");
-		});
-
-		it("should replace a nested object key", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, {{ dto.user.name }}!";
-			const context: RenderContext = { dto: { user: { name: "John" } } };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Hello, John!");
-		});
-
-		it("should replace a bracket string path", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = `{{ user["display-name"] }}`;
-			const context: RenderContext = { user: { "display-name": "Ada" } };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Ada");
-		});
-
-		it("should replace an array index path", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{{ errors.title[0] }}";
-			const context: RenderContext = { errors: { title: ["Required"] } };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Required");
-		});
-
-		it("should replace keyword-like object keys", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{{ user.if }} {{ user.in }} {{ user.for }}";
-			const context: RenderContext = {
-				user: { for: "loop", if: "condition", in: "collection" },
-			};
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "condition collection loop");
-		});
-
-		it("should replace multiple variables", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, {{ name }}! Welcome to {{ place }}.";
-			const context: RenderContext = { name: "John", place: "Serbia" };
-
-			const result = templateEngine.render(template, context);
-
+			t.assert.deepStrictEqual<string>(result, "Hello, !");
 			t.assert.deepStrictEqual<string>(
-				result,
-				"Hello, John! Welcome to Serbia.",
+				templateEngine.render("Hello, {{ name }}!", { name: null }),
+				"Hello, !",
+			);
+			t.assert.deepStrictEqual<string>(
+				templateEngine.render("Hello, {{ name }}!", { name: undefined }),
+				"Hello, !",
 			);
 		});
 
-		it("should throw for missing variables", (t: TestContext) => {
+		it("rejects bracket path expressions", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, {{ name }}! Welcome to {{ place }}.";
-			const context: RenderContext = { name: "John" };
-			const act = () => templateEngine.render(template, context);
 
-			t.assert.throws(act, /place/);
+			const act = () =>
+				templateEngine.render("{{ errors.title[0] }}", {
+					errors: { title: ["Required"] },
+				});
+
+			t.assert.throws(act, /Malformed path expression|Unexpected character/);
 		});
 
-		it("should return an empty string for an empty template", (t: TestContext) => {
-			t.plan(1);
+		it("rejects literal expressions", (t: TestContext) => {
+			t.plan(6);
 			const { templateEngine } = setupTemplateEngine();
-			const template = "";
-			const context: RenderContext = { name: "John" };
 
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "");
+			t.assert.throws(() => templateEngine.render("{{ true }}", {}), /literal/);
+			t.assert.throws(
+				() => templateEngine.render("{{ false }}", {}),
+				/literal/,
+			);
+			t.assert.throws(() => templateEngine.render("{{ null }}", {}), /literal/);
+			t.assert.throws(
+				() => templateEngine.render("{{ undefined }}", {}),
+				/literal/,
+			);
+			t.assert.throws(() => templateEngine.render("{{ NaN }}", {}), /literal/);
+			t.assert.throws(
+				() => templateEngine.render("{{ Infinity }}", {}),
+				/literal/,
+			);
 		});
 
-		it("should ignore extra variables in the context", (t: TestContext) => {
+		it("rejects array path traversal", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, {{ name }}!";
-			const context: RenderContext = { age: 30, name: "John" };
 
-			const result = templateEngine.render(template, context);
+			const act = () =>
+				templateEngine.render("{{ todos.length }}", { todos: ["A"] });
 
-			t.assert.deepStrictEqual<string>(result, "Hello, John!");
+			t.assert.throws(act, /Cannot access array value/);
 		});
 
-		it("should handle falsy values correctly", (t: TestContext) => {
+		it("rejects direct object rendering", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
-			const template = "Age: {{ age }}, Active: {{ active }}.";
-			const context: RenderContext = { active: false, age: 0 };
 
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Age: 0, Active: false.");
-		});
-
-		it("should handle whitespace inside placeholders", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, {{   name   }}!";
-			const context: RenderContext = { name: "John" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Hello, John!");
-		});
-
-		it("should replace duplicate placeholders", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{{ name }} {{ name }} {{ name }}";
-			const context: RenderContext = { name: "John" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "John John John");
-		});
-
-		it("should handle nested braces gracefully", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "This is {{ notAVariable }} example.";
-			const context: RenderContext = { notAVariable: "{{nested}}" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "This is {{nested}} example.");
-		});
-
-		it("should throw for empty variable names", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, {{ }}!";
-			const context: RenderContext = { "": "" };
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /Empty/);
-		});
-
-		it("should return the template unchanged if no variables exist", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, world!";
-			const context: RenderContext = { name: "John" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Hello, world!");
-		});
-
-		it("should throw for non-primitive context values", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"Array: {{ array }}, Object: {{ obj }}, Function: {{ func }}.";
-			const context: RenderContext = {
-				array: [1, 2],
-				func: () => {},
-				obj: { key: "value" },
-			};
-
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /Cannot render/);
-		});
-
-		it("should throw for direct object rendering", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{{ user }}";
-			const context: RenderContext = { user: { name: "John" } };
-			const act = () => templateEngine.render(template, context);
+			const act = () => templateEngine.render("{{ user }}", { user: {} });
 
 			t.assert.throws(act, /Cannot render value/);
 		});
-
-		it("should throw for direct array rendering", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{{ items }}";
-			const context: RenderContext = { items: ["a", "b"] };
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /Cannot render value/);
-		});
-
-		it("should ignore malformed placeholders", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, { name }} and {{ place }";
-			const context: RenderContext = { name: "John", place: "Serbia" };
-
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /Unclosed variable tag/);
-		});
-
-		it("should throw for non-serializable or symbolic values", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{{ magic }}";
-			const context: RenderContext = { magic: Symbol("test") };
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /Cannot render/);
-		});
-
-		it("should throw if dot notation path hits non-object before reaching key", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{{ user.name.first }}";
-			const context: RenderContext = { user: { name: "John" } };
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /Missing value/);
-		});
 	});
 
-	describe("Attribute directives", () => {
-		it("should render a boolean attribute when condition is true", (t: TestContext) => {
+	describe("presence conditionals", () => {
+		it("renders the primary branch when an attribute is present", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
-			const template = "<button{% attr disabled if disabled %}>Save</button>";
 
-			const result = templateEngine.render(template, { disabled: true });
+			const result = templateEngine.render(
+				"{% if title %}<h1>{{ title }}</h1>{% else %}<p>Untitled</p>{% endif %}",
+				{ title: "Hello" },
+			);
 
+			t.assert.deepStrictEqual<string>(result, "<h1>Hello</h1>");
+		});
+
+		it("renders the alternate branch when an attribute is missing", (t: TestContext) => {
+			t.plan(3);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				"{% if title %}<h1>{{ title }}</h1>{% else %}<p>Untitled</p>{% endif %}",
+				{},
+			);
+
+			t.assert.deepStrictEqual<string>(result, "<p>Untitled</p>");
 			t.assert.deepStrictEqual<string>(
-				result,
-				"<button disabled>Save</button>",
+				templateEngine.render(
+					"{% if title %}<h1>{{ title }}</h1>{% else %}<p>Untitled</p>{% endif %}",
+					{ title: null },
+				),
+				"<p>Untitled</p>",
 			);
-		});
-
-		it("should omit a boolean attribute when condition is false", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "<button{% attr disabled if disabled %}>Save</button>";
-
-			const result = templateEngine.render(template, { disabled: false });
-
-			t.assert.deepStrictEqual<string>(result, "<button>Save</button>");
-		});
-
-		it("should render only the selected option", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = [
-				'<option value="low"{% attr selected if fields.isLowPriority %}>Low</option>',
-				'<option value="medium"{% attr selected if fields.isMediumPriority %}>Medium</option>',
-				'<option value="high"{% attr selected if fields.isHighPriority %}>High</option>',
-			].join("");
-
-			const result = templateEngine.render(template, {
-				fields: {
-					isHighPriority: false,
-					isLowPriority: false,
-					isMediumPriority: true,
-				},
-			});
-
 			t.assert.deepStrictEqual<string>(
-				result,
-				'<option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option>',
+				templateEngine.render(
+					"{% if title %}<h1>{{ title }}</h1>{% else %}<p>Untitled</p>{% endif %}",
+					{ title: undefined },
+				),
+				"<p>Untitled</p>",
 			);
 		});
 
-		it("should render and omit valued attributes", (t: TestContext) => {
+		it("treats false, zero, and empty string as present values", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
-			const template =
-				'<a{% attr target = "_blank" if external %}{% attr rel = "noreferrer" if internal %}>Open</a>';
 
-			const result = templateEngine.render(template, {
-				external: true,
-				internal: false,
-			});
-
-			t.assert.deepStrictEqual<string>(result, '<a target="_blank">Open</a>');
-		});
-
-		it("should escape attribute values", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "<input{% attr value = title if true %}>";
-
-			const result = templateEngine.render(template, {
-				title: 'A "quoted" title',
-			});
-
-			t.assert.deepStrictEqual<string>(
-				result,
-				'<input value="A &quot;quoted&quot; title">',
-			);
-		});
-
-		it("should preserve false as a valued attribute", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"<button{% attr aria-expanded = expanded if true %}>Menu</button>";
-
-			const result = templateEngine.render(template, { expanded: false });
-
-			t.assert.deepStrictEqual<string>(
-				result,
-				'<button aria-expanded="false">Menu</button>',
-			);
-		});
-
-		it("should omit undefined valued attributes", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "<input{% attr value = title if true %}>";
-
-			const result = templateEngine.render(template, { title: undefined });
-
-			t.assert.deepStrictEqual<string>(result, "<input>");
-		});
-
-		it("should work inside extended templates and blocks", (t: TestContext) => {
-			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate(
-				"layout.scream",
-				"<main>{% block content %}{% endblock %}</main>",
-			);
-			fileLoader.setTemplate(
-				"child.scream",
-				'{% extends "layout.scream" %}{% block content %}<button{% attr disabled if disabled %}>Save</button>{% endblock %}',
+			const result = templateEngine.render(
+				"{% if active %}A{% endif %}{% if count %}B{% endif %}{% if label %}C{% endif %}",
+				{ active: false, count: 0, label: "" },
 			);
 
-			const result = templateEngine.renderView("child.scream", {
-				disabled: true,
-			});
-
-			t.assert.deepStrictEqual<string>(
-				result,
-				"<main><button disabled>Save</button></main>",
-			);
-		});
-	});
-
-	describe("Input escape", () => {
-		it("should escape HTML special characters", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, {{ name }}!";
-			const context: RenderContext = {
-				name: "<script>alert('XSS')</script>",
-			};
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(
-				result,
-				"Hello, &lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;!",
-			);
+			t.assert.deepStrictEqual<string>(result, "ABC");
 		});
 
-		it("should not escape normal strings", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, {{ name }}!";
-			const context: RenderContext = { name: "John" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Hello, John!");
-		});
-
-		it("should throw when escaping a missing variable", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Hello, {{ name }} and {{ title }}!";
-			const context: RenderContext = { name: "<Admin>", title: undefined };
-
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /Cannot render/);
-		});
-
-		it("should escape all HTML special characters", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Input: {{ userInput }}";
-			const context: RenderContext = {
-				userInput: '<div class="test">&</div>',
-			};
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(
-				result,
-				"Input: &lt;div class=&quot;test&quot;&gt;&amp;&lt;/div&gt;",
-			);
-		});
-
-		it("should escape single quotes", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Message: '{{ message }}'";
-			const context: RenderContext = { message: "O'Reilly's book" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(
-				result,
-				"Message: 'O&#39;Reilly&#39;s book'",
-			);
-		});
-
-		it("should escape double quotes", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Attribute: {{ attribute }}";
-			const context: RenderContext = { attribute: '"test"' };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Attribute: &quot;test&quot;");
-		});
-
-		it("should escape ampersands", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Symbol: {{ symbol }}";
-			const context: RenderContext = { symbol: "&" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Symbol: &amp;");
-		});
-
-		it("should escape a combination of special characters", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{{ content }}";
-			const context: RenderContext = {
-				content: "<script>alert('XSS & test');</script>",
-			};
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(
-				result,
-				"&lt;script&gt;alert(&#39;XSS &amp; test&#39;);&lt;/script&gt;",
-			);
-		});
-
-		it("should handle empty strings without escaping", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Value: {{ empty }}";
-			const context: RenderContext = { empty: "" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Value: ");
-		});
-
-		it("should not escape numbers", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Number: {{ number }}";
-			const context: RenderContext = { number: 12345 };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Number: 12345");
-		});
-
-		it("should not escape boolean values", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Boolean: {{ boolValue }}";
-			const context: RenderContext = { boolValue: true };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Boolean: true");
-		});
-
-		it("should not escape non-variable parts of the template", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Static content with <tags> and & symbols.";
-			const context: RenderContext = {};
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(
-				result,
-				"Static content with <tags> and & symbols.",
-			);
-		});
-
-		it("should not re-escape already escaped input", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "Value: {{ value }}";
-			const context: RenderContext = { value: "&lt;script&gt;" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Value: &lt;script&gt;");
-		});
-
-		it("should not re-escape known safe entities while escaping raw HTML", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{{ value }}";
-			const context: RenderContext = { value: "&lt;safe&gt;<unsafe>" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "&lt;safe&gt;&lt;unsafe&gt;");
-		});
-	});
-
-	describe("Conditionals", () => {
-		it("should handle simple conditionals", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{% if isLoggedIn %} Welcome, {{ name }}! {% endif %}";
-			const context: RenderContext = { isLoggedIn: true, name: "John" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, " Welcome, John! ");
-		});
-
-		it("should handle conditionals with else", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% if isLoggedIn %} Welcome! {% else %} Please log in. {% endif %}";
-			const context: RenderContext = { isLoggedIn: false };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, " Please log in. ");
-		});
-
-		it("should throw for missing variables in conditionals", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% if isAdmin %} Admin Panel {% else %} User Panel {% endif %}";
-			const context: RenderContext = {};
-
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /isAdmin/);
-		});
-
-		it("should handle conditionals with content outside", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{% if name %}Name{% else %}{% endif %}After";
-			const context: RenderContext = { name: "John" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "NameAfter");
-		});
-
-		it("should handle conditionals with content outside", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"Before{% if name %}Inside{% else %}Else{% endif %}After";
-			const context: RenderContext = { name: "John" };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "BeforeInsideAfter");
-		});
-
-		it("should handle conditionals with content before and after", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"Before{% if condition %}Inside{% else %}Else{% endif %}After";
-			const context: RenderContext = { condition: true };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "BeforeInsideAfter");
-		});
-
-		it("should handle nested conditionals", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% if condition1 %}Outer{% if condition2 %}Inner{% endif %}{% endif %}";
-			const context: RenderContext = { condition1: true, condition2: false };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Outer");
-		});
-
-		it("should handle deeply nested conditionals with alternate branches", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% if condition1 %}Outer{% if condition2 %}Inner{% else %}Fallback{% endif %}{% else %}Default{% endif %}";
-			const context: RenderContext = { condition1: true, condition2: false };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "OuterFallback");
-		});
-
-		it("should throw for missing variables in nested conditionals", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% if condition1 %}Outer{% if condition2 %}Inner{% endif %}{% endif %}";
-			const context: RenderContext = {};
-
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /condition1/);
-		});
-
-		it("should handle multiple independent conditionals", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% if condition1 %}First{% endif %}Middle{% if condition2 %}Second{% endif %}";
-			const context: RenderContext = { condition1: true, condition2: false };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "FirstMiddle");
-		});
-
-		it("should treat 0 as falsy in conditionals", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{% if count %}Has count{% else %}No count{% endif %}";
-			const context: RenderContext = { count: 0 };
-			const result = templateEngine.render(template, context);
-			t.assert.deepStrictEqual<string>(result, "No count");
-		});
-
-		it("should treat non-empty string as truthy in conditionals", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% if username %}Hi, {{ username }}{% else %}Guest{% endif %}";
-			const context: RenderContext = { username: "Alice" };
-			const result = templateEngine.render(template, context);
-			t.assert.deepStrictEqual<string>(result, "Hi, Alice");
-		});
-
-		it("should treat empty string as falsy in conditionals", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% if empty %}Has value{% else %}Empty string{% endif %}";
-			const context: RenderContext = { empty: "" };
-			const result = templateEngine.render(template, context);
-			t.assert.deepStrictEqual<string>(result, "Empty string");
-		});
-
-		describe("Conditionals - dot notation in if conditions", () => {
-			it("should evaluate truthy dot notation expressions correctly", (t: TestContext) => {
-				t.plan(1);
-				const { templateEngine } = setupTemplateEngine();
-				const template =
-					"{% if items.length %}Items exist{% else %}No items{% endif %}";
-				const context: RenderContext = { items: [{ id: 1 }, { id: 2 }] };
-
-				const result = templateEngine.render(template, context);
-
-				t.assert.deepStrictEqual<string>(result, "Items exist");
-			});
-
-			it("should evaluate falsy dot notation expressions correctly when array is empty", (t: TestContext) => {
-				t.plan(1);
-				const { templateEngine } = setupTemplateEngine();
-				const template =
-					"{% if items.length %}Items exist{% else %}No items{% endif %}";
-				const context: RenderContext = { items: [] };
-
-				const result = templateEngine.render(template, context);
-
-				t.assert.deepStrictEqual<string>(result, "No items");
-			});
-
-			it("should throw when dot notation condition property is missing", (t: TestContext) => {
-				t.plan(1);
-				const { templateEngine } = setupTemplateEngine();
-				const template =
-					"{% if items.length %}Items exist{% else %}No items{% endif %}";
-				const context: RenderContext = {};
-
-				const act = () => templateEngine.render(template, context);
-
-				t.assert.throws(act, /items/);
-			});
-
-			it("should evaluate truthy deeply nested dot notation expressions", (t: TestContext) => {
-				t.plan(1);
-				const { templateEngine } = setupTemplateEngine();
-				const template =
-					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
-				const context: RenderContext = {
-					user: { profile: { name: "Alice" } },
-				};
-
-				const result = templateEngine.render(template, context);
-
-				t.assert.deepStrictEqual<string>(result, "Hello");
-			});
-
-			it("should throw when inner dot notation condition property is missing", (t: TestContext) => {
-				t.plan(1);
-				const { templateEngine } = setupTemplateEngine();
-				const template =
-					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
-				const context: RenderContext = { user: { profile: {} } };
-
-				const act = () => templateEngine.render(template, context);
-
-				t.assert.throws(act, /user\.profile\.name/);
-			});
-
-			it("should throw when intermediate dot notation condition value is not an object", (t: TestContext) => {
-				t.plan(1);
-				const { templateEngine } = setupTemplateEngine();
-				const template =
-					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
-				const context: RenderContext = { user: { profile: null } };
-
-				const act = () => templateEngine.render(template, context);
-
-				t.assert.throws(act, /user\.profile\.name/);
-			});
-
-			it("should throw when top-level dot notation condition value is not an object", (t: TestContext) => {
-				t.plan(1);
-				const { templateEngine } = setupTemplateEngine();
-				const template =
-					"{% if user.profile.name %}Hello{% else %}No name{% endif %}";
-				const context: RenderContext = { user: "notAnObject" };
-
-				const act = () => templateEngine.render(template, context);
-
-				t.assert.throws(act, /user\.profile\.name/);
-			});
-		});
-
-		it("should handle interleaved text, conditionals, and loops", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"A {% if x %} B {% for y in ys %} C {% endfor %} D {% endif %} E";
-			const context: RenderContext = { x: true, ys: ["item"] };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "A  B  C  D  E");
-		});
-
-		it("should handle nested conditionals containing nested loops", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% if show %}{% for group in groups %}{% if group.visible %}{% for item in group.items %}{{ group.name }}:{{ item }};{% endfor %}{% endif %}{% endfor %}{% else %}Hidden{% endif %}";
-			const context: RenderContext = {
-				groups: [
-					{ items: ["A", "B"], name: "one", visible: true },
-					{ items: ["C"], name: "two", visible: false },
-					{ items: ["D"], name: "three", visible: true },
-				],
-				show: true,
-			};
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "one:A;one:B;three:D;");
-		});
-	});
-
-	describe("Iterations", () => {
-		it("should iterate over a simple array", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
-			const context: RenderContext = { letters: ["A", "B", "C"] };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, " A  B  C ");
-		});
-
-		it("should render nothing for an empty array", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
-			const context: RenderContext = { letters: [] };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "");
-		});
-
-		it("should support nested loops", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% for user in users %}{% for task in user.tasks %}{{ user.name }}-{{ task }};{% endfor %}{% endfor %}";
-			const context: RenderContext = {
-				users: [
-					{ name: "Alice", tasks: ["t1", "t2"] },
-					{ name: "Bob", tasks: ["t3"] },
-				],
-			};
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "Alice-t1;Alice-t2;Bob-t3;");
-		});
-
-		it("should throw for non-array collections", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{% for item in items %} {{ item }} {% endfor %}";
-			const context: RenderContext = { items: "not an array" };
-
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /Loop collection must be an array/);
-		});
-
-		it("should shadow parent context variables in for loop", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{% for item in items %}{{ item }}, {% endfor %}";
-			const context: RenderContext = { item: "outer", items: ["a", "b"] };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "a, b, ");
-		});
-
-		it("should throw when the collection variable is missing", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{% for letter in letters %} {{ letter }} {% endfor %}";
-			const context: RenderContext = {};
-
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /letters/);
-		});
-
-		it("should allow iterator shadowing without leaking outer values", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% for item in outer %}[{% for item in inner %}{{ item }}, {% endfor %}|{{ item }}]{% endfor %}";
-			const context: RenderContext = {
-				inner: ["i1", "i2"],
-				outer: ["o1", "o2"],
-			};
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "[i1, i2, |o1][i1, i2, |o2]");
-		});
-
-		it("should preserve existing context after loops complete", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% for item in items %}{{ item }}{% endfor %}{{ item }}";
-			const context: RenderContext = { item: "outer", items: ["X", "Y"] };
-
-			const result = templateEngine.render(template, context);
-
-			t.assert.deepStrictEqual<string>(result, "XYouter");
-		});
-
-		it("should support dot notation in collection reference", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% for item in user.items %}{{ item.name }} {% endfor %}";
-			const context: RenderContext = {
-				user: { items: [{ name: "A" }, { name: "B" }] },
-			};
-			const result = templateEngine.render(template, context);
-			t.assert.deepStrictEqual<string>(result, "A B ");
-		});
-
-		it("should throw if dot-notated collection is undefined", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% for item in user.items %}{{ item.name }} {% endfor %}";
-			const context: RenderContext = {};
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /user\.items/);
-		});
-
-		it("should throw for collections with null or undefined values", (t: TestContext) => {
+		it("rejects literal conditions", (t: TestContext) => {
 			t.plan(2);
 			const { templateEngine } = setupTemplateEngine();
-			const template = "{% for item in items %}{{ item }} {% endfor %}";
-
-			const contextWithNull: RenderContext = { items: null };
-			const contextWithUndefined: RenderContext = {};
-
-			const renderWithNullCollection = () =>
-				templateEngine.render(template, contextWithNull);
-			const renderWithUndefinedCollection = () =>
-				templateEngine.render(template, contextWithUndefined);
 
 			t.assert.throws(
-				renderWithNullCollection,
-				/Loop collection must be an array/,
+				() => templateEngine.render("{% if true %}A{% endif %}", {}),
+				/literal/,
 			);
-			t.assert.throws(renderWithUndefinedCollection, /items/);
+			t.assert.throws(
+				() => templateEngine.render("{% if false %}A{% endif %}", {}),
+				/literal/,
+			);
 		});
 
-		it("should iterate over a collection of objects and use dot notation", (t: TestContext) => {
+		it("rejects array length conditions", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
-			const template = "{% for item in items %}{{ item.name }} {% endfor %}";
-			const context: RenderContext = {
-				items: [{ name: "Alpha" }, { name: "Beta" }, { name: "Gamma" }],
-			};
 
-			const result = templateEngine.render(template, context);
-			t.assert.deepStrictEqual<string>(result, "Alpha Beta Gamma ");
-		});
+			const act = () =>
+				templateEngine.render("{% if todos.length %}A{% else %}B{% endif %}", {
+					todos: ["A"],
+				});
 
-		it("should iterate over a collection and handle nested properties", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% for item in items %}{{ item.meta.name }} {% endfor %}";
-			const context: RenderContext = {
-				items: [
-					{ meta: { name: "X" } },
-					{ meta: { name: "Y" } },
-					{ meta: { name: "Z" } },
-				],
-			};
-
-			const result = templateEngine.render(template, context);
-			t.assert.deepStrictEqual<string>(result, "X Y Z ");
-		});
-
-		it("should throw when an iterator variable is referenced outside the for loop", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"{% for item in items %}{{ item }} {% endfor %}{{ item }}";
-			const context: RenderContext = { items: ["One"] };
-			const act = () => templateEngine.render(template, context);
-
-			t.assert.throws(act, /item/);
+			t.assert.throws(act, /Cannot access array value/);
 		});
 	});
 
-	describe("Layouts", () => {
-		it("should render all overridden blocks correctly", (t: TestContext) => {
+	describe("template application", () => {
+		it("applies an anonymous template to every item", (t: TestContext) => {
 			t.plan(1);
-			const { templateEngine, fileLoader } = setupTemplateEngine();
+			const { templateEngine } = setupTemplateEngine();
 
-			fileLoader.setTemplate(
-				"layout.scream",
-				"<header>{% block header %}Default Header{% endblock header %}</header><main>{% block content %}Default Content{% endblock content %}</main><footer>{% block footer %}Default Footer{% endblock footer %}</footer>",
+			const result = templateEngine.render(
+				"<ul>{% apply users %}<li>{{ attr.name }}</li>{% endapply %}</ul>",
+				{ users: [{ name: "Ada" }, { name: "Grace" }] },
 			);
-
-			const childTemplate = `{% extends "layout.scream" %}
-			{% block header %}Custom Header{% endblock header %}
-			{% block content %}Custom Content{% endblock content %}
-			{% block footer %}Custom Footer{% endblock footer %}`;
-
-			const result = templateEngine.render(childTemplate, {});
-			t.assert.deepStrictEqual<string>(
-				result,
-				"<header>Custom Header</header><main>Custom Content</main><footer>Custom Footer</footer>",
-			);
-		});
-
-		it("should preserve default blocks if only some are overridden", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine, fileLoader } = setupTemplateEngine();
-			fileLoader.setTemplate(
-				"layout.scream",
-				"<header>{% block header %}Default Header{% endblock header %}</header><main>{% block content %}Default Content{% endblock content %}</main><footer>{% block footer %}Default Footer{% endblock footer %}</footer>",
-			);
-			const childTemplate = `{% extends "layout.scream" %}
-			{% block content %}Only Content Changed{% endblock content %}`;
-
-			const result = templateEngine.render(childTemplate, {});
-			t.assert.deepStrictEqual<string>(
-				result,
-				"<header>Default Header</header><main>Only Content Changed</main><footer>Default Footer</footer>",
-			);
-		});
-
-		it("should preserve unknown blocks in the layout", (t: TestContext) => {
-			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			const layoutWithExtraBlock =
-				"<main>{% block content %}Default Content{% endblock content %}</main>{% block sidebar %}Default Sidebar{% endblock sidebar %}";
-
-			fileLoader.setTemplate("layout.scream", layoutWithExtraBlock);
-
-			const childTemplate = `{% extends "layout.scream" %}
-			{% block content %}Main Page{% endblock content %}`;
-
-			const result = templateEngine.render(childTemplate, {});
-			t.assert.deepStrictEqual<string>(
-				result,
-				"<main>Main Page</main>Default Sidebar",
-			);
-		});
-
-		it("should support nested layouts and override hierarchy", (t: TestContext) => {
-			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate(
-				"base.scream",
-				`<header>{% block header %}Base Header{% endblock header %}</header><main>{% block content %}Base Content{% endblock content %}</main><footer>{% block footer %}Base Footer{% endblock footer %}</footer>`,
-			);
-
-			fileLoader.setTemplate(
-				"parent.scream",
-				`{% extends "base.scream" %}{% block header %}Parent Header{% endblock header %}{% block content %}Parent Content{% endblock content %}`,
-			);
-
-			const childTemplate = `{% extends "parent.scream" %}{% block content %}Child Content{% endblock content %}`;
-
-			const result = templateEngine.render(childTemplate, {});
 
 			t.assert.deepStrictEqual<string>(
 				result,
-				"<header>Parent Header</header><main>Child Content</main><footer>Base Footer</footer>",
+				"<ul><li>Ada</li><li>Grace</li></ul>",
 			);
 		});
 
-		it("should support 4-level nested layout inheritance", (t: TestContext) => {
+		it("renders nothing when applying a missing attribute", (t: TestContext) => {
 			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate(
-				"base.scream",
-				"<main>{% block content %}Base{% endblock content %}</main>",
-			);
-			fileLoader.setTemplate(
-				"level1.scream",
-				`{% extends "base.scream" %}{% block content %}Level1{% endblock content %}`,
-			);
-			fileLoader.setTemplate(
-				"level2.scream",
-				`{% extends "level1.scream" %}{% block content %}Level2{% endblock content %}`,
-			);
-			const childTemplate = `{% extends "level2.scream" %}{% block content %}Level3{% endblock content %}`;
+			const { templateEngine } = setupTemplateEngine();
 
-			const result = templateEngine.render(childTemplate, {});
-			t.assert.deepStrictEqual<string>(result, "<main>Level3</main>");
+			const result = templateEngine.render(
+				"Before{% apply users %}<li>{{ attr.name }}</li>{% endapply %}After",
+				{},
+			);
+
+			t.assert.deepStrictEqual<string>(result, "BeforeAfter");
 		});
 
-		it("should combine parent and child block overrides correctly", (t: TestContext) => {
+		it("applies an anonymous template once to a single value", (t: TestContext) => {
 			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate(
-				"base.scream",
-				`<header>{% block header %}Base Header{% endblock header %}</header><main>{% block content %}Base Content{% endblock content %}</main>`,
-			);
-			fileLoader.setTemplate(
-				"parent.scream",
-				`{% extends "base.scream" %}{% block header %}Parent Header{% endblock header %}`,
-			);
-			const childTemplate = `{% extends "parent.scream" %}{% block content %}Child Content{% endblock content %}`;
+			const { templateEngine } = setupTemplateEngine();
 
-			const result = templateEngine.render(childTemplate, {});
-			t.assert.deepStrictEqual<string>(
-				result,
-				"<header>Parent Header</header><main>Child Content</main>",
+			const result = templateEngine.render(
+				"{% apply user %}<p>{{ attr.name }}</p>{% endapply %}",
+				{ user: { name: "Ada" } },
 			);
+
+			t.assert.deepStrictEqual<string>(result, "<p>Ada</p>");
 		});
 
-		it("should combine parent and child block overrides correctly with render()", (t: TestContext) => {
+		it("applies a named template to every item", (t: TestContext) => {
 			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate(
-				"base.scream",
-				`<header>{% block header %}Base Header{% endblock header %}</header><main>{% block content %}Base Content{% endblock content %}</main>`,
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				"{% template row %}<li>{{ attr.name }}</li>{% endtemplate %}<ul>{% apply users to row %}</ul>",
+				{ users: [{ name: "Ada" }, { name: "Grace" }] },
 			);
-
-			fileLoader.setTemplate(
-				"parent.scream",
-				`{% extends "base.scream" %}{% block header %}Parent Header{% endblock header %}`,
-			);
-
-			const childTemplate = `{% extends "parent.scream" %}{% block content %}Child Content{% endblock content %}`;
-
-			const result = templateEngine.render(childTemplate, {});
 
 			t.assert.deepStrictEqual<string>(
 				result,
-				"<header>Parent Header</header><main>Child Content</main>",
+				"<ul><li>Ada</li><li>Grace</li></ul>",
 			);
 		});
 
-		it("should throw on cyclic layout extends", (t: TestContext) => {
+		it("allows named templates to apply themselves recursively", (t: TestContext) => {
 			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate(
-				"a.scream",
-				`{% extends "b.scream" %}{% block content %}A{% endblock %}`,
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				"{% template node %}<li>{{ attr.name }}<ul>{% apply attr.children to node %}</ul></li>{% endtemplate %}<ul>{% apply tree to node %}</ul>",
+				{
+					tree: [
+						{
+							children: [{ name: "Child" }],
+							name: "Parent",
+						},
+					],
+				},
 			);
-			fileLoader.setTemplate(
-				"b.scream",
-				`{% extends "a.scream" %}{% block content %}B{% endblock %}`,
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				"<ul><li>Parent<ul><li>Child<ul></ul></li></ul></li></ul>",
 			);
+		});
+
+		it("throws for an unknown named template", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () =>
+				templateEngine.render("{% apply users to row %}", { users: [] });
+
+			t.assert.throws(act, /Unknown template: row/);
+		});
+
+		it("throws for an unknown named template with a missing source", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () => templateEngine.render("{% apply users to row %}", {});
+
+			t.assert.throws(act, /Unknown template: row/);
+		});
+
+		it("throws for an unknown named template in an unselected branch", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
 
 			const act = () =>
 				templateEngine.render(
-					`{% extends "a.scream" %}{% block content %}Root{% endblock %}`,
+					"{% if missing %}{% apply users to row %}{% endif %}",
 					{},
 				);
 
-			t.assert.throws(act, / cyclic extends /i);
+			t.assert.throws(act, /Unknown template: row/);
 		});
 
-		it("should throw on self-referencing layout extends", (t: TestContext) => {
+		it("throws for duplicate named templates", (t: TestContext) => {
 			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate(
-				"layout.scream",
-				`{% extends "layout.scream" %}{% block content %}Layout{% endblock %}`,
-			);
+			const { templateEngine } = setupTemplateEngine();
 
-			const act = () => templateEngine.renderView("layout.scream", {});
+			const act = () =>
+				templateEngine.render(
+					"{% template row %}A{% endtemplate %}{% template row %}B{% endtemplate %}",
+					{},
+				);
+
+			t.assert.throws(act, /Duplicate template: row/);
+		});
+	});
+
+	describe("removed syntax", () => {
+		it("rejects explicit for loops", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () =>
+				templateEngine.render("{% for item in items %}{{ item }}{% endfor %}", {
+					items: ["A"],
+				});
+
+			t.assert.throws(act, /Unsupported directive: for/);
+		});
+
+		it("rejects conditional attr directives", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () =>
+				templateEngine.render(
+					"<option{% attr selected if selected %}>A</option>",
+					{
+						selected: true,
+					},
+				);
+
+			t.assert.throws(act, /Unsupported directive: attr/);
+		});
+	});
+
+	describe("model-view separation", () => {
+		it("rejects hard-coded route URLs in links", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () => templateEngine.render('<a href="/todos">Todos</a>', {});
+
+			t.assert.throws(act, /Hard-coded route URLs are not allowed/);
+		});
+
+		it("rejects hard-coded route URLs in forms", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () =>
+				templateEngine.render(
+					'<form action="/todos" method="POST"></form>',
+					{},
+				);
+
+			t.assert.throws(act, /Hard-coded route URLs are not allowed/);
+		});
+
+		it("rejects route URLs composed from attributes and literal path fragments", (t: TestContext) => {
+			t.plan(3);
+			const { templateEngine } = setupTemplateEngine();
 
 			t.assert.throws(
-				act,
-				/Cyclic extends detected: layout\.scream -> layout\.scream/,
+				() =>
+					templateEngine.render('<a href="{{ base }}/todos">Todos</a>', {
+						base: "",
+					}),
+				/Hard-coded route URLs are not allowed/,
 			);
-		});
-
-		it("should throw on cycles reached from anonymous templates", (t: TestContext) => {
-			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate(
-				"a.scream",
-				`{% extends "b.scream" %}{% block content %}A{% endblock %}`,
-			);
-			fileLoader.setTemplate(
-				"b.scream",
-				`{% extends "a.scream" %}{% block content %}B{% endblock %}`,
-			);
-			const template = `{% extends "a.scream" %}{% block content %}Root{% endblock %}`;
-
-			const act = () => templateEngine.render(template, {});
-
 			t.assert.throws(
-				act,
-				/Cyclic extends detected: a\.scream -> b\.scream -> a\.scream/,
+				() =>
+					templateEngine.render(
+						'<a href="{{ todosUrl }}/{{ todo.id }}">Todo</a>',
+						{
+							todo: { id: 1 },
+							todosUrl: "/todos",
+						},
+					),
+				/Hard-coded route URLs are not allowed/,
+			);
+			t.assert.throws(
+				() =>
+					templateEngine.render("<a href={{ base }}/todos>Todos</a>", {
+						base: "",
+					}),
+				/Hard-coded route URLs are not allowed/,
 			);
 		});
 
-		it("should throw when extends is not the first meaningful directive", (t: TestContext) => {
+		it("allows route URLs passed as attributes", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				'<a href="{{ urls.todos }}">Todos</a>',
+				{ urls: { todos: "/todos" } },
+			);
+
+			t.assert.deepStrictEqual<string>(result, '<a href="/todos">Todos</a>');
+		});
+
+		it("allows protocol-relative external links", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				'<a href="//example.com">External</a>',
+				{},
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<a href="//example.com">External</a>',
+			);
+		});
+	});
+
+	describe("layouts", () => {
+		it("renders parent block fallback content", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
 				"layout.scream",
-				"<main>{% block content %}Default{% endblock %}</main>",
+				"<main>{% block content %}Default{% endblock content %}</main>",
 			);
+			fileLoader.setTemplate("page.scream", '{% extends "layout.scream" %}');
 
-			const act = () =>
-				templateEngine.render(
-					`<p>Before</p>{% extends "layout.scream" %}{% block content %}Child{% endblock %}`,
-					{},
-				);
+			const result = templateEngine.renderView("page.scream", {});
 
-			t.assert.throws(act, /Extends must be the first meaningful directive/);
+			t.assert.deepStrictEqual<string>(result, "<main>Default</main>");
 		});
 
-		it("should throw when a child overrides an unknown block", (t: TestContext) => {
+		it("renders apply nodes inside merged layout blocks", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
 				"layout.scream",
-				"<main>{% block content %}Default{% endblock %}</main>",
+				"<main>{% block content %}Default{% endblock content %}</main>",
+			);
+			fileLoader.setTemplate(
+				"page.scream",
+				'{% extends "layout.scream" %}{% block content %}{% apply todos %}<p>{{ attr.title }}</p>{% endapply %}{% endblock content %}',
 			);
 
-			const act = () =>
-				templateEngine.render(
-					`{% extends "layout.scream" %}{% block sidebar %}Child{% endblock %}`,
-					{},
-				);
+			const result = templateEngine.renderView("page.scream", {
+				todos: [{ title: "Ship" }],
+			});
+
+			t.assert.deepStrictEqual<string>(result, "<main><p>Ship</p></main>");
+		});
+
+		it("renders named templates inside merged layout blocks", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"layout.scream",
+				"<main>{% block content %}Default{% endblock content %}</main>",
+			);
+			fileLoader.setTemplate(
+				"page.scream",
+				'{% extends "layout.scream" %}{% block content %}{% template row %}<p>{{ attr.title }}</p>{% endtemplate %}{% apply todos to row %}{% endblock content %}',
+			);
+
+			const result = templateEngine.renderView("page.scream", {
+				todos: [{ title: "Ship" }],
+			});
+
+			t.assert.deepStrictEqual<string>(result, "<main><p>Ship</p></main>");
+		});
+
+		it("rejects unknown child block overrides", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"layout.scream",
+				"<main>{% block content %}Default{% endblock content %}</main>",
+			);
+			fileLoader.setTemplate(
+				"page.scream",
+				'{% extends "layout.scream" %}{% block sidebar %}X{% endblock sidebar %}',
+			);
+
+			const act = () => templateEngine.renderView("page.scream", {});
 
 			t.assert.throws(act, /Unknown template block: sidebar/);
 		});
 
-		it("should throw when a child overrides the same block twice", (t: TestContext) => {
+		it("rejects duplicate block definitions", (t: TestContext) => {
 			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate(
-				"layout.scream",
-				"<main>{% block content %}Default{% endblock %}</main>",
-			);
+			const { templateEngine } = setupTemplateEngine();
 
 			const act = () =>
 				templateEngine.render(
-					`{% extends "layout.scream" %}{% block content %}One{% endblock %}{% block content %}Two{% endblock %}`,
+					"{% block content %}A{% endblock content %}{% block content %}B{% endblock content %}",
 					{},
 				);
 
 			t.assert.throws(act, /Duplicate template block: content/);
 		});
 
-		it("should throw when a layout defines the same block twice", (t: TestContext) => {
+		it("rejects duplicate extends directives", (t: TestContext) => {
 			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate(
-				"layout.scream",
-				"{% block content %}One{% endblock %}{% block content %}Two{% endblock %}",
-			);
+			const { templateEngine } = setupTemplateEngine();
 
 			const act = () =>
 				templateEngine.render(
-					`{% extends "layout.scream" %}{% block content %}Child{% endblock %}`,
+					'{% extends "a.scream" %}{% extends "b.scream" %}',
 					{},
 				);
 
-			t.assert.throws(act, /Duplicate template block: content/);
+			t.assert.throws(act, /at most one extends directive/);
 		});
 
-		it("should throw when an extending template defines a nested block", (t: TestContext) => {
+		it("rejects extends after meaningful content", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () =>
+				templateEngine.render('Hello{% extends "layout.scream" %}', {});
+
+			t.assert.throws(act, /Extends must be the first meaningful directive/);
+		});
+
+		it("rejects nested block overrides in extending templates", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
 				"layout.scream",
-				"<main>{% block content %}Default{% endblock %}</main>",
+				"<main>{% block content %}Default{% endblock content %}</main>",
 			);
+			fileLoader.setTemplate(
+				"page.scream",
+				'{% extends "layout.scream" %}{% block content %}{% block nested %}X{% endblock nested %}{% endblock content %}',
+			);
+
+			const act = () => templateEngine.renderView("page.scream", {});
+
+			t.assert.throws(act, /Nested template blocks are not allowed/);
+		});
+
+		it("rejects layout cycles", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("a.scream", '{% extends "b.scream" %}');
+			fileLoader.setTemplate("b.scream", '{% extends "a.scream" %}');
+
+			const act = () => templateEngine.renderView("a.scream", {});
+
+			t.assert.throws(act, /Cyclic extends detected/);
+		});
+
+		it("rejects extends inside template application", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
 
 			const act = () =>
 				templateEngine.render(
-					`{% extends "layout.scream" %}{% block content %}{% block nested %}Nested{% endblock %}{% endblock %}`,
-					{},
+					'{% apply items %}{% extends "layout.scream" %}{% endapply %}',
+					{ items: [1] },
 				);
-
-			t.assert.throws(
-				act,
-				/Nested template blocks are not allowed in extending templates/,
-			);
-		});
-
-		it("should throw when extends appears inside a conditional", (t: TestContext) => {
-			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate(
-				"layout.scream",
-				"<main>{% block content %}Default{% endblock %}</main>",
-			);
-			const template = `{% if show %}{% extends "layout.scream" %}{% endif %}`;
-			const context: RenderContext = { show: false };
-
-			const act = () => templateEngine.render(template, context);
 
 			t.assert.throws(
 				act,
 				/Extends directives are only allowed at the top level/,
 			);
 		});
+	});
 
-		it("should include view names in syntax errors", (t: TestContext) => {
-			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate("broken.scream", `{% include "nav.scream" %}`);
-
-			const act = () => templateEngine.renderView("broken.scream", {});
-
-			t.assert.throws(act, /Unknown directive.*in broken\.scream/);
-		});
-
-		it("should include view names in render errors", (t: TestContext) => {
-			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate("broken.scream", "{{ missing }}");
-
-			const act = () => templateEngine.renderView("broken.scream", {});
-
-			t.assert.throws(act, /missing.*in broken\.scream/);
-		});
-
-		it("should include layout view names in syntax errors", (t: TestContext) => {
-			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate("layout.scream", `{% include "nav.scream" %}`);
-			const template = `{% extends "layout.scream" %}{% block content %}Child{% endblock %}`;
-
-			const act = () => templateEngine.render(template, {});
-
-			t.assert.throws(act, /Unknown directive.*in layout\.scream/);
-		});
-
-		it("should include parent layout view names in syntax errors", (t: TestContext) => {
-			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate("layout.scream", `{% include "nav.scream" %}`);
-			fileLoader.setTemplate(
-				"page.scream",
-				`{% extends "layout.scream" %}{% block content %}Page{% endblock %}`,
-			);
-
-			const act = () => templateEngine.renderView("page.scream", {});
-
-			t.assert.throws(act, /Unknown directive.*in layout\.scream/);
-		});
-
-		it("should render a view by logical view name", (t: TestContext) => {
+	describe("views", () => {
+		it("renders a view by logical view name", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate("home.scream", "Hello, {{ name }}!");
@@ -1374,43 +565,15 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			t.assert.deepStrictEqual<string>(result, "Hello, John!");
 		});
-	});
 
-	describe("Syntax errors", () => {
-		it("should throw for unknown directives", (t: TestContext) => {
+		it("includes view names in syntax errors", (t: TestContext) => {
 			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = `{% include "x.scream" %}`;
-			const act = () => templateEngine.render(template, {});
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("broken.scream", "{% for item in items %}");
 
-			t.assert.throws(act, /Unknown directive/);
-		});
+			const act = () => templateEngine.renderView("broken.scream", {});
 
-		it("should throw for unclosed directive tags", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{% if user";
-			const act = () => templateEngine.render(template, { user: true });
-
-			t.assert.throws(act, /Unclosed directive tag/);
-		});
-
-		it("should throw for malformed paths", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{{ user. }}";
-			const act = () => templateEngine.render(template, { user: {} });
-
-			t.assert.throws(act, /Expected identifier token|Malformed path/);
-		});
-
-		it("should throw for mismatched endblock names", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const template = "{% block header %}Header{% endblock content %}";
-			const act = () => templateEngine.render(template, {});
-
-			t.assert.throws(act, /Mismatched endblock name/);
+			t.assert.throws(act, /Unsupported directive: for.*in broken\.scream/);
 		});
 	});
 });

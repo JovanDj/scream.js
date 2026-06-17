@@ -6,12 +6,15 @@ import { schema } from "@scream.js/validator/schema.js";
 const todoErrors = (
 	issues: readonly { message: string; path: PropertyKey[] }[],
 ) => {
-	const errors = { dueAt: "", title: "" };
+	const errors: { dueAt?: string; title?: string } = {};
 
 	for (const issue of issues) {
 		const key = issue.path.join(".");
-		if (key === "title" || key === "dueAt") {
-			errors[key] ||= issue.message;
+		if (key === "title" && errors.title === undefined) {
+			errors.title = issue.message;
+		}
+		if (key === "dueAt" && errors.dueAt === undefined) {
+			errors.dueAt = issue.message;
 		}
 	}
 
@@ -26,9 +29,9 @@ const todoFields = (input: {
 	const statusCode = input.statusCode ?? "open";
 
 	return {
+		completedSelected: statusCode === "completed" ? true : undefined,
 		dueAt: input.dueAt ?? "",
-		isCompleted: statusCode === "completed",
-		isOpen: statusCode === "open",
+		openSelected: statusCode === "open" ? true : undefined,
 		statusCode,
 		title: input.title ?? "",
 	};
@@ -102,7 +105,9 @@ export class TodosController implements Resource {
 			.parse(await query.orderBy("todos.id", "desc"));
 
 		const todoViews = todos.map((todo) => ({
+			editUrl: `/todos/${todo.id}/edit`,
 			id: todo.id,
+			showUrl: `/todos/${todo.id}`,
 			statusCode: todo.statusCode,
 			title: todo.title,
 		}));
@@ -124,6 +129,7 @@ export class TodosController implements Resource {
 		};
 
 		return ctx.render("index", {
+			createTodoUrl: "/todos/create",
 			filters: {
 				all: createFilterUrl({
 					search: parsedQuery.data.search,
@@ -138,10 +144,14 @@ export class TodosController implements Resource {
 					status: "open",
 				}),
 			},
+			hasTodos: todoViews.length > 0 ? true : undefined,
+			homeUrl: "/",
 			pageTitle: "Todos",
 			search: parsedQuery.data.search,
 			status: parsedQuery.data.status,
+			tagsUrl: "/tags",
 			todos: todoViews,
+			todosUrl: "/todos",
 		});
 	}
 
@@ -175,9 +185,14 @@ export class TodosController implements Resource {
 		};
 
 		return ctx.render("show", {
+			action: `/todos/${todo.id}`,
+			editUrl: `/todos/${todo.id}/edit`,
+			homeUrl: "/",
 			pageTitle: `Todo | ${todo.id}`,
+			tagsUrl: "/tags",
 			todoId: todo.id,
 			todoStatusCode: todo.statusCode,
+			todosUrl: "/todos",
 			todoTitle: todo.title,
 		});
 	}
@@ -186,7 +201,10 @@ export class TodosController implements Resource {
 		return ctx.render("create", {
 			errors: todoErrors([]),
 			fields: todoFields({}),
+			homeUrl: "/",
 			pageTitle: "New Todo",
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		});
 	}
 
@@ -197,17 +215,23 @@ export class TodosController implements Resource {
 
 		if (title.length < 1) {
 			return ctx.render("create", {
-				errors: { dueAt: "", title: "Required" },
+				errors: { title: "Required" },
 				fields: todoFields({}),
+				homeUrl: "/",
 				pageTitle: "New Todo",
+				tagsUrl: "/tags",
+				todosUrl: "/todos",
 			});
 		}
 
 		if (dueAt.length > 0 && Number.isNaN(new Date(dueAt).getTime())) {
 			return ctx.render("create", {
-				errors: { dueAt: "Invalid date", title: "" },
+				errors: { dueAt: "Invalid date" },
 				fields: todoFields({}),
+				homeUrl: "/",
 				pageTitle: "New Todo",
+				tagsUrl: "/tags",
+				todosUrl: "/todos",
 			});
 		}
 		const result = await this.#db.transaction(async (tx) => {
@@ -274,9 +298,13 @@ export class TodosController implements Resource {
 				statusCode: todo.statusCode,
 				title: todo.title,
 			}),
+			homeUrl: "/",
 			pageTitle: `Edit Todo #${todo.id}`,
 			submitLabel: "Update",
+			tagsUrl: "/tags",
 			todoId: todo.id,
+			todosUrl: "/todos",
+			todoUrl: `/todos/${todo.id}`,
 		});
 	}
 
@@ -308,9 +336,13 @@ export class TodosController implements Resource {
 				action: `/todos/${todoId}`,
 				errors: todoErrors(parsed.error.issues),
 				fields: todoFields({}),
+				homeUrl: "/",
 				pageTitle: `Edit Todo #${todoId}`,
 				submitLabel: "Update",
+				tagsUrl: "/tags",
 				todoId,
+				todosUrl: "/todos",
+				todoUrl: `/todos/${todoId}`,
 			});
 		}
 

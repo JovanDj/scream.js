@@ -2,20 +2,6 @@ import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { schema } from "@scream.js/validator/schema.js";
 
-const projectErrors = (
-	issues: readonly { message: string; path: PropertyKey[] }[],
-) => {
-	const errors = { name: "" };
-
-	for (const issue of issues) {
-		if (issue.path.join(".") === "name") {
-			errors.name ||= issue.message;
-		}
-	}
-
-	return errors;
-};
-
 export class ProjectController {
 	readonly #db: Database;
 
@@ -44,14 +30,19 @@ export class ProjectController {
 				parsedRows.map((row) => ({
 					id: row.id,
 					name: row.name,
+					showUrl: `/projects/${row.id}`,
 					statusCode: row.status_code,
 				})),
 			)
 			.parse(rows);
 
 		return ctx.render("project-index", {
+			hasProjects: projects.length > 0 ? true : undefined,
+			homeUrl: "/",
 			pageTitle: "Projects",
 			projects,
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		});
 	}
 
@@ -92,8 +83,11 @@ export class ProjectController {
 			.parse(row);
 
 		return ctx.render("project-show", {
+			homeUrl: "/",
 			pageTitle: `Project | ${project.name}`,
 			project,
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		});
 	}
 
@@ -110,12 +104,22 @@ export class ProjectController {
 			})
 			.safeParse(ctx.body());
 		if (!parsed.success) {
+			const nameIssue = parsed.error.issues.find(
+				(issue) => issue.path.join(".") === "name",
+			);
+
 			return ctx.render("project-create", {
-				errors: projectErrors(parsed.error.issues),
+				errors: {
+					...(nameIssue ? { name: nameIssue.message } : {}),
+				},
 				fields: {
 					name: "",
 				},
+				homeUrl: "/",
 				pageTitle: "Create Project",
+				projectsUrl: "/projects",
+				tagsUrl: "/tags",
+				todosUrl: "/todos",
 			});
 		}
 
@@ -150,7 +154,11 @@ export class ProjectController {
 				fields: {
 					name: parsed.data.name,
 				},
+				homeUrl: "/",
 				pageTitle: "Create Project",
+				projectsUrl: "/projects",
+				tagsUrl: "/tags",
+				todosUrl: "/todos",
 			});
 		}
 	}

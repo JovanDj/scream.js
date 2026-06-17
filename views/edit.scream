@@ -20,19 +20,19 @@
             <div class="mb-3">
                 <label for="statusCode" class="form-label">Status</label>
                 <select id="statusCode" name="statusCode" class="form-select">
-					<option value="open"{% attr selected if fields.isOpen %}>Open</option>
-					<option value="completed"{% attr selected if fields.isCompleted %}>Completed</option>
+					<option value="open"{% if fields.openSelected %} selected{% endif %}>Open</option>
+					<option value="completed"{% if fields.completedSelected %} selected{% endif %}>Completed</option>
                 </select>
             </div>
 
             <div class="d-flex gap-2 flex-wrap mt-3">
                 <button type="submit" class="btn btn-primary">{{ submitLabel }}</button>
-                <a href="/todos/{{ todoId }}" class="btn btn-outline-secondary">Back</a>
+                <a href="{{ todoUrl }}" class="btn btn-outline-secondary">Back</a>
             </div>
         </form>
 
         <div class="d-flex gap-2 flex-wrap mt-3">
-            <form action="/todos/{{ todoId }}" method="POST" class="d-inline">
+            <form action="{{ action }}" method="POST" class="d-inline">
                 <input type="hidden" name="_method" value="DELETE">
                 <button type="submit" class="btn btn-danger">Delete</button>
             </form>

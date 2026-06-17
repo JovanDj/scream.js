@@ -40,8 +40,29 @@ Every stage receives structured input, returns structured output, and does not d
 * Rendering is split into compile-time work (`TemplateCompiler`) and render-time work (`TemplateRenderer`).
 * `ScreamTemplateEngine.create(fileLoader)` is the public composition path for wiring the default tokenizer, parser, evaluator, and generator.
 * `renderView()` resolves source through `FileLoader` and reports named-view syntax or render failures with the relevant view name.
-* Render contexts are strict: missing values, invalid direct object/array rendering, and invalid loop collections fail loudly.
+* Missing attributes render as empty strings for variable output.
+* Invalid direct object/array rendering fails loudly.
 * Template-engine coverage is intentionally black-box at the public `ScreamTemplateEngine` boundary.
+
+## Model-View Separation
+
+Templates follow Parr's strict model-view separation.
+
+* Templates may reference attributes, test attribute presence, and apply templates to attributes.
+* Templates must not perform business logic, arbitrary computation, JavaScript truthiness checks, method calls, filters, or collection length checks.
+* Templates must not hard-code root-relative URL values or route path fragments in `href` or `action` attributes.
+* Controllers and model code prepare all presentation state explicitly.
+* Controllers provide complete route URLs as attributes, including row-level URLs used inside template application.
+* A route-bearing `href` or `action` must use one complete attribute reference such as `href="{{ attr.showUrl }}"`; do not compose URLs from literals and variables.
+* To hide a conditional branch, omit the attribute or set it to `undefined` or `null`.
+* Do not pass `false`, `0`, or an empty string to mean absent. Those values are present.
+* Conditional attributes are written as conditional literal output, not as a special directive.
+
+Example:
+
+```scream
+<option value="open"{% if fields.openSelected %} selected{% endif %}>Open</option>
+```
 
 ## Loading and Inheritance
 
@@ -66,9 +87,14 @@ Every stage receives structured input, returns structured output, and does not d
 ## Expressions
 
 * Variable output is HTML-escaped by default.
+* Missing variable references render as an empty string.
+* Paths are dot-separated attribute names only.
 * No raw or unescaped output.
 * No arbitrary JavaScript.
 * No complex inline computation.
+* No bracket/index access.
+* No array length checks.
+* No expression literals.
 * No `Math`, `process`, globals, imports, or arbitrary object method calls.
 * `csrfToken` is a value, not a helper function.
 * Whitespace trimming syntax is excluded.
@@ -80,3 +106,75 @@ Allowed expression examples:
 {{ user.name }}
 {{ todo.title }}
 ```
+
+Disallowed expression examples:
+
+```scream
+{{ errors.title[0] }}
+{% if todos.length %}
+{% if count > 0 %}
+```
+
+## Conditionals
+
+`{% if attribute.path %}` is a presence check.
+
+* Present means the path resolves to a value that is not `null` and not `undefined`.
+* Missing paths select the `{% else %}` branch when one exists.
+* `false`, `0`, and `""` are present values.
+* Conditionals must not compare values or compute predicates inside the template.
+
+Example:
+
+```scream
+{% if errors.title %}
+<div class="invalid-feedback">{{ errors.title }}</div>
+{% else %}
+<input name="title">
+{% endif %}
+```
+
+## Template Application
+
+Use template application instead of explicit loops.
+
+Anonymous application:
+
+```scream
+{% apply todos %}
+<a href="{{ attr.showUrl }}">{{ attr.title }}</a>
+{% endapply %}
+```
+
+Named application:
+
+```scream
+{% template todoRow %}
+<a href="{{ attr.showUrl }}">{{ attr.title }}</a>
+{% endtemplate %}
+
+{% apply todos to todoRow %}
+```
+
+Application rules:
+
+* Applying an absent, `null`, or `undefined` attribute renders nothing.
+* Applying an array renders once per item.
+* Applying a single value renders once.
+* The applied value is available as `attr` inside the applied template.
+* Named templates render only when applied.
+* Duplicate template names and unknown named applications fail loudly.
+
+Unsupported old syntax:
+
+```scream
+{% for todo in todos %}
+{% attr selected if fields.openSelected %}
+<a href="/todos/{{ attr.id }}">
+<form action="/todos">
+<a href="{{ todosUrl }}/{{ attr.id }}">
+```
+
+## Tokenizer and Parser Boundary
+
+The tokenizer recognizes lexical shapes only. Directive names such as `if`, `apply`, `template`, and `endtemplate` are word tokens. The parser gives those words grammar meaning only in directive position.

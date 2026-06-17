@@ -9,8 +9,8 @@
                 <span class="badge text-bg-secondary ms-2" data-testid="todo-status">{{ todoStatusCode }}</span>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <a class="btn btn-outline-primary" href="/todos/{{ todoId }}/edit">Edit</a>
-                <form action="/todos/{{ todoId }}" method="POST" class="d-inline">
+                <a class="btn btn-outline-primary" href="{{ editUrl }}">Edit</a>
+                <form action="{{ action }}" method="POST" class="d-inline">
                     <input type="hidden" name="_method" value="DELETE">
                     <button type="submit" class="btn btn-danger">Delete</button>
                 </form>

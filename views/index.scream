@@ -5,10 +5,10 @@
         <section class="page-shell">
             <div class="page-head">
                 <h1 class="page-title">Todos</h1>
-                <a class="btn btn-primary btn-sm" href="/todos/create">Create Todo</a>
+                <a class="btn btn-primary btn-sm" href="{{ createTodoUrl }}">Create Todo</a>
             </div>
 
-            <form method="GET" action="/todos" class="mb-3">
+            <form method="GET" action="{{ todosUrl }}" class="mb-3">
                 <input type="hidden" name="status" value="{{ status }}">
                 <div class="row g-2">
                     <div class="col-8">
@@ -26,7 +26,7 @@
                 <a class="btn btn-sm btn-outline-secondary" href="{{ filters.completed }}">Completed</a>
             </div>
 
-            {% if todos.length %}
+            {% if hasTodos %}
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead>
@@ -37,15 +37,15 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for todo in todos %}
+                        {% apply todos %}
                         <tr data-testid="todo-row">
-                            <td><a data-testid="todo-title" href="/todos/{{ todo.id }}">{{ todo.title }}</a></td>
-                            <td><span class="badge text-bg-secondary">{{ todo.statusCode }}</span></td>
+                            <td><a data-testid="todo-title" href="{{ attr.showUrl }}">{{ attr.title }}</a></td>
+                            <td><span class="badge text-bg-secondary">{{ attr.statusCode }}</span></td>
                             <td class="d-flex gap-1">
-                                <a class="btn btn-sm btn-outline-primary" href="/todos/{{ todo.id }}/edit">Edit</a>
+                                <a class="btn btn-sm btn-outline-primary" href="{{ attr.editUrl }}">Edit</a>
                             </td>
                         </tr>
-                        {% endfor %}
+                        {% endapply %}
                     </tbody>
                 </table>
             </div>

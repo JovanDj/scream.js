@@ -5,11 +5,11 @@ import { schema } from "@scream.js/validator/schema.js";
 const tagErrors = (
 	issues: readonly { message: string; path: PropertyKey[] }[],
 ) => {
-	const errors = { name: "" };
+	const errors: { name?: string } = {};
 
 	for (const issue of issues) {
-		if (issue.path.join(".") === "name") {
-			errors.name ||= issue.message;
+		if (issue.path.join(".") === "name" && errors.name === undefined) {
+			errors.name = issue.message;
 		}
 	}
 
@@ -27,7 +27,7 @@ export class TagController {
 		return this.#renderIndex(ctx, tagErrors([]));
 	}
 
-	async #renderIndex(ctx: HttpContext, errors: { name: string }) {
+	async #renderIndex(ctx: HttpContext, errors: { name?: string }) {
 		const rows = await this.#db("tags")
 			.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
 			.orderBy("tags.name", "asc");
@@ -39,10 +39,19 @@ export class TagController {
 				}),
 			)
 			.parse(rows);
+		const tagViews = tags.map((tag) => ({
+			destroyUrl: `/tags/${tag.id}`,
+			id: tag.id,
+			name: tag.name,
+		}));
 		return ctx.render("tag-index", {
 			errors,
+			hasTags: tagViews.length > 0 ? true : undefined,
+			homeUrl: "/",
 			pageTitle: "Tags",
-			tags,
+			tags: tagViews,
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		});
 	}
 
