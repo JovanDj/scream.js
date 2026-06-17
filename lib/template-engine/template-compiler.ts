@@ -1,8 +1,22 @@
 import type { BlockNode, TemplateASTNode } from "./ast.js";
 import type { FileLoader } from "./file-loader.js";
 import type { Parser } from "./parser.js";
-import { TemplateSyntaxError } from "./template-syntax-error.js";
+import {
+	type SourceSpan,
+	TemplateSyntaxError,
+} from "./template-syntax-error.js";
 import type { Tokenizer } from "./tokenizer.js";
+
+type AttributeValuePart =
+	| {
+			readonly type: "literal";
+			readonly value: string;
+			readonly span: SourceSpan;
+	  }
+	| {
+			readonly type: "variable";
+			readonly span: SourceSpan;
+	  };
 
 export class TemplateCompiler {
 	readonly #fileLoader: FileLoader;
@@ -52,8 +66,217 @@ export class TemplateCompiler {
 	): readonly TemplateASTNode[] {
 		const tokens = this.#tokenizer.tokenize(template);
 		const ast = this.#parser.parse(tokens);
+		this.#assertNoHardCodedRouteUrls(ast);
 
 		return this.#resolveLayoutInheritance(ast, chain);
+	}
+
+	#assertNoHardCodedRouteUrls(ast: readonly TemplateASTNode[]) {
+		this.#assertNoHardCodedRouteUrlsInNodes(ast);
+	}
+
+	#assertNoHardCodedRouteUrlsInNodes(nodes: readonly TemplateASTNode[]) {
+		for (let index = 0; index < nodes.length; index++) {
+			const node = nodes[index];
+
+			if (node?.type === "text") {
+				this.#assertNoHardCodedRouteUrlsInText(nodes, index, node);
+			}
+
+			if (node) {
+				this.#assertNoHardCodedRouteUrlsInChildren(node);
+			}
+		}
+	}
+
+	#assertNoHardCodedRouteUrlsInText(
+		nodes: readonly TemplateASTNode[],
+		index: number,
+		node: Extract<TemplateASTNode, { type: "text" }>,
+	) {
+		for (const match of node.value.matchAll(
+			/\b(?:href|action)\s*=\s*(["'])/gi,
+		)) {
+			const quote = match[1];
+
+			if (quote === undefined || match.index === undefined) {
+				continue;
+			}
+
+			this.#assertRouteUrlAttributeValue({
+				attributeSpan: {
+					end: node.span.start + match.index + match[0].length,
+					start: node.span.start + match.index,
+				},
+				nodes,
+				quote,
+				textIndex: match.index + match[0].length,
+				textNode: node,
+				textNodeIndex: index,
+			});
+		}
+
+		for (const match of node.value.matchAll(
+			/\b(?:href|action)\s*=\s*(?!["'])/gi,
+		)) {
+			if (match.index === undefined) {
+				continue;
+			}
+
+			this.#assertRouteUrlAttributeValue({
+				attributeSpan: {
+					end: node.span.start + match.index + match[0].length,
+					start: node.span.start + match.index,
+				},
+				nodes,
+				textIndex: match.index + match[0].length,
+				textNode: node,
+				textNodeIndex: index,
+			});
+		}
+	}
+
+	#assertRouteUrlAttributeValue(input: {
+		readonly attributeSpan: SourceSpan;
+		readonly nodes: readonly TemplateASTNode[];
+		readonly quote?: string;
+		readonly textIndex: number;
+		readonly textNode: Extract<TemplateASTNode, { type: "text" }>;
+		readonly textNodeIndex: number;
+	}) {
+		const parts = this.#readRouteUrlAttributeValue(input);
+		const variableParts = parts.filter((part) => part.type === "variable");
+		const literalParts = parts.filter((part) => part.type === "literal");
+		const literalValue = literalParts.map((part) => part.value).join("");
+		const literalPart = literalParts.find((part) => part.value.length > 0);
+
+		if (variableParts.length > 0) {
+			if (variableParts.length === 1 && literalPart === undefined) {
+				return;
+			}
+
+			this.#throwHardCodedRouteUrl(
+				literalPart?.span ?? variableParts[1]?.span ?? input.attributeSpan,
+			);
+		}
+
+		if (literalValue.startsWith("/") && !literalValue.startsWith("//")) {
+			this.#throwHardCodedRouteUrl(literalPart?.span ?? input.attributeSpan);
+		}
+	}
+
+	#readRouteUrlAttributeValue(input: {
+		readonly attributeSpan: SourceSpan;
+		readonly nodes: readonly TemplateASTNode[];
+		readonly quote?: string;
+		readonly textIndex: number;
+		readonly textNode: Extract<TemplateASTNode, { type: "text" }>;
+		readonly textNodeIndex: number;
+	}): readonly AttributeValuePart[] {
+		const firstText = input.textNode.value.slice(input.textIndex);
+		const firstCloseIndex = this.#findAttributeValueEnd(firstText, input.quote);
+		const firstSpanStart = input.textNode.span.start + input.textIndex;
+
+		if (firstCloseIndex !== -1) {
+			return this.#literalAttributeParts(
+				firstText.slice(0, firstCloseIndex),
+				firstSpanStart,
+			);
+		}
+
+		const parts: AttributeValuePart[] = [
+			...this.#literalAttributeParts(firstText, firstSpanStart),
+		];
+
+		for (
+			let index = input.textNodeIndex + 1;
+			index < input.nodes.length;
+			index++
+		) {
+			const node = input.nodes[index];
+
+			if (node?.type === "variable") {
+				parts.push({ span: node.span, type: "variable" });
+				continue;
+			}
+
+			if (node?.type !== "text") {
+				this.#throwHardCodedRouteUrl(node?.span ?? input.attributeSpan);
+			}
+
+			const closeIndex = this.#findAttributeValueEnd(node.value, input.quote);
+
+			if (closeIndex === -1) {
+				parts.push(...this.#literalAttributeParts(node.value, node.span.start));
+				continue;
+			}
+
+			parts.push(
+				...this.#literalAttributeParts(
+					node.value.slice(0, closeIndex),
+					node.span.start,
+				),
+			);
+			return parts;
+		}
+
+		return parts;
+	}
+
+	#findAttributeValueEnd(value: string, quote?: string) {
+		if (quote !== undefined) {
+			return value.indexOf(quote);
+		}
+
+		const match = /[\s>]/.exec(value);
+
+		return match?.index ?? -1;
+	}
+
+	#literalAttributeParts(
+		value: string,
+		start: number,
+	): readonly AttributeValuePart[] {
+		if (value.length === 0) {
+			return [];
+		}
+
+		return [
+			{
+				span: { end: start + value.length, start },
+				type: "literal",
+				value,
+			},
+		];
+	}
+
+	#assertNoHardCodedRouteUrlsInChildren(node: TemplateASTNode) {
+		if (node.type === "block") {
+			this.#assertNoHardCodedRouteUrlsInNodes(node.children);
+			return;
+		}
+
+		if (node.type === "if") {
+			this.#assertNoHardCodedRouteUrlsInNodes(node.children);
+			this.#assertNoHardCodedRouteUrlsInNodes(node.alternate);
+			return;
+		}
+
+		if (node.type === "apply") {
+			this.#assertNoHardCodedRouteUrlsInNodes(node.children);
+			return;
+		}
+
+		if (node.type === "template") {
+			this.#assertNoHardCodedRouteUrlsInNodes(node.children);
+		}
+	}
+
+	#throwHardCodedRouteUrl(span: SourceSpan): never {
+		throw new TemplateSyntaxError(
+			"Hard-coded route URLs are not allowed in templates",
+			{ span },
+		);
 	}
 
 	#resolveLayoutInheritance(
@@ -152,7 +375,12 @@ export class TemplateCompiler {
 			return;
 		}
 
-		if (node.type === "for") {
+		if (node.type === "apply") {
+			this.#assertNoExtends(node.children);
+			return;
+		}
+
+		if (node.type === "template") {
 			this.#assertNoExtends(node.children);
 			return;
 		}
@@ -227,7 +455,12 @@ export class TemplateCompiler {
 			return;
 		}
 
-		if (node.type === "for") {
+		if (node.type === "apply") {
+			this.#walkNodes(node.children, visit);
+			return;
+		}
+
+		if (node.type === "template") {
 			this.#walkNodes(node.children, visit);
 			return;
 		}
@@ -328,7 +561,14 @@ export class TemplateCompiler {
 			};
 		}
 
-		if (node.type === "for") {
+		if (node.type === "apply") {
+			return {
+				...node,
+				children: this.#mergeBlocks(node.children, childBlocks),
+			};
+		}
+
+		if (node.type === "template") {
 			return {
 				...node,
 				children: this.#mergeBlocks(node.children, childBlocks),

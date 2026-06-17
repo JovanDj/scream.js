@@ -5,10 +5,10 @@ export type TemplateASTNode =
 	| TextNode
 	| VariableNode
 	| IfNode
-	| ForNode
+	| ApplyNode
+	| TemplateDefinitionNode
 	| ExtendsNode
-	| BlockNode
-	| AttrNode;
+	| BlockNode;
 
 export type TextNode = {
 	readonly type: "text";
@@ -30,10 +30,17 @@ export type IfNode = {
 	readonly span: SourceSpan;
 };
 
-export type ForNode = {
-	readonly type: "for";
-	readonly iterator: string;
-	readonly collection: ExpressionNode;
+export type ApplyNode = {
+	readonly type: "apply";
+	readonly source: ExpressionNode;
+	readonly children: readonly TemplateASTNode[];
+	readonly templateName?: string;
+	readonly span: SourceSpan;
+};
+
+export type TemplateDefinitionNode = {
+	readonly type: "template";
+	readonly name: string;
 	readonly children: readonly TemplateASTNode[];
 	readonly span: SourceSpan;
 };
@@ -48,13 +55,5 @@ export type BlockNode = {
 	readonly type: "block";
 	readonly name: string;
 	readonly children: readonly TemplateASTNode[];
-	readonly span: SourceSpan;
-};
-
-export type AttrNode = {
-	readonly type: "attr";
-	readonly name: string;
-	readonly condition: ExpressionNode;
-	readonly value?: ExpressionNode;
 	readonly span: SourceSpan;
 };
