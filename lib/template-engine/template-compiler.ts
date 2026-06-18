@@ -63,73 +63,242 @@ export class TemplateCompiler {
 	#compileSource(
 		template: string,
 		chain: readonly string[],
+		includeChain: readonly string[] = [],
 	): readonly TemplateASTNode[] {
 		const tokens = this.#tokenizer.tokenize(template);
 		const ast = this.#parser.parse(tokens);
-		this.#assertNoHardCodedRouteUrls(ast);
+		const resolvedIncludes = this.#resolveIncludes(ast, includeChain);
+		this.#assertValidUrlAttributes(resolvedIncludes);
 
-		return this.#resolveLayoutInheritance(ast, chain);
+		return this.#resolveLayoutInheritance(resolvedIncludes, chain);
 	}
 
-	#assertNoHardCodedRouteUrls(ast: readonly TemplateASTNode[]) {
-		this.#assertNoHardCodedRouteUrlsInNodes(ast);
+	#resolveIncludes(
+		nodes: readonly TemplateASTNode[],
+		includeChain: readonly string[],
+	): readonly TemplateASTNode[] {
+		return nodes.flatMap((node) =>
+			this.#resolveIncludeNode(node, includeChain),
+		);
 	}
 
-	#assertNoHardCodedRouteUrlsInNodes(nodes: readonly TemplateASTNode[]) {
+	#resolveIncludeNode(
+		node: TemplateASTNode,
+		includeChain: readonly string[],
+	): readonly TemplateASTNode[] {
+		if (node.type === "include") {
+			return this.#compileIncludedView(node.template, includeChain, node.span);
+		}
+
+		if (node.type === "block") {
+			return [
+				{
+					...node,
+					children: this.#resolveIncludes(node.children, includeChain),
+				},
+			];
+		}
+
+		if (node.type === "if") {
+			return [
+				{
+					...node,
+					alternate: this.#resolveIncludes(node.alternate, includeChain),
+					children: this.#resolveIncludes(node.children, includeChain),
+				},
+			];
+		}
+
+		if (node.type === "apply") {
+			return [
+				{
+					...node,
+					children: this.#resolveIncludes(node.children, includeChain),
+				},
+			];
+		}
+
+		if (node.type === "template") {
+			return [
+				{
+					...node,
+					children: this.#resolveIncludes(node.children, includeChain),
+				},
+			];
+		}
+
+		return [node];
+	}
+
+	#compileIncludedView(
+		viewName: string,
+		includeChain: readonly string[],
+		span: SourceSpan,
+	): readonly TemplateASTNode[] {
+		this.#assertValidIncludePath(viewName, span);
+		this.#assertNoIncludeCycle(viewName, includeChain, span);
+
+		try {
+			const template = this.#fileLoader.loadView(viewName);
+			const tokens = this.#tokenizer.tokenize(template);
+			const ast = this.#parser.parse(tokens);
+			const resolvedIncludes = this.#resolveIncludes(ast, [
+				...includeChain,
+				viewName,
+			]);
+			this.#assertIncludedTemplateShape(resolvedIncludes);
+
+			return resolvedIncludes;
+		} catch (error) {
+			if (error instanceof TemplateSyntaxError) {
+				if (error.viewName === undefined) {
+					throw new TemplateSyntaxError(error.syntaxMessage, {
+						...(!error.span ? {} : { span: error.span }),
+						viewName,
+					});
+				}
+
+				throw error;
+			}
+
+			if (error instanceof Error) {
+				throw new TemplateSyntaxError(`Template not found: ${viewName}`, {
+					span,
+				});
+			}
+
+			throw error;
+		}
+	}
+
+	#assertValidIncludePath(viewName: string, span: SourceSpan) {
+		const normalizedViewName = viewName.replaceAll("\\", "/");
+
+		if (!normalizedViewName.endsWith(".scream")) {
+			throw new TemplateSyntaxError(
+				"Included templates must use the .scream extension",
+				{ span },
+			);
+		}
+
+		if (
+			viewName.includes(":") ||
+			viewName.includes("\\") ||
+			normalizedViewName.startsWith("/") ||
+			normalizedViewName.startsWith("./") ||
+			normalizedViewName.startsWith("../") ||
+			normalizedViewName.includes("/./") ||
+			normalizedViewName.includes("/../")
+		) {
+			throw new TemplateSyntaxError(`Invalid include path: ${viewName}`, {
+				span,
+			});
+		}
+	}
+
+	#assertNoIncludeCycle(
+		viewName: string,
+		includeChain: readonly string[],
+		span: SourceSpan,
+	) {
+		if (includeChain.includes(viewName)) {
+			throw new TemplateSyntaxError(
+				`Cyclic include detected: ${[...includeChain, viewName].join(" -> ")}`,
+				{ span },
+			);
+		}
+	}
+
+	#assertIncludedTemplateShape(nodes: readonly TemplateASTNode[]) {
+		this.#walkNodes(nodes, (node) => {
+			if (node.type === "extends") {
+				throw new TemplateSyntaxError(
+					"Included templates cannot contain extends directives",
+					{ span: node.span },
+				);
+			}
+
+			if (node.type === "block") {
+				throw new TemplateSyntaxError(
+					"Included templates cannot contain block directives",
+					{ span: node.span },
+				);
+			}
+		});
+	}
+
+	#assertValidUrlAttributes(ast: readonly TemplateASTNode[]) {
+		this.#assertValidUrlAttributesInNodes(ast);
+	}
+
+	#assertValidUrlAttributesInNodes(nodes: readonly TemplateASTNode[]) {
 		for (let index = 0; index < nodes.length; index++) {
 			const node = nodes[index];
 
 			if (node?.type === "text") {
-				this.#assertNoHardCodedRouteUrlsInText(nodes, index, node);
+				this.#assertValidUrlAttributesInText(nodes, index, node);
 			}
 
 			if (node) {
-				this.#assertNoHardCodedRouteUrlsInChildren(node);
+				this.#assertValidUrlAttributesInChildren(node);
 			}
 		}
 	}
 
-	#assertNoHardCodedRouteUrlsInText(
+	#assertValidUrlAttributesInText(
 		nodes: readonly TemplateASTNode[],
 		index: number,
 		node: Extract<TemplateASTNode, { type: "text" }>,
 	) {
 		for (const match of node.value.matchAll(
-			/\b(?:href|action)\s*=\s*(["'])/gi,
+			/(^|[\s<])(?:action|cite|formaction|href|manifest|poster|src|srcset)\s*=\s*(["'])/gi,
 		)) {
-			const quote = match[1];
+			const prefix = match[1];
+			const quote = match[2];
 
-			if (quote === undefined || match.index === undefined) {
+			if (
+				prefix === undefined ||
+				quote === undefined ||
+				match.index === undefined
+			) {
 				continue;
 			}
 
+			const attributeStart = match.index + prefix.length;
+			const valueStart = match.index + match[0].length;
+
 			this.#assertRouteUrlAttributeValue({
 				attributeSpan: {
-					end: node.span.start + match.index + match[0].length,
-					start: node.span.start + match.index,
+					end: node.span.start + valueStart,
+					start: node.span.start + attributeStart,
 				},
 				nodes,
 				quote,
-				textIndex: match.index + match[0].length,
+				textIndex: valueStart,
 				textNode: node,
 				textNodeIndex: index,
 			});
 		}
 
 		for (const match of node.value.matchAll(
-			/\b(?:href|action)\s*=\s*(?!["'])/gi,
+			/(^|[\s<])(?:action|cite|formaction|href|manifest|poster|src|srcset)\s*=\s*(?!["'])/gi,
 		)) {
-			if (match.index === undefined) {
+			const prefix = match[1];
+
+			if (prefix === undefined || match.index === undefined) {
 				continue;
 			}
 
+			const attributeStart = match.index + prefix.length;
+			const valueStart = match.index + match[0].length;
+
 			this.#assertRouteUrlAttributeValue({
 				attributeSpan: {
-					end: node.span.start + match.index + match[0].length,
-					start: node.span.start + match.index,
+					end: node.span.start + valueStart,
+					start: node.span.start + attributeStart,
 				},
 				nodes,
-				textIndex: match.index + match[0].length,
+				textIndex: valueStart,
 				textNode: node,
 				textNodeIndex: index,
 			});
@@ -147,22 +316,15 @@ export class TemplateCompiler {
 		const parts = this.#readRouteUrlAttributeValue(input);
 		const variableParts = parts.filter((part) => part.type === "variable");
 		const literalParts = parts.filter((part) => part.type === "literal");
-		const literalValue = literalParts.map((part) => part.value).join("");
 		const literalPart = literalParts.find((part) => part.value.length > 0);
 
-		if (variableParts.length > 0) {
-			if (variableParts.length === 1 && literalPart === undefined) {
-				return;
-			}
-
-			this.#throwHardCodedRouteUrl(
-				literalPart?.span ?? variableParts[1]?.span ?? input.attributeSpan,
-			);
+		if (variableParts.length === 1 && literalPart === undefined) {
+			return;
 		}
 
-		if (literalValue.startsWith("/") && !literalValue.startsWith("//")) {
-			this.#throwHardCodedRouteUrl(literalPart?.span ?? input.attributeSpan);
-		}
+		this.#throwInvalidUrlAttribute(
+			literalPart?.span ?? variableParts[1]?.span ?? input.attributeSpan,
+		);
 	}
 
 	#readRouteUrlAttributeValue(input: {
@@ -201,7 +363,7 @@ export class TemplateCompiler {
 			}
 
 			if (node?.type !== "text") {
-				this.#throwHardCodedRouteUrl(node?.span ?? input.attributeSpan);
+				this.#throwInvalidUrlAttribute(node?.span ?? input.attributeSpan);
 			}
 
 			const closeIndex = this.#findAttributeValueEnd(node.value, input.quote);
@@ -250,31 +412,31 @@ export class TemplateCompiler {
 		];
 	}
 
-	#assertNoHardCodedRouteUrlsInChildren(node: TemplateASTNode) {
+	#assertValidUrlAttributesInChildren(node: TemplateASTNode) {
 		if (node.type === "block") {
-			this.#assertNoHardCodedRouteUrlsInNodes(node.children);
+			this.#assertValidUrlAttributesInNodes(node.children);
 			return;
 		}
 
 		if (node.type === "if") {
-			this.#assertNoHardCodedRouteUrlsInNodes(node.children);
-			this.#assertNoHardCodedRouteUrlsInNodes(node.alternate);
+			this.#assertValidUrlAttributesInNodes(node.children);
+			this.#assertValidUrlAttributesInNodes(node.alternate);
 			return;
 		}
 
 		if (node.type === "apply") {
-			this.#assertNoHardCodedRouteUrlsInNodes(node.children);
+			this.#assertValidUrlAttributesInNodes(node.children);
 			return;
 		}
 
 		if (node.type === "template") {
-			this.#assertNoHardCodedRouteUrlsInNodes(node.children);
+			this.#assertValidUrlAttributesInNodes(node.children);
 		}
 	}
 
-	#throwHardCodedRouteUrl(span: SourceSpan): never {
+	#throwInvalidUrlAttribute(span: SourceSpan): never {
 		throw new TemplateSyntaxError(
-			"Hard-coded route URLs are not allowed in templates",
+			"URL attributes must use one complete attribute reference",
 			{ span },
 		);
 	}
@@ -384,6 +546,10 @@ export class TemplateCompiler {
 			this.#assertNoExtends(node.children);
 			return;
 		}
+
+		if (node.type === "include") {
+			return;
+		}
 	}
 
 	#assertNoExtends(nodes: readonly TemplateASTNode[]) {
@@ -462,6 +628,10 @@ export class TemplateCompiler {
 
 		if (node.type === "template") {
 			this.#walkNodes(node.children, visit);
+			return;
+		}
+
+		if (node.type === "include") {
 			return;
 		}
 	}
@@ -573,6 +743,10 @@ export class TemplateCompiler {
 				...node,
 				children: this.#mergeBlocks(node.children, childBlocks),
 			};
+		}
+
+		if (node.type === "include") {
+			return node;
 		}
 
 		return node;

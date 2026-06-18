@@ -110,6 +110,10 @@ export class Parser {
 			return this.#parseTemplateDefinition(tokens, index);
 		}
 
+		if (directive.value === "include") {
+			return this.#parseInclude(tokens, index);
+		}
+
 		if (directive.value === "for" || directive.value === "attr") {
 			throw new TemplateSyntaxError(
 				`Unsupported directive: ${directive.value}`,
@@ -334,6 +338,22 @@ export class Parser {
 				name: name.value,
 				span: { end: close.span.end, start: open.span.start },
 				type: "template",
+			},
+		};
+	}
+
+	#parseInclude(tokens: readonly Token[], index: number): NodeResult {
+		const open = this.#expectToken(tokens, index, "openDirective");
+		this.#expectWord(tokens, index + 1, "include");
+		const template = this.#expectToken(tokens, index + 2, "string");
+		const close = this.#expectToken(tokens, index + 3, "closeDirective");
+
+		return {
+			nextIndex: index + 4,
+			node: {
+				span: { end: close.span.end, start: open.span.start },
+				template: template.value,
+				type: "include",
 			},
 		};
 	}

@@ -21,6 +21,10 @@ export class ExpressApp implements Application {
 			try {
 				const viewName = path.relative(viewsPath, filePath);
 				const rendered = templateEngine.renderView(viewName, {
+					assetUrls: {
+						mainScript: "http://127.0.0.1:5173/main.ts",
+						viteClient: "http://127.0.0.1:5173/@vite/client",
+					},
 					lang: "en",
 					pageTitle: "ScreamJS",
 					...options,
