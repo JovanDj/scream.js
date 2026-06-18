@@ -323,26 +323,47 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 	});
 
 	describe("model-view separation", () => {
-		it("rejects hard-coded route URLs in links", (t: TestContext) => {
-			t.plan(1);
+		it("rejects literal URL values in URL-bearing attributes", (t: TestContext) => {
+			const urlAttributes = [
+				"action",
+				"cite",
+				"formaction",
+				"href",
+				"manifest",
+				"poster",
+				"src",
+				"srcset",
+			];
+			t.plan(urlAttributes.length + 4);
 			const { templateEngine } = setupTemplateEngine();
 
-			const act = () => templateEngine.render('<a href="/todos">Todos</a>', {});
-
-			t.assert.throws(act, /Hard-coded route URLs are not allowed/);
-		});
-
-		it("rejects hard-coded route URLs in forms", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-
-			const act = () =>
-				templateEngine.render(
-					'<form action="/todos" method="POST"></form>',
-					{},
+			for (const attribute of urlAttributes) {
+				t.assert.throws(
+					() => templateEngine.render(`<x ${attribute}="/todos"></x>`, {}),
+					/URL attributes must use one complete attribute reference/,
 				);
+			}
 
-			t.assert.throws(act, /Hard-coded route URLs are not allowed/);
+			t.assert.throws(
+				() => templateEngine.render('<a href="todos">Todos</a>', {}),
+				/URL attributes must use one complete attribute reference/,
+			);
+			t.assert.throws(
+				() =>
+					templateEngine.render(
+						'<a href="https://example.com">External</a>',
+						{},
+					),
+				/URL attributes must use one complete attribute reference/,
+			);
+			t.assert.throws(
+				() => templateEngine.render('<a href="//example.com">External</a>', {}),
+				/URL attributes must use one complete attribute reference/,
+			);
+			t.assert.throws(
+				() => templateEngine.render('<a href="#content">Skip</a>', {}),
+				/URL attributes must use one complete attribute reference/,
+			);
 		});
 
 		it("rejects route URLs composed from attributes and literal path fragments", (t: TestContext) => {
@@ -354,7 +375,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 					templateEngine.render('<a href="{{ base }}/todos">Todos</a>', {
 						base: "",
 					}),
-				/Hard-coded route URLs are not allowed/,
+				/URL attributes must use one complete attribute reference/,
 			);
 			t.assert.throws(
 				() =>
@@ -365,41 +386,198 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 							todosUrl: "/todos",
 						},
 					),
-				/Hard-coded route URLs are not allowed/,
+				/URL attributes must use one complete attribute reference/,
 			);
 			t.assert.throws(
 				() =>
 					templateEngine.render("<a href={{ base }}/todos>Todos</a>", {
 						base: "",
 					}),
-				/Hard-coded route URLs are not allowed/,
+				/URL attributes must use one complete attribute reference/,
 			);
 		});
 
-		it("allows route URLs passed as attributes", (t: TestContext) => {
+		it("allows URL attributes only when the value is one complete attribute reference", (t: TestContext) => {
+			const urlAttributes = [
+				"action",
+				"cite",
+				"formaction",
+				"href",
+				"manifest",
+				"poster",
+				"src",
+				"srcset",
+			];
+			t.plan(urlAttributes.length);
+			const { templateEngine } = setupTemplateEngine();
+
+			for (const attribute of urlAttributes) {
+				t.assert.deepStrictEqual<string>(
+					templateEngine.render(`<x ${attribute}="{{ urls.todos }}"></x>`, {
+						urls: { todos: "/todos" },
+					}),
+					`<x ${attribute}="/todos"></x>`,
+				);
+			}
+		});
+
+		it("does not treat custom attributes ending in URL attribute names as URL-bearing", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
 
 			const result = templateEngine.render(
-				'<a href="{{ urls.todos }}">Todos</a>',
-				{ urls: { todos: "/todos" } },
-			);
-
-			t.assert.deepStrictEqual<string>(result, '<a href="/todos">Todos</a>');
-		});
-
-		it("allows protocol-relative external links", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-
-			const result = templateEngine.render(
-				'<a href="//example.com">External</a>',
+				'<div data-href="/todos" aria-src="/assets/app.js"></div>',
 				{},
 			);
 
 			t.assert.deepStrictEqual<string>(
 				result,
-				'<a href="//example.com">External</a>',
+				'<div data-href="/todos" aria-src="/assets/app.js"></div>',
+			);
+		});
+	});
+
+	describe("includes", () => {
+		it("renders static includes", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("partial.scream", "<p>{{ title }}</p>");
+
+			const result = templateEngine.render(
+				'Before{% include "partial.scream" %}After',
+				{ title: "Hello" },
+			);
+
+			t.assert.deepStrictEqual<string>(result, "Before<p>Hello</p>After");
+		});
+
+		it("renders nested includes", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"outer.scream",
+				'<section>{% include "inner.scream" %}</section>',
+			);
+			fileLoader.setTemplate("inner.scream", "<p>{{ title }}</p>");
+
+			const result = templateEngine.render('{% include "outer.scream" %}', {
+				title: "Nested",
+			});
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				"<section><p>Nested</p></section>",
+			);
+		});
+
+		it("renders includes inside merged layout blocks", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"layout.scream",
+				"<main>{% block content %}Default{% endblock content %}</main>",
+			);
+			fileLoader.setTemplate("partial.scream", "<p>{{ title }}</p>");
+			fileLoader.setTemplate(
+				"page.scream",
+				'{% extends "layout.scream" %}{% block content %}{% include "partial.scream" %}{% endblock content %}',
+			);
+
+			const result = templateEngine.renderView("page.scream", {
+				title: "Block",
+			});
+
+			t.assert.deepStrictEqual<string>(result, "<main><p>Block</p></main>");
+		});
+
+		it("renders includes containing apply and named template nodes", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"rows.scream",
+				"{% template row %}<li>{{ attr.title }}</li>{% endtemplate %}<ul>{% apply todos to row %}</ul>",
+			);
+
+			const result = templateEngine.render('{% include "rows.scream" %}', {
+				todos: [{ title: "Ship" }],
+			});
+
+			t.assert.deepStrictEqual<string>(result, "<ul><li>Ship</li></ul>");
+		});
+
+		it("rejects invalid static include paths", (t: TestContext) => {
+			t.plan(5);
+			const { templateEngine } = setupTemplateEngine();
+
+			for (const templateName of [
+				"/partial.scream",
+				"./partial.scream",
+				"../partial.scream",
+				"partials/../partial.scream",
+				"partial.html",
+			]) {
+				t.assert.throws(
+					() => templateEngine.render(`{% include "${templateName}" %}`, {}),
+					/Invalid include path|Included templates must use the .scream extension/,
+				);
+			}
+		});
+
+		it("rejects dynamic include names", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () =>
+				templateEngine.render("{% include partialName %}", {
+					partialName: "partial.scream",
+				});
+
+			t.assert.throws(act, /Expected string token/);
+		});
+
+		it("rejects missing includes", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () =>
+				templateEngine.render('{% include "missing.scream" %}', {});
+
+			t.assert.throws(act, /Template not found/);
+		});
+
+		it("rejects include cycles", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("a.scream", '{% include "b.scream" %}');
+			fileLoader.setTemplate("b.scream", '{% include "a.scream" %}');
+
+			const act = () => templateEngine.render('{% include "a.scream" %}', {});
+
+			t.assert.throws(
+				act,
+				/Cyclic include detected: a\.scream -> b\.scream -> a\.scream/,
+			);
+		});
+
+		it("rejects extends and block directives inside included templates", (t: TestContext) => {
+			t.plan(2);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"with-extends.scream",
+				'{% extends "layout.scream" %}',
+			);
+			fileLoader.setTemplate(
+				"with-block.scream",
+				"{% block content %}X{% endblock content %}",
+			);
+
+			t.assert.throws(
+				() => templateEngine.render('{% include "with-extends.scream" %}', {}),
+				/Included templates cannot contain extends directives/,
+			);
+			t.assert.throws(
+				() => templateEngine.render('{% include "with-block.scream" %}', {}),
+				/Included templates cannot contain block directives/,
 			);
 		});
 	});

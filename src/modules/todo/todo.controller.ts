@@ -29,9 +29,9 @@ const todoFields = (input: {
 	const statusCode = input.statusCode ?? "open";
 
 	return {
-		completedSelected: statusCode === "completed" ? true : undefined,
 		dueAt: input.dueAt ?? "",
-		openSelected: statusCode === "open" ? true : undefined,
+		isCompleted: statusCode === "completed" ? true : undefined,
+		isOpen: statusCode === "open" ? true : undefined,
 		statusCode,
 		title: input.title ?? "",
 	};

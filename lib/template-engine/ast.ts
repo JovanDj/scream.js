@@ -7,6 +7,7 @@ export type TemplateASTNode =
 	| IfNode
 	| ApplyNode
 	| TemplateDefinitionNode
+	| IncludeNode
 	| ExtendsNode
 	| BlockNode;
 
@@ -42,6 +43,12 @@ export type TemplateDefinitionNode = {
 	readonly type: "template";
 	readonly name: string;
 	readonly children: readonly TemplateASTNode[];
+	readonly span: SourceSpan;
+};
+
+export type IncludeNode = {
+	readonly type: "include";
+	readonly template: string;
 	readonly span: SourceSpan;
 };
 

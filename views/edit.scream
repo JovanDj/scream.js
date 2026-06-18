@@ -20,8 +20,8 @@
             <div class="mb-3">
                 <label for="statusCode" class="form-label">Status</label>
                 <select id="statusCode" name="statusCode" class="form-select">
-					<option value="open"{% if fields.openSelected %} selected{% endif %}>Open</option>
-					<option value="completed"{% if fields.completedSelected %} selected{% endif %}>Completed</option>
+					<option value="open"{% if fields.isOpen %} selected{% endif %}>Open</option>
+					<option value="completed"{% if fields.isCompleted %} selected{% endif %}>Completed</option>
                 </select>
             </div>
 
