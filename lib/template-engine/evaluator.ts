@@ -41,8 +41,9 @@ export class Evaluator {
 
 			return [
 				{
-					type: "text",
-					value: this.#evaluateVariableValue(raw, node.expression),
+					expression: this.#formatExpression(node.expression),
+					type: "value",
+					value: raw === MISSING ? undefined : raw,
 				},
 			];
 		}
@@ -97,7 +98,6 @@ export class Evaluator {
 			this.#evaluateNodes(
 				children,
 				{
-					...context,
 					attr: item,
 				},
 				templates,
@@ -191,18 +191,6 @@ export class Evaluator {
 		return !!x && typeof x === "object" && !Array.isArray(x);
 	}
 
-	#isRenderableScalar(value: unknown) {
-		return (
-			value !== null &&
-			value !== undefined &&
-			value !== MISSING &&
-			!Array.isArray(value) &&
-			typeof value !== "object" &&
-			typeof value !== "function" &&
-			typeof value !== "symbol"
-		);
-	}
-
 	#isPresent(expression: ExpressionNode, context: RenderContext) {
 		const value = this.#resolvePath(context, expression.segments);
 
@@ -235,39 +223,5 @@ export class Evaluator {
 
 			return MISSING;
 		}, root);
-	}
-
-	#evaluateVariableValue(value: unknown, expression: ExpressionNode) {
-		if (value === MISSING || value === null || value === undefined) {
-			return "";
-		}
-
-		if (!this.#isRenderableScalar(value)) {
-			throw new RenderError("Cannot render value", {
-				expression: this.#formatExpression(expression),
-			});
-		}
-
-		return this.#escape(String(value));
-	}
-
-	#escape(value: string) {
-		const ESCAPE_MAP: Record<string, string> = {
-			"'": "&#39;",
-			'"': "&quot;",
-			"&": "&amp;",
-			"`": "&#96;",
-			"<": "&lt;",
-			">": "&gt;",
-		};
-
-		const replacedValue = value.replace(
-			/&(?!amp;|lt;|gt;|quot;|#39;)/g,
-			"&amp;",
-		);
-
-		return replacedValue.replace(/[<>"'`]/g, (ch) => {
-			return ESCAPE_MAP[ch] ?? ch;
-		});
 	}
 }

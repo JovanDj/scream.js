@@ -1,20 +1,20 @@
 import type { TemplateASTNode } from "./ast.js";
 import type { RenderContext } from "./context.js";
 import type { Evaluator } from "./evaluator.js";
-import type { Generator } from "./generator.js";
+import type { HtmlRenderer } from "./html-renderer.js";
 
 export class TemplateRenderer {
 	readonly #evaluator: Evaluator;
-	readonly #generator: Generator;
+	readonly #htmlRenderer: HtmlRenderer;
 
-	constructor(evaluator: Evaluator, generator: Generator) {
+	constructor(evaluator: Evaluator, htmlRenderer: HtmlRenderer) {
 		this.#evaluator = evaluator;
-		this.#generator = generator;
+		this.#htmlRenderer = htmlRenderer;
 	}
 
 	render(ast: readonly TemplateASTNode[], context: RenderContext) {
 		const renderNodes = this.#evaluator.evaluate(ast, context);
 
-		return this.#generator.generate(renderNodes);
+		return this.#htmlRenderer.render(renderNodes);
 	}
 }

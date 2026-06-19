@@ -36,6 +36,7 @@ export type ApplyNode = {
 	readonly source: ExpressionNode;
 	readonly children: readonly TemplateASTNode[];
 	readonly templateName?: string;
+	readonly templatePath?: string;
 	readonly span: SourceSpan;
 };
 

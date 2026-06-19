@@ -18,6 +18,8 @@ type AttributeValuePart =
 			readonly span: SourceSpan;
 	  };
 
+type TemplateReferenceKind = "apply" | "include";
+
 export class TemplateCompiler {
 	readonly #fileLoader: FileLoader;
 	readonly #tokenizer: Tokenizer;
@@ -44,7 +46,7 @@ export class TemplateCompiler {
 		try {
 			const template = this.#fileLoader.loadView(viewName);
 
-			return this.#compileSource(template, chain);
+			return this.#compileSource(template, chain, [viewName]);
 		} catch (error) {
 			if (
 				error instanceof TemplateSyntaxError &&
@@ -63,38 +65,49 @@ export class TemplateCompiler {
 	#compileSource(
 		template: string,
 		chain: readonly string[],
-		includeChain: readonly string[] = [],
+		referenceChain: readonly string[] = [],
 	): readonly TemplateASTNode[] {
 		const tokens = this.#tokenizer.tokenize(template);
 		const ast = this.#parser.parse(tokens);
-		const resolvedIncludes = this.#resolveIncludes(ast, includeChain);
-		this.#assertValidUrlAttributes(resolvedIncludes);
+		const resolvedReferences = this.#resolveTemplateReferences(
+			ast,
+			referenceChain,
+		);
+		this.#assertValidUrlAttributes(resolvedReferences);
 
-		return this.#resolveLayoutInheritance(resolvedIncludes, chain);
+		return this.#resolveLayoutInheritance(resolvedReferences, chain);
 	}
 
-	#resolveIncludes(
+	#resolveTemplateReferences(
 		nodes: readonly TemplateASTNode[],
-		includeChain: readonly string[],
+		referenceChain: readonly string[],
 	): readonly TemplateASTNode[] {
 		return nodes.flatMap((node) =>
-			this.#resolveIncludeNode(node, includeChain),
+			this.#resolveTemplateReferenceNode(node, referenceChain),
 		);
 	}
 
-	#resolveIncludeNode(
+	#resolveTemplateReferenceNode(
 		node: TemplateASTNode,
-		includeChain: readonly string[],
+		referenceChain: readonly string[],
 	): readonly TemplateASTNode[] {
 		if (node.type === "include") {
-			return this.#compileIncludedView(node.template, includeChain, node.span);
+			return this.#compileReferencedView(
+				node.template,
+				referenceChain,
+				node.span,
+				"include",
+			);
 		}
 
 		if (node.type === "block") {
 			return [
 				{
 					...node,
-					children: this.#resolveIncludes(node.children, includeChain),
+					children: this.#resolveTemplateReferences(
+						node.children,
+						referenceChain,
+					),
 				},
 			];
 		}
@@ -103,17 +116,40 @@ export class TemplateCompiler {
 			return [
 				{
 					...node,
-					alternate: this.#resolveIncludes(node.alternate, includeChain),
-					children: this.#resolveIncludes(node.children, includeChain),
+					alternate: this.#resolveTemplateReferences(
+						node.alternate,
+						referenceChain,
+					),
+					children: this.#resolveTemplateReferences(
+						node.children,
+						referenceChain,
+					),
 				},
 			];
 		}
 
 		if (node.type === "apply") {
+			if (node.templatePath) {
+				return [
+					{
+						...node,
+						children: this.#compileReferencedView(
+							node.templatePath,
+							referenceChain,
+							node.span,
+							"apply",
+						),
+					},
+				];
+			}
+
 			return [
 				{
 					...node,
-					children: this.#resolveIncludes(node.children, includeChain),
+					children: this.#resolveTemplateReferences(
+						node.children,
+						referenceChain,
+					),
 				},
 			];
 		}
@@ -122,7 +158,10 @@ export class TemplateCompiler {
 			return [
 				{
 					...node,
-					children: this.#resolveIncludes(node.children, includeChain),
+					children: this.#resolveTemplateReferences(
+						node.children,
+						referenceChain,
+					),
 				},
 			];
 		}
@@ -130,25 +169,26 @@ export class TemplateCompiler {
 		return [node];
 	}
 
-	#compileIncludedView(
+	#compileReferencedView(
 		viewName: string,
-		includeChain: readonly string[],
+		referenceChain: readonly string[],
 		span: SourceSpan,
+		kind: TemplateReferenceKind,
 	): readonly TemplateASTNode[] {
-		this.#assertValidIncludePath(viewName, span);
-		this.#assertNoIncludeCycle(viewName, includeChain, span);
+		this.#assertValidTemplateReferencePath(viewName, span, kind);
+		this.#assertNoTemplateReferenceCycle(viewName, referenceChain, span);
 
 		try {
 			const template = this.#fileLoader.loadView(viewName);
 			const tokens = this.#tokenizer.tokenize(template);
 			const ast = this.#parser.parse(tokens);
-			const resolvedIncludes = this.#resolveIncludes(ast, [
-				...includeChain,
+			const resolvedReferences = this.#resolveTemplateReferences(ast, [
+				...referenceChain,
 				viewName,
 			]);
-			this.#assertIncludedTemplateShape(resolvedIncludes);
+			this.#assertReferencedTemplateShape(resolvedReferences, kind);
 
-			return resolvedIncludes;
+			return resolvedReferences;
 		} catch (error) {
 			if (error instanceof TemplateSyntaxError) {
 				if (error.viewName === undefined) {
@@ -171,12 +211,18 @@ export class TemplateCompiler {
 		}
 	}
 
-	#assertValidIncludePath(viewName: string, span: SourceSpan) {
+	#assertValidTemplateReferencePath(
+		viewName: string,
+		span: SourceSpan,
+		kind: TemplateReferenceKind,
+	) {
 		const normalizedViewName = viewName.replaceAll("\\", "/");
 
 		if (!normalizedViewName.endsWith(".scream")) {
 			throw new TemplateSyntaxError(
-				"Included templates must use the .scream extension",
+				kind === "include"
+					? "Included templates must use the .scream extension"
+					: "Applied templates must use the .scream extension",
 				{ span },
 			);
 		}
@@ -190,37 +236,50 @@ export class TemplateCompiler {
 			normalizedViewName.includes("/./") ||
 			normalizedViewName.includes("/../")
 		) {
-			throw new TemplateSyntaxError(`Invalid include path: ${viewName}`, {
-				span,
-			});
-		}
-	}
-
-	#assertNoIncludeCycle(
-		viewName: string,
-		includeChain: readonly string[],
-		span: SourceSpan,
-	) {
-		if (includeChain.includes(viewName)) {
 			throw new TemplateSyntaxError(
-				`Cyclic include detected: ${[...includeChain, viewName].join(" -> ")}`,
+				kind === "include"
+					? `Invalid include path: ${viewName}`
+					: `Invalid template path: ${viewName}`,
 				{ span },
 			);
 		}
 	}
 
-	#assertIncludedTemplateShape(nodes: readonly TemplateASTNode[]) {
+	#assertNoTemplateReferenceCycle(
+		viewName: string,
+		referenceChain: readonly string[],
+		span: SourceSpan,
+	) {
+		if (referenceChain.includes(viewName)) {
+			throw new TemplateSyntaxError(
+				`Cyclic template reference detected: ${[
+					...referenceChain,
+					viewName,
+				].join(" -> ")}`,
+				{ span },
+			);
+		}
+	}
+
+	#assertReferencedTemplateShape(
+		nodes: readonly TemplateASTNode[],
+		kind: TemplateReferenceKind,
+	) {
 		this.#walkNodes(nodes, (node) => {
 			if (node.type === "extends") {
 				throw new TemplateSyntaxError(
-					"Included templates cannot contain extends directives",
+					kind === "include"
+						? "Included templates cannot contain extends directives"
+						: "Applied templates cannot contain extends directives",
 					{ span: node.span },
 				);
 			}
 
 			if (node.type === "block") {
 				throw new TemplateSyntaxError(
-					"Included templates cannot contain block directives",
+					kind === "include"
+						? "Included templates cannot contain block directives"
+						: "Applied templates cannot contain block directives",
 					{ span: node.span },
 				);
 			}

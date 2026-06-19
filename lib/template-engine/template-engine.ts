@@ -1,7 +1,7 @@
 import type { RenderContext } from "./context.js";
 import { Evaluator } from "./evaluator.js";
 import type { FileLoader } from "./file-loader.js";
-import { Generator } from "./generator.js";
+import { HtmlRenderer } from "./html-renderer.js";
 import { Parser } from "./parser.js";
 import { RenderError } from "./render-error.js";
 import { SystemFileLoader } from "./system-file-loader.js";
@@ -23,7 +23,7 @@ export class ScreamTemplateEngine {
 	static create(fileLoader: FileLoader = new SystemFileLoader()) {
 		return new ScreamTemplateEngine(
 			new TemplateCompiler(fileLoader, new Tokenizer(), new Parser()),
-			new TemplateRenderer(new Evaluator(), new Generator()),
+			new TemplateRenderer(new Evaluator(), new HtmlRenderer()),
 		);
 	}
 

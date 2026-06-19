@@ -1,8 +1,14 @@
-export type RenderNode = RenderTextNode | RenderBlockNode;
+export type RenderNode = RenderTextNode | RenderValueNode | RenderBlockNode;
 
 export type RenderTextNode = {
 	readonly type: "text";
 	readonly value: string;
+};
+
+export type RenderValueNode = {
+	readonly type: "value";
+	readonly value: unknown;
+	readonly expression: string;
 };
 
 export type RenderBlockNode = {
