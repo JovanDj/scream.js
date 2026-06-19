@@ -275,12 +275,27 @@ export class Parser {
 		const maybeTo = tokens[source.nextIndex];
 
 		if (maybeTo?.type === "word" && maybeTo.value === "to") {
-			const templateName = this.#expectWord(tokens, source.nextIndex + 1);
+			const templateReference = tokens[source.nextIndex + 1];
 			const close = this.#expectToken(
 				tokens,
 				source.nextIndex + 2,
 				"closeDirective",
 			);
+
+			if (templateReference?.type === "string") {
+				return {
+					nextIndex: source.nextIndex + 3,
+					node: {
+						children: [],
+						source: source.expression,
+						span: { end: close.span.end, start: open.span.start },
+						templatePath: templateReference.value,
+						type: "apply",
+					},
+				};
+			}
+
+			const templateName = this.#expectWord(tokens, source.nextIndex + 1);
 
 			return {
 				nextIndex: source.nextIndex + 3,

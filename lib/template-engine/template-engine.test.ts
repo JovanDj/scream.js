@@ -51,6 +51,35 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.throws(act, /Malformed path expression|Unexpected character/);
 		});
 
+		it("rejects method calls and operators", (t: TestContext) => {
+			t.plan(4);
+			const { templateEngine } = setupTemplateEngine();
+
+			t.assert.throws(
+				() => templateEngine.render("{{ user.name() }}", { user: {} }),
+				/Malformed path expression|Unexpected character/,
+			);
+			t.assert.throws(
+				() =>
+					templateEngine.render("{{ price * quantity }}", {
+						price: 2,
+						quantity: 3,
+					}),
+				/Malformed path expression|Unexpected character/,
+			);
+			t.assert.throws(
+				() => templateEngine.render("{% if count > 0 %}A{% endif %}", {}),
+				/Malformed path expression|Unexpected character/,
+			);
+			t.assert.throws(
+				() =>
+					templateEngine.render('{% if role == "admin" %}A{% endif %}', {
+						role: "admin",
+					}),
+				/Malformed path expression|Unexpected character/,
+			);
+		});
+
 		it("rejects literal expressions", (t: TestContext) => {
 			t.plan(6);
 			const { templateEngine } = setupTemplateEngine();
@@ -82,13 +111,26 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.throws(act, /Cannot access array value/);
 		});
 
-		it("rejects direct object rendering", (t: TestContext) => {
-			t.plan(1);
+		it("rejects direct non-scalar rendering", (t: TestContext) => {
+			t.plan(4);
 			const { templateEngine } = setupTemplateEngine();
 
-			const act = () => templateEngine.render("{{ user }}", { user: {} });
-
-			t.assert.throws(act, /Cannot render value/);
+			t.assert.throws(
+				() => templateEngine.render("{{ value }}", { value: {} }),
+				/Cannot render value/,
+			);
+			t.assert.throws(
+				() => templateEngine.render("{{ value }}", { value: [] }),
+				/Cannot render value/,
+			);
+			t.assert.throws(
+				() => templateEngine.render("{{ value }}", { value: () => "nope" }),
+				/Cannot render value/,
+			);
+			t.assert.throws(
+				() => templateEngine.render("{{ value }}", { value: Symbol("nope") }),
+				/Cannot render value/,
+			);
 		});
 	});
 
@@ -225,6 +267,76 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			);
 		});
 
+		it("does not inherit the outer context inside applied templates", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				"{% apply users %}<p>{{ pageTitle }}:{{ attr.name }}</p>{% endapply %}",
+				{
+					pageTitle: "Users",
+					users: [{ name: "Ada" }],
+				},
+			);
+
+			t.assert.deepStrictEqual<string>(result, "<p>:Ada</p>");
+		});
+
+		it("does not inherit the outer context inside file-backed applied templates", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"user-row.scream",
+				"<p>{{ pageTitle }}:{{ attr.name }}</p>",
+			);
+
+			const result = templateEngine.render(
+				'{% apply users to "user-row.scream" %}',
+				{
+					pageTitle: "Users",
+					users: [{ name: "Ada" }],
+				},
+			);
+
+			t.assert.deepStrictEqual<string>(result, "<p>:Ada</p>");
+		});
+
+		it("applies a file-backed template to every item", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("user-row.scream", "<li>{{ attr.name }}</li>");
+
+			const result = templateEngine.render(
+				'<ul>{% apply users to "user-row.scream" %}</ul>',
+				{ users: [{ name: "Ada" }, { name: "Grace" }] },
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				"<ul><li>Ada</li><li>Grace</li></ul>",
+			);
+		});
+
+		it("renders file-backed applied templates containing includes and applications", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"user-row.scream",
+				'<li>{% include "name.scream" %}<ul>{% apply attr.tags %}<li>{{ attr }}</li>{% endapply %}</ul></li>',
+			);
+			fileLoader.setTemplate("name.scream", "{{ attr.name }}");
+
+			const result = templateEngine.render(
+				'<ul>{% apply users to "user-row.scream" %}</ul>',
+				{ users: [{ name: "Ada", tags: ["admin"] }] },
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				"<ul><li>Ada<ul><li>admin</li></ul></li></ul>",
+			);
+		});
+
 		it("allows named templates to apply themselves recursively", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
@@ -291,6 +403,90 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			t.assert.throws(act, /Duplicate template: row/);
 		});
+
+		it("rejects invalid file-backed applied template paths", (t: TestContext) => {
+			t.plan(5);
+			const { templateEngine } = setupTemplateEngine();
+
+			for (const templateName of [
+				"/row.scream",
+				"./row.scream",
+				"../row.scream",
+				"partials/../row.scream",
+				"row.html",
+			]) {
+				t.assert.throws(
+					() =>
+						templateEngine.render(`{% apply users to "${templateName}" %}`, {
+							users: [],
+						}),
+					/Invalid template path|Applied templates must use the .scream extension/,
+				);
+			}
+		});
+
+		it("rejects missing file-backed applied templates", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () =>
+				templateEngine.render('{% apply users to "missing.scream" %}', {
+					users: [],
+				});
+
+			t.assert.throws(act, /Template not found/);
+		});
+
+		it("rejects cycles across includes and file-backed applied templates", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"row.scream",
+				'{% include "shared.scream" %}<li>{{ attr.name }}</li>',
+			);
+			fileLoader.setTemplate(
+				"shared.scream",
+				'{% apply users to "row.scream" %}',
+			);
+
+			const act = () =>
+				templateEngine.render('{% apply users to "row.scream" %}', {
+					users: [{ name: "Ada" }],
+				});
+
+			t.assert.throws(
+				act,
+				/Cyclic template reference detected: row\.scream -> shared\.scream -> row\.scream/,
+			);
+		});
+
+		it("rejects extends and block directives inside file-backed applied templates", (t: TestContext) => {
+			t.plan(2);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"with-extends.scream",
+				'{% extends "layout.scream" %}',
+			);
+			fileLoader.setTemplate(
+				"with-block.scream",
+				"{% block content %}X{% endblock content %}",
+			);
+
+			t.assert.throws(
+				() =>
+					templateEngine.render('{% apply users to "with-extends.scream" %}', {
+						users: [],
+					}),
+				/Applied templates cannot contain extends directives/,
+			);
+			t.assert.throws(
+				() =>
+					templateEngine.render('{% apply users to "with-block.scream" %}', {
+						users: [],
+					}),
+				/Applied templates cannot contain block directives/,
+			);
+		});
 	});
 
 	describe("removed syntax", () => {
@@ -319,6 +515,16 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				);
 
 			t.assert.throws(act, /Unsupported directive: attr/);
+		});
+
+		it("rejects custom logic directives", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () =>
+				templateEngine.render("{% custom thing %}Nope{% endcustom %}", {});
+
+			t.assert.throws(act, /Unknown directive/);
 		});
 	});
 
@@ -555,7 +761,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			t.assert.throws(
 				act,
-				/Cyclic include detected: a\.scream -> b\.scream -> a\.scream/,
+				/Cyclic template reference detected: a\.scream -> b\.scream -> a\.scream/,
 			);
 		});
 
