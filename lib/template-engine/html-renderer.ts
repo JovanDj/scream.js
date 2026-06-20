@@ -1,5 +1,6 @@
 import { RenderError } from "./render-error.js";
 import type { RenderNode } from "./render-node.js";
+import { HtmlAttributes, SafeHtml } from "./render-values.js";
 
 export class HtmlRenderer {
 	render(nodes: readonly RenderNode[]) {
@@ -21,6 +22,16 @@ export class HtmlRenderer {
 	#renderValue(value: unknown, expression: string) {
 		if (value === null || value === undefined) {
 			return "";
+		}
+
+		if (value instanceof SafeHtml) {
+			return value.html;
+		}
+
+		if (value instanceof HtmlAttributes) {
+			throw new RenderError("Cannot render HTML attributes directly", {
+				expression,
+			});
 		}
 
 		if (!this.#isRenderableScalar(value)) {

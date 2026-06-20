@@ -14,6 +14,11 @@ export type { TemplateASTNode } from "./ast.js";
 export type { RenderContext } from "./context.js";
 export type { ExpressionNode, PathExpressionNode } from "./expression.js";
 export type { RenderNode } from "./render-node.js";
+export type {
+	HtmlAttributeEntry,
+	HtmlAttributeValue,
+} from "./render-values.js";
+export { HtmlAttributes, SafeHtml } from "./render-values.js";
 export { TemplateSyntaxError } from "./template-syntax-error.js";
 
 export class ScreamTemplateEngine {

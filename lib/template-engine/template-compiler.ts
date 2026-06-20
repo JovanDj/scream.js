@@ -20,6 +20,13 @@ type AttributeValuePart =
 
 type TemplateReferenceKind = "apply" | "include";
 
+type DynamicAttributeScanState =
+	| { readonly mode: "text" }
+	| { readonly mode: "tag" }
+	| { readonly mode: "afterEquals" }
+	| { readonly mode: "unquotedAttributeValue" }
+	| { readonly mode: "quotedAttributeValue"; readonly quote: '"' | "'" };
+
 export class TemplateCompiler {
 	readonly #fileLoader: FileLoader;
 	readonly #tokenizer: Tokenizer;
@@ -73,6 +80,7 @@ export class TemplateCompiler {
 			ast,
 			referenceChain,
 		);
+		this.#assertSafeDynamicAttributePlacement(resolvedReferences);
 		this.#assertValidUrlAttributes(resolvedReferences);
 
 		return this.#resolveLayoutInheritance(resolvedReferences, chain);
@@ -288,6 +296,148 @@ export class TemplateCompiler {
 
 	#assertValidUrlAttributes(ast: readonly TemplateASTNode[]) {
 		this.#assertValidUrlAttributesInNodes(ast);
+	}
+
+	#assertSafeDynamicAttributePlacement(ast: readonly TemplateASTNode[]) {
+		this.#scanDynamicAttributePlacement(ast, { mode: "text" });
+	}
+
+	#scanDynamicAttributePlacement(
+		nodes: readonly TemplateASTNode[],
+		initialState: DynamicAttributeScanState,
+	): DynamicAttributeScanState {
+		let state = initialState;
+
+		for (const node of nodes) {
+			state = this.#scanDynamicAttributeNode(node, state);
+		}
+
+		return state;
+	}
+
+	#scanDynamicAttributeNode(
+		node: TemplateASTNode,
+		state: DynamicAttributeScanState,
+	): DynamicAttributeScanState {
+		if (node.type === "text") {
+			return this.#scanDynamicAttributeText(node.value, state);
+		}
+
+		if (node.type === "variable") {
+			this.#assertSafeDynamicAttributeVariable(node, state);
+			return state;
+		}
+
+		if (node.type === "if") {
+			this.#scanDynamicAttributePlacement(node.children, state);
+			this.#scanDynamicAttributePlacement(node.alternate, state);
+			return state;
+		}
+
+		if (node.type === "block" || node.type === "apply") {
+			this.#scanDynamicAttributePlacement(node.children, state);
+			return state;
+		}
+
+		if (node.type === "template") {
+			this.#scanDynamicAttributePlacement(node.children, { mode: "text" });
+		}
+
+		return state;
+	}
+
+	#assertSafeDynamicAttributeVariable(
+		node: Extract<TemplateASTNode, { type: "variable" }>,
+		state: DynamicAttributeScanState,
+	) {
+		if (state.mode === "text" || state.mode === "quotedAttributeValue") {
+			return;
+		}
+
+		if (
+			state.mode === "afterEquals" ||
+			state.mode === "unquotedAttributeValue"
+		) {
+			throw new TemplateSyntaxError("Dynamic attribute values must be quoted", {
+				span: node.span,
+			});
+		}
+
+		throw new TemplateSyntaxError(
+			"Dynamic attributes must be prepared by the renderer",
+			{ span: node.span },
+		);
+	}
+
+	#scanDynamicAttributeText(
+		value: string,
+		initialState: DynamicAttributeScanState,
+	): DynamicAttributeScanState {
+		let state = initialState;
+
+		for (let index = 0; index < value.length; index++) {
+			state = this.#scanDynamicAttributeCharacter(value, index, state);
+		}
+
+		return state;
+	}
+
+	#scanDynamicAttributeCharacter(
+		value: string,
+		index: number,
+		state: DynamicAttributeScanState,
+	): DynamicAttributeScanState {
+		const ch = value[index];
+
+		if (state.mode === "text") {
+			if (ch === "<" && this.#startsOpeningTag(value, index)) {
+				return { mode: "tag" };
+			}
+
+			return state;
+		}
+
+		if (state.mode === "quotedAttributeValue") {
+			if (ch === state.quote) {
+				return { mode: "tag" };
+			}
+
+			return state;
+		}
+
+		if (ch === ">") {
+			return { mode: "text" };
+		}
+
+		if (state.mode === "tag") {
+			if (ch === "=") {
+				return { mode: "afterEquals" };
+			}
+
+			return state;
+		}
+
+		if (state.mode === "afterEquals") {
+			if (/\s/.test(ch ?? "")) {
+				return state;
+			}
+
+			if (ch === '"' || ch === "'") {
+				return { mode: "quotedAttributeValue", quote: ch };
+			}
+
+			return { mode: "unquotedAttributeValue" };
+		}
+
+		if (state.mode === "unquotedAttributeValue" && /\s/.test(ch ?? "")) {
+			return { mode: "tag" };
+		}
+
+		return state;
+	}
+
+	#startsOpeningTag(value: string, index: number) {
+		return /^[A-Za-z]/.test(value[index + 1] ?? "");
 	}
 
 	#assertValidUrlAttributesInNodes(nodes: readonly TemplateASTNode[]) {
