@@ -19,7 +19,7 @@ This file is intentionally minimal. Read the linked instruction file for any are
 * Do not add decorators, reflection, metadata scanning, dependency containers, service locators, or hidden object assembly.
 * Use manual dependency composition; dependencies must be visible in constructors.
 * Treat external input as raw until parsed into trusted values.
-* Keep templates presentation-only: escaped attribute references, presence checks, static includes, and template application over pushed ViewModels. Applied templates read only `attr`. Do not add view-side loops, conditional-attribute directives, inline computation, or hard-coded/composed URL attributes.
+* Keep templates presentation-only: escaped attribute references, presence checks, static includes, and template application over pushed ViewModels. Applied templates read only `attr`. Quote dynamic attribute values, and do not add view-side loops, conditional-attribute directives, inline computation, or hard-coded/composed URL attributes.
 * Prefer black-box behavior tests over brittle structure tests.
 * Preserve existing user changes in the worktree. Do not revert unrelated edits.
 

@@ -1,6 +1,10 @@
 import { describe, it, type TestContext } from "node:test";
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
-import { ScreamTemplateEngine } from "./template-engine.js";
+import {
+	HtmlAttributes,
+	SafeHtml,
+	ScreamTemplateEngine,
+} from "./template-engine.js";
 
 describe("ScreamTemplateEngine", { concurrency: true }, () => {
 	const setupTemplateEngine = () => {
@@ -20,6 +24,17 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			});
 
 			t.assert.deepStrictEqual<string>(result, "Hello, &lt;Admin&gt;!");
+		});
+
+		it("renders trusted SafeHtml without escaping", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render("{{ content }}", {
+				content: SafeHtml.fromTrustedHtml("<strong>Hi</strong>"),
+			});
+
+			t.assert.deepStrictEqual<string>(result, "<strong>Hi</strong>");
 		});
 
 		it("renders missing attributes as an empty string", (t: TestContext) => {
@@ -131,6 +146,21 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				() => templateEngine.render("{{ value }}", { value: Symbol("nope") }),
 				/Cannot render value/,
 			);
+		});
+
+		it("rejects direct HtmlAttributes rendering", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () =>
+				templateEngine.render("{{ attrs }}", {
+					attrs: HtmlAttributes.fromRecord({
+						class: "todo-row",
+						disabled: true,
+					}),
+				});
+
+			t.assert.throws(act, /Cannot render HTML attributes directly/);
 		});
 	});
 
@@ -599,7 +629,71 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 					templateEngine.render("<a href={{ base }}/todos>Todos</a>", {
 						base: "",
 					}),
-				/URL attributes must use one complete attribute reference/,
+				/Dynamic attribute values must be quoted/,
+			);
+		});
+
+		it("rejects variables in unquoted attribute values", (t: TestContext) => {
+			t.plan(6);
+			const { templateEngine } = setupTemplateEngine();
+
+			t.assert.throws(
+				() => templateEngine.render("<div class={{ value }}></div>", {}),
+				/Dynamic attribute values must be quoted/,
+			);
+			t.assert.throws(
+				() => templateEngine.render("<div class=item-{{ state }}></div>", {}),
+				/Dynamic attribute values must be quoted/,
+			);
+			t.assert.throws(
+				() => templateEngine.render("<a href={{ url }}>Link</a>", {}),
+				/Dynamic attribute values must be quoted/,
+			);
+			t.assert.throws(
+				() => templateEngine.render("<div {{ attrs }}></div>", {}),
+				/Dynamic attributes must be prepared by the renderer/,
+			);
+			t.assert.throws(
+				() =>
+					templateEngine.render("<button disabled {{ attrs }}></button>", {}),
+				/Dynamic attributes must be prepared by the renderer/,
+			);
+			t.assert.throws(
+				() =>
+					templateEngine.render(
+						"<div class={% if enabled %}{{ value }}{% endif %}></div>",
+						{ enabled: true, value: "a b" },
+					),
+				/Dynamic attribute values must be quoted/,
+			);
+		});
+
+		it("allows quoted non-URL dynamic attributes with escaping", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render('<div class="{{ value }}"></div>', {
+				value: 'one two&"<',
+			});
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<div class="one two&amp;&quot;&lt;"></div>',
+			);
+		});
+
+		it("renders conditional literal attributes", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				'<option value="open"{% if fields.isOpen %} selected{% endif %}>Open</option>',
+				{ fields: { isOpen: true } },
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<option value="open" selected>Open</option>',
 			);
 		});
 
