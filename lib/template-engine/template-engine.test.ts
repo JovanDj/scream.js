@@ -1,9 +1,13 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, it, type TestContext } from "node:test";
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
 import {
 	HtmlAttributes,
 	SafeHtml,
 	ScreamTemplateEngine,
+	TemplateGroupFileLoader,
 } from "./template-engine.js";
 
 describe("ScreamTemplateEngine", { concurrency: true }, () => {
@@ -297,6 +301,21 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			);
 		});
 
+		it("applies named templates round-robin", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				'{% template odd %}<li class="odd">{{ attr.name }}</li>{% endtemplate %}{% template even %}<li class="even">{{ attr.name }}</li>{% endtemplate %}<ul>{% apply users to odd, even %}</ul>',
+				{ users: [{ name: "Ada" }, { name: "Grace" }, { name: "Linus" }] },
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<ul><li class="odd">Ada</li><li class="even">Grace</li><li class="odd">Linus</li></ul>',
+			);
+		});
+
 		it("does not inherit the outer context inside applied templates", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
@@ -344,6 +363,29 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<string>(
 				result,
 				"<ul><li>Ada</li><li>Grace</li></ul>",
+			);
+		});
+
+		it("applies file-backed templates round-robin", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"odd-row.scream",
+				'<li class="odd">{{ attr.name }}</li>',
+			);
+			fileLoader.setTemplate(
+				"even-row.scream",
+				'<li class="even">{{ attr.name }}</li>',
+			);
+
+			const result = templateEngine.render(
+				'<ul>{% apply users to "odd-row.scream", "even-row.scream" %}</ul>',
+				{ users: [{ name: "Ada" }, { name: "Grace" }, { name: "Linus" }] },
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<ul><li class="odd">Ada</li><li class="even">Grace</li><li class="odd">Linus</li></ul>',
 			);
 		});
 
@@ -751,6 +793,119 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<string>(result, "Before<p>Hello</p>After");
 		});
 
+		it("renders includes with scoped parameters", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"link.scream",
+				'<a href="{{ url }}">{{ label }}</a>{{ pageTitle }}',
+			);
+
+			const result = templateEngine.render(
+				'Before{% include "link.scream" with label: user.name, url: user.showUrl %}After',
+				{
+					pageTitle: "Users",
+					user: {
+						name: "Ada",
+						showUrl: "/users/1",
+					},
+				},
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'Before<a href="/users/1">Ada</a>After',
+			);
+		});
+
+		it("rejects scoped include variables in unquoted attribute values", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("class-name.scream", "{{ value }}");
+
+			const act = () =>
+				templateEngine.render(
+					'<div class={% include "class-name.scream" with value: className %}></div>',
+					{ className: "active" },
+				);
+
+			t.assert.throws(act, /Dynamic attribute values must be quoted/);
+		});
+
+		it("rejects duplicate scoped include parameters", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("partial.scream", "{{ label }}");
+
+			const act = () =>
+				templateEngine.render(
+					'{% include "partial.scream" with label: first, label: second %}',
+					{ first: "A", second: "B" },
+				);
+
+			t.assert.throws(act, /Duplicate template parameter: label/);
+		});
+
+		it("rejects invalid scoped include parameter expressions", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("partial.scream", "{{ label }}");
+
+			const act = () =>
+				templateEngine.render(
+					'{% include "partial.scream" with label: user.name() %}',
+					{ user: { name: "Ada" } },
+				);
+
+			t.assert.throws(act, /Malformed path expression|Unexpected character/);
+		});
+
+		it("renders missing scoped include parameters as absent", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"partial.scream",
+				"{% if label %}{{ label }}{% else %}Missing{% endif %}",
+			);
+
+			const result = templateEngine.render(
+				'{% include "partial.scream" with label: user.name %}',
+				{ user: {} },
+			);
+
+			t.assert.deepStrictEqual<string>(result, "Missing");
+		});
+
+		it("resolves scoped include parameters from applied attr values", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("name.scream", "{{ label }}");
+
+			const result = templateEngine.render(
+				'{% apply users %}<p>{% include "name.scream" with label: attr.name %}</p>{% endapply %}',
+				{ users: [{ name: "Ada" }] },
+			);
+
+			t.assert.deepStrictEqual<string>(result, "<p>Ada</p>");
+		});
+
+		it("rejects URL attributes composed from scoped include output", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("url.scream", "{{ url }}");
+
+			const act = () =>
+				templateEngine.render(
+					'<a href="{% include "url.scream" with url: showUrl %}">Show</a>',
+					{ showUrl: "/todos/1" },
+				);
+
+			t.assert.throws(
+				act,
+				/URL attributes must use one complete attribute reference/,
+			);
+		});
+
 		it("renders nested includes", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
@@ -1030,6 +1185,159 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				act,
 				/Extends directives are only allowed at the top level/,
 			);
+		});
+	});
+
+	describe("template groups", () => {
+		it("rejects empty template group lists", (t: TestContext) => {
+			t.plan(1);
+
+			t.assert.throws(
+				() => new TemplateGroupFileLoader({ groups: [] }),
+				/Template groups must not be empty/,
+			);
+		});
+
+		it("rejects invalid template group names", (t: TestContext) => {
+			t.plan(5);
+
+			for (const group of ["", "/brand", "./brand", "../brand", "x/../brand"]) {
+				t.assert.throws(
+					() => new TemplateGroupFileLoader({ groups: [group] }),
+					/Invalid template group/,
+				);
+			}
+		});
+
+		it("loads views from the active group before fallback groups", (t: TestContext) => {
+			t.plan(2);
+			const viewsRoot = mkdtempSync(
+				path.join(tmpdir(), "scream-template-groups-"),
+			);
+			t.after(() => {
+				rmSync(viewsRoot, { force: true, recursive: true });
+			});
+			mkdirSync(path.join(viewsRoot, "base"), { recursive: true });
+			mkdirSync(path.join(viewsRoot, "brand"), { recursive: true });
+			writeFileSync(
+				path.join(viewsRoot, "base", "page.scream"),
+				"Base {{ title }}",
+			);
+			writeFileSync(
+				path.join(viewsRoot, "base", "shared.scream"),
+				"<p>Shared {{ title }}</p>",
+			);
+			writeFileSync(
+				path.join(viewsRoot, "brand", "page.scream"),
+				'Brand {{ title }} {% include "shared.scream" %}',
+			);
+			const templateEngine = ScreamTemplateEngine.create(
+				new TemplateGroupFileLoader({
+					groups: ["brand", "base"],
+					viewsRoot,
+				}),
+			);
+
+			const result = templateEngine.renderView("page.scream", {
+				title: "Home",
+			});
+
+			t.assert.match(result, /Brand Home/);
+			t.assert.match(result, /<p>Shared Home<\/p>/);
+		});
+
+		it("rejects invalid grouped view names", (t: TestContext) => {
+			t.plan(7);
+			const viewsRoot = mkdtempSync(
+				path.join(tmpdir(), "scream-template-groups-"),
+			);
+			t.after(() => {
+				rmSync(viewsRoot, { force: true, recursive: true });
+			});
+			mkdirSync(path.join(viewsRoot, "base"), { recursive: true });
+			const templateEngine = ScreamTemplateEngine.create(
+				new TemplateGroupFileLoader({
+					groups: ["base"],
+					viewsRoot,
+				}),
+			);
+
+			for (const viewName of [
+				"C:page.scream",
+				"nested\\page.scream",
+				"/page.scream",
+				"./page.scream",
+				"../page.scream",
+				"nested/../page.scream",
+				"page.html",
+			]) {
+				t.assert.throws(
+					() => templateEngine.renderView(viewName, {}),
+					/Invalid view name/,
+				);
+			}
+		});
+
+		it("fails loudly when a grouped view is missing from all groups", (t: TestContext) => {
+			t.plan(1);
+			const viewsRoot = mkdtempSync(
+				path.join(tmpdir(), "scream-template-groups-"),
+			);
+			t.after(() => {
+				rmSync(viewsRoot, { force: true, recursive: true });
+			});
+			mkdirSync(path.join(viewsRoot, "base"), { recursive: true });
+			const templateEngine = ScreamTemplateEngine.create(
+				new TemplateGroupFileLoader({
+					groups: ["base"],
+					viewsRoot,
+				}),
+			);
+
+			t.assert.throws(
+				() => templateEngine.renderView("missing.scream", {}),
+				/No file: missing\.scream/,
+			);
+		});
+
+		it("uses template groups for layout inheritance and file-backed apply templates", (t: TestContext) => {
+			t.plan(1);
+			const viewsRoot = mkdtempSync(
+				path.join(tmpdir(), "scream-template-groups-"),
+			);
+			t.after(() => {
+				rmSync(viewsRoot, { force: true, recursive: true });
+			});
+			mkdirSync(path.join(viewsRoot, "base"), { recursive: true });
+			mkdirSync(path.join(viewsRoot, "brand"), { recursive: true });
+			writeFileSync(
+				path.join(viewsRoot, "base", "layout.scream"),
+				"<main>{% block content %}Default{% endblock content %}</main>",
+			);
+			writeFileSync(
+				path.join(viewsRoot, "base", "row.scream"),
+				"<p>Base {{ attr.name }}</p>",
+			);
+			writeFileSync(
+				path.join(viewsRoot, "brand", "page.scream"),
+				'{% extends "layout.scream" %}{% block content %}{% apply users to "row.scream" %}{% endblock content %}',
+			);
+			writeFileSync(
+				path.join(viewsRoot, "brand", "row.scream"),
+				"<p>Brand {{ attr.name }}</p>",
+			);
+			const templateEngine = ScreamTemplateEngine.create(
+				new TemplateGroupFileLoader({
+					groups: ["brand", "base"],
+					viewsRoot,
+				}),
+			);
+
+			const result = templateEngine.renderView("page.scream", {
+				users: [{ name: "Ada" }],
+			});
+
+			t.assert.deepStrictEqual<string>(result, "<main><p>Brand Ada</p></main>");
 		});
 	});
 

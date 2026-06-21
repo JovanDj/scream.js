@@ -1,4 +1,8 @@
-import type { TemplateASTNode } from "./ast.js";
+import type {
+	ApplyTemplateReference,
+	TemplateASTNode,
+	TemplateParameterBinding,
+} from "./ast.js";
 import type { PathExpressionNode } from "./expression.js";
 import {
 	type SourceSpan,
@@ -20,6 +24,28 @@ type ClosingDirectiveResult = {
 	readonly nextIndex: number;
 	readonly span: SourceSpan;
 };
+
+type ApplyTemplateReferenceResult = {
+	readonly nextIndex: number;
+	readonly reference: ApplyTemplateReference;
+};
+
+type ApplyTemplateReferencesResult = {
+	readonly nextIndex: number;
+	readonly references: readonly ApplyTemplateReference[];
+};
+
+type TemplateParameterBindingResult = {
+	readonly binding: TemplateParameterBinding;
+	readonly nextIndex: number;
+};
+
+type TemplateParameterBindingsResult = {
+	readonly bindings: readonly TemplateParameterBinding[];
+	readonly nextIndex: number;
+};
+
+type PathExpressionStopTokenType = "closeDirective" | "closeVariable" | "comma";
 
 export class Parser {
 	parse(tokens: readonly Token[]): readonly TemplateASTNode[] {
@@ -275,35 +301,23 @@ export class Parser {
 		const maybeTo = tokens[source.nextIndex];
 
 		if (maybeTo?.type === "word" && maybeTo.value === "to") {
-			const templateReference = tokens[source.nextIndex + 1];
+			const templates = this.#parseApplyTemplateReferences(
+				tokens,
+				source.nextIndex + 1,
+			);
 			const close = this.#expectToken(
 				tokens,
-				source.nextIndex + 2,
+				templates.nextIndex,
 				"closeDirective",
 			);
 
-			if (templateReference?.type === "string") {
-				return {
-					nextIndex: source.nextIndex + 3,
-					node: {
-						children: [],
-						source: source.expression,
-						span: { end: close.span.end, start: open.span.start },
-						templatePath: templateReference.value,
-						type: "apply",
-					},
-				};
-			}
-
-			const templateName = this.#expectWord(tokens, source.nextIndex + 1);
-
 			return {
-				nextIndex: source.nextIndex + 3,
+				nextIndex: templates.nextIndex + 1,
 				node: {
 					children: [],
 					source: source.expression,
 					span: { end: close.span.end, start: open.span.start },
-					templateName: templateName.value,
+					templates: templates.references,
 					type: "apply",
 				},
 			};
@@ -326,6 +340,53 @@ export class Parser {
 				source: source.expression,
 				span: { end: close.span.end, start: open.span.start },
 				type: "apply",
+			},
+		};
+	}
+
+	#parseApplyTemplateReferences(
+		tokens: readonly Token[],
+		index: number,
+	): ApplyTemplateReferencesResult {
+		const first = this.#parseApplyTemplateReference(tokens, index);
+		const references: ApplyTemplateReference[] = [first.reference];
+		let nextIndex = first.nextIndex;
+
+		while (tokens[nextIndex]?.type === "comma") {
+			const next = this.#parseApplyTemplateReference(tokens, nextIndex + 1);
+			references.push(next.reference);
+			nextIndex = next.nextIndex;
+		}
+
+		return { nextIndex, references };
+	}
+
+	#parseApplyTemplateReference(
+		tokens: readonly Token[],
+		index: number,
+	): ApplyTemplateReferenceResult {
+		const token = tokens[index];
+
+		if (token?.type === "string") {
+			return {
+				nextIndex: index + 1,
+				reference: {
+					children: [],
+					path: token.value,
+					span: token.span,
+					type: "fileTemplate",
+				},
+			};
+		}
+
+		const name = this.#expectWord(tokens, index);
+
+		return {
+			nextIndex: index + 1,
+			reference: {
+				name: name.value,
+				span: name.span,
+				type: "namedTemplate",
 			},
 		};
 	}
@@ -361,15 +422,79 @@ export class Parser {
 		const open = this.#expectToken(tokens, index, "openDirective");
 		this.#expectWord(tokens, index + 1, "include");
 		const template = this.#expectToken(tokens, index + 2, "string");
-		const close = this.#expectToken(tokens, index + 3, "closeDirective");
+		const maybeClose = tokens[index + 3];
+
+		if (maybeClose?.type === "closeDirective") {
+			return {
+				nextIndex: index + 4,
+				node: {
+					span: { end: maybeClose.span.end, start: open.span.start },
+					template: template.value,
+					type: "include",
+				},
+			};
+		}
+
+		this.#expectWord(tokens, index + 3, "with");
+		const parameters = this.#parseTemplateParameters(tokens, index + 4);
+		const close = this.#expectToken(
+			tokens,
+			parameters.nextIndex,
+			"closeDirective",
+		);
 
 		return {
-			nextIndex: index + 4,
+			nextIndex: parameters.nextIndex + 1,
 			node: {
+				parameters: parameters.bindings,
 				span: { end: close.span.end, start: open.span.start },
 				template: template.value,
 				type: "include",
 			},
+		};
+	}
+
+	#parseTemplateParameters(
+		tokens: readonly Token[],
+		index: number,
+	): TemplateParameterBindingsResult {
+		const first = this.#parseTemplateParameter(tokens, index);
+		const bindings: TemplateParameterBinding[] = [first.binding];
+		let nextIndex = first.nextIndex;
+
+		while (tokens[nextIndex]?.type === "comma") {
+			const next = this.#parseTemplateParameter(tokens, nextIndex + 1);
+			if (bindings.some((binding) => binding.name === next.binding.name)) {
+				throw new TemplateSyntaxError(
+					`Duplicate template parameter: ${next.binding.name}`,
+					{ span: next.binding.span },
+				);
+			}
+			bindings.push(next.binding);
+			nextIndex = next.nextIndex;
+		}
+
+		return { bindings, nextIndex };
+	}
+
+	#parseTemplateParameter(
+		tokens: readonly Token[],
+		index: number,
+	): TemplateParameterBindingResult {
+		const name = this.#expectWord(tokens, index);
+		this.#expectToken(tokens, index + 1, "colon");
+		const expression = this.#parsePathExpressionUntil(tokens, index + 2, [
+			"closeDirective",
+			"comma",
+		]);
+
+		return {
+			binding: {
+				expression: expression.expression,
+				name: name.value,
+				span: { end: expression.expression.span.end, start: name.span.start },
+			},
+			nextIndex: expression.nextIndex,
 		};
 	}
 
@@ -379,10 +504,24 @@ export class Parser {
 		stopTokenType: "closeVariable" | "closeDirective",
 		stopWord?: string,
 	): { expression: PathExpressionNode; nextIndex: number } {
+		return this.#parsePathExpressionUntil(
+			tokens,
+			index,
+			[stopTokenType],
+			stopWord,
+		);
+	}
+
+	#parsePathExpressionUntil(
+		tokens: readonly Token[],
+		index: number,
+		stopTokenTypes: readonly PathExpressionStopTokenType[],
+		stopWord?: string,
+	): { expression: PathExpressionNode; nextIndex: number } {
 		const maybeStop = tokens[index];
 		if (
-			maybeStop?.type === stopTokenType ||
-			(maybeStop?.type === "word" && maybeStop.value === stopWord)
+			maybeStop !== undefined &&
+			this.#isPathExpressionStopToken(maybeStop, stopTokenTypes, stopWord)
 		) {
 			throw new TemplateSyntaxError("Empty expression", {
 				span: maybeStop.span,
@@ -401,18 +540,7 @@ export class Parser {
 				throw new TemplateSyntaxError("Unexpected end in expression");
 			}
 
-			if (token.type === stopTokenType) {
-				return {
-					expression: {
-						segments,
-						span: { end: lastSpan.end, start: first.span.start },
-						type: "path",
-					},
-					nextIndex,
-				};
-			}
-
-			if (token.type === "word" && token.value === stopWord) {
+			if (this.#isPathExpressionStopToken(token, stopTokenTypes, stopWord)) {
 				return {
 					expression: {
 						segments,
@@ -439,6 +567,18 @@ export class Parser {
 		throw new TemplateSyntaxError("Unexpected end in expression", {
 			span: lastSpan,
 		});
+	}
+
+	#isPathExpressionStopToken(
+		token: Token,
+		stopTokenTypes: readonly PathExpressionStopTokenType[],
+		stopWord?: string,
+	) {
+		if (token.type === "word" && token.value === stopWord) {
+			return true;
+		}
+
+		return stopTokenTypes.some((type) => token.type === type);
 	}
 
 	#expectPathSegment(tokens: readonly Token[], index: number) {

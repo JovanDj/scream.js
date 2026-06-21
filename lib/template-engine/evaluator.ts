@@ -1,4 +1,9 @@
-import type { TemplateASTNode, TemplateDefinitionNode } from "./ast.js";
+import type {
+	ApplyTemplateReference,
+	TemplateASTNode,
+	TemplateDefinitionNode,
+	TemplateParameterBinding,
+} from "./ast.js";
 import type { RenderContext } from "./context.js";
 import type { ExpressionNode } from "./expression.js";
 import { RenderError } from "./render-error.js";
@@ -69,6 +74,14 @@ export class Evaluator {
 			];
 		}
 
+		if (node.type === "scope") {
+			return this.#evaluateNodes(
+				node.children,
+				this.#scopeContext(node.bindings, context),
+				templates,
+			);
+		}
+
 		if (node.type === "template") {
 			return [];
 		}
@@ -90,19 +103,58 @@ export class Evaluator {
 		}
 
 		const items = Array.isArray(raw) ? raw : [raw];
-		const children = node.templateName
-			? this.#templateChildren(node.templateName, templates)
-			: node.children;
 
-		return items.flatMap((item) =>
+		return items.flatMap((item, index) =>
 			this.#evaluateNodes(
-				children,
+				this.#applyChildrenForItem(node, index, templates),
 				{
 					attr: item,
 				},
 				templates,
 			),
 		);
+	}
+
+	#scopeContext(
+		bindings: readonly TemplateParameterBinding[],
+		context: RenderContext,
+	): RenderContext {
+		return Object.fromEntries(
+			bindings.map((binding) => {
+				const value = this.#resolvePath(context, binding.expression.segments);
+
+				return [binding.name, value === MISSING ? undefined : value] as const;
+			}),
+		);
+	}
+
+	#applyChildrenForItem(
+		node: Extract<TemplateASTNode, { type: "apply" }>,
+		index: number,
+		templates: TemplateMap,
+	) {
+		const template = this.#applyTemplateForItem(node.templates, index);
+
+		if (!template) {
+			return node.children;
+		}
+
+		if (template.type === "fileTemplate") {
+			return template.children;
+		}
+
+		return this.#templateChildren(template.name, templates);
+	}
+
+	#applyTemplateForItem(
+		templates: readonly ApplyTemplateReference[] | undefined,
+		index: number,
+	) {
+		if (templates === undefined || templates.length === 0) {
+			return undefined;
+		}
+
+		return templates[index % templates.length];
 	}
 
 	#templateChildren(name: string, templates: TemplateMap) {
@@ -140,14 +192,20 @@ export class Evaluator {
 		templates: TemplateMap,
 	) {
 		this.#walkNodes(ast, (node) => {
-			if (node.type !== "apply" || node.templateName === undefined) {
+			if (node.type !== "apply") {
 				return;
 			}
 
-			if (!templates.has(node.templateName)) {
-				throw new RenderError(`Unknown template: ${node.templateName}`, {
-					expression: node.templateName,
-				});
+			for (const template of node.templates ?? []) {
+				if (template.type === "fileTemplate") {
+					continue;
+				}
+
+				if (!templates.has(template.name)) {
+					throw new RenderError(`Unknown template: ${template.name}`, {
+						expression: template.name,
+					});
+				}
 			}
 		});
 	}
@@ -179,10 +237,20 @@ export class Evaluator {
 
 		if (node.type === "apply") {
 			this.#walkNodes(node.children, visit);
+			for (const template of node.templates ?? []) {
+				if (template.type === "fileTemplate") {
+					this.#walkNodes(template.children, visit);
+				}
+			}
 			return;
 		}
 
 		if (node.type === "template") {
+			this.#walkNodes(node.children, visit);
+			return;
+		}
+
+		if (node.type === "scope") {
 			this.#walkNodes(node.children, visit);
 		}
 	}

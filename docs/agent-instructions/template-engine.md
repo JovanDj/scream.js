@@ -11,6 +11,7 @@ The template pipeline is:
 ```text
 template source/name
 -> FileLoader for named views
+   -> optional template group/skin lookup
 -> TemplateCompiler
    -> tokenizer
    -> parser
@@ -26,7 +27,7 @@ Stage responsibilities:
 
 | Stage | Responsibility |
 | --- | --- |
-| FileLoader | Load named template source |
+| FileLoader | Load named template source, including optional template group/skin fallback |
 | TemplateCompiler | Coordinate tokenization, parsing, static template reference resolution, named parent view compilation, and layout inheritance resolution |
 | Tokenizer | Turn source into tokens |
 | Parser | Turn tokens into AST |
@@ -38,12 +39,13 @@ Every stage receives structured input, returns structured output, and does not d
 
 ## Compilation and Rendering
 
-* Static includes, file-backed applied templates, and layout inheritance are compile-time behavior.
+* Static includes, scoped include calls, file-backed applied templates, and layout inheritance are compile-time behavior.
 * `TemplateCompiler` owns static template composition, including template-reference inlining and layout block merging.
 * Introduce a separate transform pipeline only when compile-time behavior grows beyond static template composition.
-* Named view loading belongs to `FileLoader`; it does not parse template grammar or merge layouts.
+* Named view loading and template group/skin selection belong to `FileLoader`; it does not parse template grammar or merge layouts.
 * Rendering is split into compile-time work (`TemplateCompiler`) and render-time work (`TemplateRenderer`).
 * `ScreamTemplateEngine.create(fileLoader)` is the public composition path for wiring the default tokenizer, parser, evaluator, and HTML renderer.
+* `TemplateGroupFileLoader` can search an active template group first and then fallback groups.
 * `renderView()` resolves source through `FileLoader` and reports named-view syntax or render failures with the relevant view name.
 * Missing attributes render as empty strings for variable output.
 * Invalid direct object/array/function/symbol rendering fails loudly.
@@ -59,6 +61,7 @@ Templates follow Parr's strict model-view separation.
 * Controllers and model code prepare all presentation state explicitly.
 * Controllers provide complete route and asset URLs as attributes, including row-level URLs used inside template application.
 * Applied item templates receive only the item ViewModel as `attr`; they do not inherit outer template context.
+* Parameterized includes receive only their named parameters; they do not inherit outer template context.
 * Dynamic attribute values must be quoted, such as `class="{{ attr.className }}"`.
 * URL-bearing attributes must use exactly one complete quoted attribute reference such as `href="{{ attr.showUrl }}"` or `src="{{ assetUrls.mainScript }}"`.
 * URL-bearing attributes include `href`, `action`, `src`, `srcset`, `formaction`, `poster`, `cite`, and `manifest`.
@@ -85,10 +88,12 @@ Example:
 * Missing templates fail loudly.
 * Layout cycles fail loudly and report the cycle path.
 * `{% include "partial.scream" %}` is static only and resolved at compile time.
+* `{% include "partial.scream" with label: todo.title, url: todo.showUrl %}` is static only and renders the partial with a scoped parameter context.
 * Included templates are inlined before rendering.
 * Included templates may contain text, attribute references, presence checks, template definitions, template application, and nested includes.
 * Included templates may not contain `{% extends %}` or `{% block %}` directives.
 * `{% apply items to "row.scream" %}` is static only and resolved at compile time.
+* `{% apply items to "odd-row.scream", "even-row.scream" %}` is also static only; file-backed templates are selected round-robin.
 * File-backed applied templates follow the same path and shape rules as includes.
 * No dynamic includes.
 * Includes resolve from the configured views root.
@@ -97,6 +102,15 @@ Example:
 * Explicit file extensions are required.
 * `.scream` is the only template extension.
 * Plain HTML is valid `.scream`.
+
+Template groups and skins:
+
+* A skin is a group of template files selected by the configured `FileLoader`.
+* `TemplateGroupFileLoader` searches configured group directories in order.
+* Active groups override fallback groups by file name.
+* Missing templates fall through to later groups.
+* Templates cannot choose skins, groups, or fallback paths.
+* Skin selection is controller/application configuration, not template syntax.
 
 ## Expressions
 
@@ -112,7 +126,8 @@ Example:
 * No `Math`, `process`, globals, imports, or arbitrary object method calls.
 * `csrfToken` is a value, not a helper function.
 * Whitespace trimming syntax is excluded.
-* Helper calls and template comments are planned, not current syntax.
+* Helper calls are excluded.
+* Template comments are not current syntax.
 
 Renderer-level values:
 
@@ -188,10 +203,28 @@ File-backed application:
 {% apply todos to "todo-row.scream" %}
 ```
 
+Round-robin named application:
+
+```scream
+{% apply todos to todoOddRow, todoEvenRow %}
+```
+
+Round-robin file-backed application:
+
+```scream
+{% apply todos to "todo-odd-row.scream", "todo-even-row.scream" %}
+```
+
 Static include:
 
 ```scream
 {% include "todo-list.scream" %}
+```
+
+Scoped include:
+
+```scream
+{% include "todo-link.scream" with label: todo.title, url: todo.showUrl %}
 ```
 
 Application rules:
@@ -202,15 +235,18 @@ Application rules:
 * The applied value is available as `attr` inside the applied template.
 * Applied templates cannot read outer context; push every row value onto each item.
 * Named templates render only when applied.
+* Comma-separated applied templates are selected round-robin by item index.
 * Duplicate template names and unknown named applications fail loudly.
-* Include/apply parameters are not current syntax.
-* Round-robin application is not current syntax.
+* Include parameter values are path expressions only.
+* Parameterized includes read only their named parameters.
+* Apply parameters are not current syntax.
 
 ## Push-Only ViewModel Contract
 
 Controllers push a complete ViewModel into templates. Templates never pull data from models, services, methods, globals, or computed expressions.
 
 * Top-level templates may read only pushed top-level attributes.
+* Parameterized include templates may read only their named parameters.
 * Applied templates may read only `attr` and paths below it.
 * Controllers must prepare URLs, labels, booleans, selected-state markers, and form display values before rendering.
 * Controllers may pass `SafeHtml` only for trusted HTML that has already been sanitized or generated by framework code.
