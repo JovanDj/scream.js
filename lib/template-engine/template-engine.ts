@@ -19,6 +19,10 @@ export type {
 	HtmlAttributeValue,
 } from "./render-values.js";
 export { HtmlAttributes, SafeHtml } from "./render-values.js";
+export {
+	TemplateGroupFileLoader,
+	type TemplateGroupFileLoaderOptions,
+} from "./template-group-file-loader.js";
 export { TemplateSyntaxError } from "./template-syntax-error.js";
 
 export class ScreamTemplateEngine {

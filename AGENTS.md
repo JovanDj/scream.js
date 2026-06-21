@@ -27,7 +27,7 @@ This file is intentionally minimal. Read the linked instruction file for any are
 * Register test resource cleanup with `t.after()` immediately after setup; do not wrap test bodies in cleanup-only `try/finally`. Keep explicit close/shutdown calls only when their behavior is under test.
 * HTTP entry points are Controllers; caller-independent application operations are Services.
 * CRUD controllers are conveniences, not constraints. Custom controllers and services for non-HTTP callers are first-class.
-* Keep templates presentation-only: escaped attribute references, presence checks, static includes, and template application over pushed ViewModels. Applied templates read only `attr`. Quote dynamic attribute values, and do not add view-side loops, conditional-attribute directives, inline computation, or hard-coded/composed URL attributes.
+* Keep templates presentation-only: escaped attribute references, presence checks, static includes with path-only parameters, and template application over pushed ViewModels, including static round-robin template lists. Applied templates read only `attr`; parameterized includes read only their named parameters. Template groups/skins are selected by `FileLoader`, not template syntax. Quote dynamic attribute values, and do not add view-side loops, conditional-attribute directives, inline computation, or hard-coded/composed URL attributes.
 * Preserve existing user changes in the worktree. Do not revert unrelated edits.
 
 ## Local Agents

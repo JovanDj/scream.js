@@ -1,4 +1,8 @@
-import type { BlockNode, TemplateASTNode } from "./ast.js";
+import type {
+	ApplyTemplateReference,
+	BlockNode,
+	TemplateASTNode,
+} from "./ast.js";
 import type { FileLoader } from "./file-loader.js";
 import type { Parser } from "./parser.js";
 import {
@@ -100,12 +104,25 @@ export class TemplateCompiler {
 		referenceChain: readonly string[],
 	): readonly TemplateASTNode[] {
 		if (node.type === "include") {
-			return this.#compileReferencedView(
+			const children = this.#compileReferencedView(
 				node.template,
 				referenceChain,
 				node.span,
 				"include",
 			);
+
+			if (node.parameters === undefined) {
+				return children;
+			}
+
+			return [
+				{
+					bindings: node.parameters,
+					children,
+					span: node.span,
+					type: "scope",
+				},
+			];
 		}
 
 		if (node.type === "block") {
@@ -137,20 +154,6 @@ export class TemplateCompiler {
 		}
 
 		if (node.type === "apply") {
-			if (node.templatePath) {
-				return [
-					{
-						...node,
-						children: this.#compileReferencedView(
-							node.templatePath,
-							referenceChain,
-							node.span,
-							"apply",
-						),
-					},
-				];
-			}
-
 			return [
 				{
 					...node,
@@ -158,6 +161,13 @@ export class TemplateCompiler {
 						node.children,
 						referenceChain,
 					),
+					...(node.templates === undefined
+						? {}
+						: {
+								templates: node.templates.map((template) =>
+									this.#resolveApplyTemplateReference(template, referenceChain),
+								),
+							}),
 				},
 			];
 		}
@@ -174,7 +184,38 @@ export class TemplateCompiler {
 			];
 		}
 
+		if (node.type === "scope") {
+			return [
+				{
+					...node,
+					children: this.#resolveTemplateReferences(
+						node.children,
+						referenceChain,
+					),
+				},
+			];
+		}
+
 		return [node];
+	}
+
+	#resolveApplyTemplateReference(
+		reference: ApplyTemplateReference,
+		referenceChain: readonly string[],
+	): ApplyTemplateReference {
+		if (reference.type === "namedTemplate") {
+			return reference;
+		}
+
+		return {
+			...reference,
+			children: this.#compileReferencedView(
+				reference.path,
+				referenceChain,
+				reference.span,
+				"apply",
+			),
+		};
 	}
 
 	#compileReferencedView(
@@ -334,13 +375,26 @@ export class TemplateCompiler {
 			return state;
 		}
 
-		if (node.type === "block" || node.type === "apply") {
+		if (node.type === "block") {
 			this.#scanDynamicAttributePlacement(node.children, state);
+			return state;
+		}
+
+		if (node.type === "apply") {
+			this.#scanDynamicAttributePlacement(node.children, state);
+			for (const children of this.#applyReferenceChildren(node)) {
+				this.#scanDynamicAttributePlacement(children, state);
+			}
 			return state;
 		}
 
 		if (node.type === "template") {
 			this.#scanDynamicAttributePlacement(node.children, { mode: "text" });
+			return state;
+		}
+
+		if (node.type === "scope") {
+			return this.#scanDynamicAttributePlacement(node.children, state);
 		}
 
 		return state;
@@ -635,10 +689,18 @@ export class TemplateCompiler {
 
 		if (node.type === "apply") {
 			this.#assertValidUrlAttributesInNodes(node.children);
+			for (const children of this.#applyReferenceChildren(node)) {
+				this.#assertValidUrlAttributesInNodes(children);
+			}
 			return;
 		}
 
 		if (node.type === "template") {
+			this.#assertValidUrlAttributesInNodes(node.children);
+			return;
+		}
+
+		if (node.type === "scope") {
 			this.#assertValidUrlAttributesInNodes(node.children);
 		}
 	}
@@ -748,10 +810,18 @@ export class TemplateCompiler {
 
 		if (node.type === "apply") {
 			this.#assertNoExtends(node.children);
+			for (const children of this.#applyReferenceChildren(node)) {
+				this.#assertNoExtends(children);
+			}
 			return;
 		}
 
 		if (node.type === "template") {
+			this.#assertNoExtends(node.children);
+			return;
+		}
+
+		if (node.type === "scope") {
 			this.#assertNoExtends(node.children);
 			return;
 		}
@@ -832,10 +902,18 @@ export class TemplateCompiler {
 
 		if (node.type === "apply") {
 			this.#walkNodes(node.children, visit);
+			for (const children of this.#applyReferenceChildren(node)) {
+				this.#walkNodes(children, visit);
+			}
 			return;
 		}
 
 		if (node.type === "template") {
+			this.#walkNodes(node.children, visit);
+			return;
+		}
+
+		if (node.type === "scope") {
 			this.#walkNodes(node.children, visit);
 			return;
 		}
@@ -944,10 +1022,24 @@ export class TemplateCompiler {
 			return {
 				...node,
 				children: this.#mergeBlocks(node.children, childBlocks),
+				...(node.templates === undefined
+					? {}
+					: {
+							templates: node.templates.map((template) =>
+								this.#mergeApplyTemplateReference(template, childBlocks),
+							),
+						}),
 			};
 		}
 
 		if (node.type === "template") {
+			return {
+				...node,
+				children: this.#mergeBlocks(node.children, childBlocks),
+			};
+		}
+
+		if (node.type === "scope") {
 			return {
 				...node,
 				children: this.#mergeBlocks(node.children, childBlocks),
@@ -977,6 +1069,30 @@ export class TemplateCompiler {
 		return {
 			...node,
 			children: this.#mergeBlocks(node.children, childBlocks),
+		};
+	}
+
+	#applyReferenceChildren(
+		node: Extract<TemplateASTNode, { type: "apply" }>,
+	): readonly (readonly TemplateASTNode[])[] {
+		return (
+			node.templates
+				?.filter((template) => template.type === "fileTemplate")
+				.map((template) => template.children) ?? []
+		);
+	}
+
+	#mergeApplyTemplateReference(
+		template: ApplyTemplateReference,
+		childBlocks: readonly BlockNode[],
+	): ApplyTemplateReference {
+		if (template.type === "namedTemplate") {
+			return template;
+		}
+
+		return {
+			...template,
+			children: this.#mergeBlocks(template.children, childBlocks),
 		};
 	}
 }

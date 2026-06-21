@@ -6,6 +6,7 @@ export type TemplateASTNode =
 	| VariableNode
 	| IfNode
 	| ApplyNode
+	| ScopedTemplateNode
 	| TemplateDefinitionNode
 	| IncludeNode
 	| ExtendsNode
@@ -35,10 +36,22 @@ export type ApplyNode = {
 	readonly type: "apply";
 	readonly source: ExpressionNode;
 	readonly children: readonly TemplateASTNode[];
-	readonly templateName?: string;
-	readonly templatePath?: string;
+	readonly templates?: readonly ApplyTemplateReference[];
 	readonly span: SourceSpan;
 };
+
+export type ApplyTemplateReference =
+	| {
+			readonly type: "namedTemplate";
+			readonly name: string;
+			readonly span: SourceSpan;
+	  }
+	| {
+			readonly type: "fileTemplate";
+			readonly path: string;
+			readonly children: readonly TemplateASTNode[];
+			readonly span: SourceSpan;
+	  };
 
 export type TemplateDefinitionNode = {
 	readonly type: "template";
@@ -50,6 +63,20 @@ export type TemplateDefinitionNode = {
 export type IncludeNode = {
 	readonly type: "include";
 	readonly template: string;
+	readonly parameters?: readonly TemplateParameterBinding[];
+	readonly span: SourceSpan;
+};
+
+export type ScopedTemplateNode = {
+	readonly type: "scope";
+	readonly bindings: readonly TemplateParameterBinding[];
+	readonly children: readonly TemplateASTNode[];
+	readonly span: SourceSpan;
+};
+
+export type TemplateParameterBinding = {
+	readonly name: string;
+	readonly expression: ExpressionNode;
 	readonly span: SourceSpan;
 };
 
