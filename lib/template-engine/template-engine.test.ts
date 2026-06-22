@@ -152,19 +152,66 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			);
 		});
 
-		it("rejects direct HtmlAttributes rendering", (t: TestContext) => {
-			t.plan(1);
+		it("renders prepared HtmlAttributes with escaped values", (t: TestContext) => {
+			t.plan(3);
 			const { templateEngine } = setupTemplateEngine();
 
-			const act = () =>
-				templateEngine.render("{{ attrs }}", {
+			const directResult = templateEngine.render("{{ attrs }}", {
+				attrs: HtmlAttributes.fromRecord({
+					class: "todo-row",
+					disabled: true,
+				}),
+			});
+			const tagResult = templateEngine.render(
+				"<button{{ attrs }}>Save</button>",
+				{
 					attrs: HtmlAttributes.fromRecord({
-						class: "todo-row",
+						class: 'primary&"<',
 						disabled: true,
+						hidden: false,
+						tabindex: 0,
+						title: undefined,
 					}),
-				});
+				},
+			);
+			const emptyResult = templateEngine.render(
+				"<button{{ attrs }}>Save</button>",
+				{
+					attrs: null,
+				},
+			);
 
-			t.assert.throws(act, /Cannot render HTML attributes directly/);
+			t.assert.deepStrictEqual<string>(
+				directResult,
+				' class="todo-row" disabled',
+			);
+			t.assert.deepStrictEqual<string>(
+				tagResult,
+				'<button class="primary&amp;&quot;&lt;" disabled tabindex="0">Save</button>',
+			);
+			t.assert.deepStrictEqual<string>(emptyResult, "<button>Save</button>");
+		});
+
+		it("rejects unsafe HtmlAttributes placement and names", (t: TestContext) => {
+			t.plan(2);
+			const { templateEngine } = setupTemplateEngine();
+
+			t.assert.throws(
+				() =>
+					templateEngine.render("<div{{ attrs }}></div>", {
+						attrs: "class=todo-row",
+					}),
+				/Only HtmlAttributes can render in attribute position/,
+			);
+			t.assert.throws(
+				() =>
+					templateEngine.render("{{ attrs }}", {
+						attrs: HtmlAttributes.fromRecord({
+							"bad name": "value",
+						}),
+					}),
+				/Invalid HTML attribute name/,
+			);
 		});
 	});
 
@@ -676,7 +723,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		});
 
 		it("rejects variables in unquoted attribute values", (t: TestContext) => {
-			t.plan(6);
+			t.plan(5);
 			const { templateEngine } = setupTemplateEngine();
 
 			t.assert.throws(
@@ -692,13 +739,11 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				/Dynamic attribute values must be quoted/,
 			);
 			t.assert.throws(
-				() => templateEngine.render("<div {{ attrs }}></div>", {}),
-				/Dynamic attributes must be prepared by the renderer/,
-			);
-			t.assert.throws(
 				() =>
-					templateEngine.render("<button disabled {{ attrs }}></button>", {}),
-				/Dynamic attributes must be prepared by the renderer/,
+					templateEngine.render("<button disabled {{ attrs }}></button>", {
+						attrs: "class=primary",
+					}),
+				/Only HtmlAttributes can render in attribute position/,
 			);
 			t.assert.throws(
 				() =>
@@ -721,6 +766,38 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<string>(
 				result,
 				'<div class="one two&amp;&quot;&lt;"></div>',
+			);
+		});
+
+		it("rejects variables inside script and style bodies", (t: TestContext) => {
+			t.plan(4);
+			const { templateEngine } = setupTemplateEngine();
+
+			t.assert.throws(
+				() => templateEngine.render("<script>{{ json }}</script>", {}),
+				/Variables are not allowed inside script or style tags/,
+			);
+			t.assert.throws(
+				() => templateEngine.render("<style>{{ css }}</style>", {}),
+				/Variables are not allowed inside script or style tags/,
+			);
+			t.assert.throws(
+				() =>
+					templateEngine.render(
+						"<script>{% if payload %}{{ payload }}{% endif %}</script>",
+						{ payload: "{}" },
+					),
+				/Variables are not allowed inside script or style tags/,
+			);
+
+			const result = templateEngine.render(
+				'<script src="{{ assetUrls.mainScript }}"></script>',
+				{ assetUrls: { mainScript: "/assets/main.js" } },
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<script src="/assets/main.js"></script>',
 			);
 		});
 

@@ -1,5 +1,5 @@
 import { RenderError } from "./render-error.js";
-import type { RenderNode } from "./render-node.js";
+import type { RenderNode, RenderValueNode } from "./render-node.js";
 import { HtmlAttributes, SafeHtml } from "./render-values.js";
 
 export class HtmlRenderer {
@@ -13,13 +13,21 @@ export class HtmlRenderer {
 		}
 
 		if (node.type === "value") {
-			return this.#renderValue(node.value, node.expression);
+			return this.#renderValue(node);
 		}
 
 		return this.render(node.children);
 	}
 
-	#renderValue(value: unknown, expression: string) {
+	#renderValue(node: RenderValueNode) {
+		if (node.renderPosition === "attributes") {
+			return this.#renderAttributesValue(node.value, node.expression);
+		}
+
+		return this.#renderHtmlValue(node.value, node.expression);
+	}
+
+	#renderHtmlValue(value: unknown, expression: string) {
 		if (value === null || value === undefined) {
 			return "";
 		}
@@ -29,9 +37,7 @@ export class HtmlRenderer {
 		}
 
 		if (value instanceof HtmlAttributes) {
-			throw new RenderError("Cannot render HTML attributes directly", {
-				expression,
-			});
+			return this.#renderAttributes(value);
 		}
 
 		if (!this.#isRenderableScalar(value)) {
@@ -39,6 +45,53 @@ export class HtmlRenderer {
 		}
 
 		return this.#escape(String(value));
+	}
+
+	#renderAttributesValue(value: unknown, expression: string) {
+		if (value === null || value === undefined) {
+			return "";
+		}
+
+		if (value instanceof HtmlAttributes) {
+			return this.#renderAttributes(value);
+		}
+
+		throw new RenderError(
+			"Only HtmlAttributes can render in attribute position",
+			{ expression },
+		);
+	}
+
+	#renderAttributes(attributes: HtmlAttributes) {
+		return attributes.entries
+			.map((attribute) =>
+				this.#renderAttribute(attribute.name, attribute.value),
+			)
+			.join("");
+	}
+
+	#renderAttribute(name: string, value: unknown) {
+		this.#assertValidAttributeName(name);
+
+		if (value === null || value === undefined || value === false) {
+			return "";
+		}
+
+		if (value === true) {
+			return ` ${name}`;
+		}
+
+		return ` ${name}="${this.#escape(String(value))}"`;
+	}
+
+	#assertValidAttributeName(name: string) {
+		if (/^[^\s"'/>=]+$/.test(name)) {
+			return;
+		}
+
+		throw new RenderError("Invalid HTML attribute name", {
+			expression: name,
+		});
 	}
 
 	#isRenderableScalar(value: unknown) {
