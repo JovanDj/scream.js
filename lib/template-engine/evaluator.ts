@@ -47,6 +47,9 @@ export class Evaluator {
 			return [
 				{
 					expression: this.#formatExpression(node.expression),
+					...(node.renderPosition === undefined
+						? {}
+						: { renderPosition: node.renderPosition }),
 					type: "value",
 					value: raw === MISSING ? undefined : raw,
 				},

@@ -2,6 +2,7 @@ import type {
 	ApplyTemplateReference,
 	BlockNode,
 	TemplateASTNode,
+	VariableNode,
 } from "./ast.js";
 import type { FileLoader } from "./file-loader.js";
 import type { Parser } from "./parser.js";
@@ -23,13 +24,32 @@ type AttributeValuePart =
 	  };
 
 type TemplateReferenceKind = "apply" | "include";
+type RawTextTagName = "script" | "style";
 
 type DynamicAttributeScanState =
 	| { readonly mode: "text" }
-	| { readonly mode: "tag" }
-	| { readonly mode: "afterEquals" }
-	| { readonly mode: "unquotedAttributeValue" }
-	| { readonly mode: "quotedAttributeValue"; readonly quote: '"' | "'" };
+	| { readonly mode: "rawText"; readonly tagName: RawTextTagName }
+	| { readonly mode: "tag"; readonly rawTextTagName?: RawTextTagName }
+	| { readonly mode: "afterEquals"; readonly rawTextTagName?: RawTextTagName }
+	| {
+			readonly mode: "unquotedAttributeValue";
+			readonly rawTextTagName?: RawTextTagName;
+	  }
+	| {
+			readonly mode: "quotedAttributeValue";
+			readonly quote: '"' | "'";
+			readonly rawTextTagName?: RawTextTagName;
+	  };
+
+type RendererPlacementResult = {
+	readonly nodes: readonly TemplateASTNode[];
+	readonly state: DynamicAttributeScanState;
+};
+
+type RendererPlacementNodeResult = {
+	readonly node: TemplateASTNode;
+	readonly state: DynamicAttributeScanState;
+};
 
 export class TemplateCompiler {
 	readonly #fileLoader: FileLoader;
@@ -84,10 +104,11 @@ export class TemplateCompiler {
 			ast,
 			referenceChain,
 		);
-		this.#assertSafeDynamicAttributePlacement(resolvedReferences);
-		this.#assertValidUrlAttributes(resolvedReferences);
+		const rendererReadyAst =
+			this.#prepareRendererValuePlacements(resolvedReferences);
+		this.#assertValidUrlAttributes(rendererReadyAst);
 
-		return this.#resolveLayoutInheritance(resolvedReferences, chain);
+		return this.#resolveLayoutInheritance(rendererReadyAst, chain);
 	}
 
 	#resolveTemplateReferences(
@@ -339,73 +360,161 @@ export class TemplateCompiler {
 		this.#assertValidUrlAttributesInNodes(ast);
 	}
 
-	#assertSafeDynamicAttributePlacement(ast: readonly TemplateASTNode[]) {
-		this.#scanDynamicAttributePlacement(ast, { mode: "text" });
+	#prepareRendererValuePlacements(
+		nodes: readonly TemplateASTNode[],
+	): readonly TemplateASTNode[] {
+		return this.#prepareRendererValuePlacementsFrom(nodes, {
+			mode: "text",
+		}).nodes;
 	}
 
-	#scanDynamicAttributePlacement(
+	#prepareRendererValuePlacementsFrom(
 		nodes: readonly TemplateASTNode[],
 		initialState: DynamicAttributeScanState,
-	): DynamicAttributeScanState {
+	): RendererPlacementResult {
 		let state = initialState;
+		const nextNodes: TemplateASTNode[] = [];
 
 		for (const node of nodes) {
-			state = this.#scanDynamicAttributeNode(node, state);
+			const result = this.#prepareRendererValuePlacementNode(node, state);
+			nextNodes.push(result.node);
+			state = result.state;
 		}
 
-		return state;
+		return { nodes: nextNodes, state };
 	}
 
-	#scanDynamicAttributeNode(
+	#prepareRendererValuePlacementNode(
 		node: TemplateASTNode,
 		state: DynamicAttributeScanState,
-	): DynamicAttributeScanState {
+	): RendererPlacementNodeResult {
 		if (node.type === "text") {
-			return this.#scanDynamicAttributeText(node.value, state);
+			return {
+				node,
+				state: this.#scanDynamicAttributeText(node.value, state),
+			};
 		}
 
 		if (node.type === "variable") {
-			this.#assertSafeDynamicAttributeVariable(node, state);
-			return state;
+			return {
+				node: this.#prepareRendererValuePlacementVariable(node, state),
+				state,
+			};
 		}
 
 		if (node.type === "if") {
-			this.#scanDynamicAttributePlacement(node.children, state);
-			this.#scanDynamicAttributePlacement(node.alternate, state);
-			return state;
+			return {
+				node: {
+					...node,
+					alternate: this.#prepareRendererValuePlacementsFrom(
+						node.alternate,
+						state,
+					).nodes,
+					children: this.#prepareRendererValuePlacementsFrom(
+						node.children,
+						state,
+					).nodes,
+				},
+				state,
+			};
 		}
 
 		if (node.type === "block") {
-			this.#scanDynamicAttributePlacement(node.children, state);
-			return state;
+			return {
+				node: {
+					...node,
+					children: this.#prepareRendererValuePlacementsFrom(
+						node.children,
+						state,
+					).nodes,
+				},
+				state,
+			};
 		}
 
 		if (node.type === "apply") {
-			this.#scanDynamicAttributePlacement(node.children, state);
-			for (const children of this.#applyReferenceChildren(node)) {
-				this.#scanDynamicAttributePlacement(children, state);
-			}
-			return state;
+			return {
+				node: {
+					...node,
+					children: this.#prepareRendererValuePlacementsFrom(
+						node.children,
+						state,
+					).nodes,
+					...(node.templates === undefined
+						? {}
+						: {
+								templates: node.templates.map((template) =>
+									this.#prepareApplyTemplateReferencePlacements(
+										template,
+										state,
+									),
+								),
+							}),
+				},
+				state,
+			};
 		}
 
 		if (node.type === "template") {
-			this.#scanDynamicAttributePlacement(node.children, { mode: "text" });
-			return state;
+			return {
+				node: {
+					...node,
+					children: this.#prepareRendererValuePlacementsFrom(node.children, {
+						mode: "text",
+					}).nodes,
+				},
+				state,
+			};
 		}
 
 		if (node.type === "scope") {
-			return this.#scanDynamicAttributePlacement(node.children, state);
+			const result = this.#prepareRendererValuePlacementsFrom(
+				node.children,
+				state,
+			);
+
+			return {
+				node: {
+					...node,
+					children: result.nodes,
+				},
+				state: result.state,
+			};
 		}
 
-		return state;
+		return { node, state };
 	}
 
-	#assertSafeDynamicAttributeVariable(
-		node: Extract<TemplateASTNode, { type: "variable" }>,
+	#prepareApplyTemplateReferencePlacements(
+		template: ApplyTemplateReference,
 		state: DynamicAttributeScanState,
-	) {
+	): ApplyTemplateReference {
+		if (template.type === "namedTemplate") {
+			return template;
+		}
+
+		return {
+			...template,
+			children: this.#prepareRendererValuePlacementsFrom(
+				template.children,
+				state,
+			).nodes,
+		};
+	}
+
+	#prepareRendererValuePlacementVariable(
+		node: VariableNode,
+		state: DynamicAttributeScanState,
+	): VariableNode {
 		if (state.mode === "text" || state.mode === "quotedAttributeValue") {
-			return;
+			return node;
+		}
+
+		if (state.mode === "rawText") {
+			throw new TemplateSyntaxError(
+				"Variables are not allowed inside script or style tags",
+				{ span: node.span },
+			);
 		}
 
 		if (
@@ -417,10 +526,10 @@ export class TemplateCompiler {
 			});
 		}
 
-		throw new TemplateSyntaxError(
-			"Dynamic attributes must be prepared by the renderer",
-			{ span: node.span },
-		);
+		return {
+			...node,
+			renderPosition: "attributes",
+		};
 	}
 
 	#scanDynamicAttributeText(
@@ -445,7 +554,15 @@ export class TemplateCompiler {
 
 		if (state.mode === "text") {
 			if (ch === "<" && this.#startsOpeningTag(value, index)) {
-				return { mode: "tag" };
+				return this.#tagState(this.#rawTextTagName(value, index));
+			}
+
+			return state;
+		}
+
+		if (state.mode === "rawText") {
+			if (this.#startsClosingRawTextTag(value, index, state.tagName)) {
+				return { mode: "text" };
 			}
 
 			return state;
@@ -453,19 +570,28 @@ export class TemplateCompiler {
 
 		if (state.mode === "quotedAttributeValue") {
 			if (ch === state.quote) {
-				return { mode: "tag" };
+				return this.#tagState(this.#currentRawTextTagName(state));
 			}
 
 			return state;
 		}
 
 		if (ch === ">") {
+			const rawTextTagName = this.#currentRawTextTagName(state);
+
+			if (rawTextTagName !== undefined) {
+				return { mode: "rawText", tagName: rawTextTagName };
+			}
+
 			return { mode: "text" };
 		}
 
 		if (state.mode === "tag") {
 			if (ch === "=") {
-				return { mode: "afterEquals" };
+				return {
+					mode: "afterEquals",
+					...this.#rawTextTagNameProperty(state),
+				};
 			}
 
 			return state;
@@ -477,14 +603,21 @@ export class TemplateCompiler {
 			}
 
 			if (ch === '"' || ch === "'") {
-				return { mode: "quotedAttributeValue", quote: ch };
+				return {
+					mode: "quotedAttributeValue",
+					quote: ch,
+					...this.#rawTextTagNameProperty(state),
+				};
 			}
 
-			return { mode: "unquotedAttributeValue" };
+			return {
+				mode: "unquotedAttributeValue",
+				...this.#rawTextTagNameProperty(state),
+			};
 		}
 
 		if (state.mode === "unquotedAttributeValue" && /\s/.test(ch ?? "")) {
-			return { mode: "tag" };
+			return this.#tagState(this.#currentRawTextTagName(state));
 		}
 
 		return state;
@@ -492,6 +625,54 @@ export class TemplateCompiler {
 
 	#startsOpeningTag(value: string, index: number) {
 		return /^[A-Za-z]/.test(value[index + 1] ?? "");
+	}
+
+	#rawTextTagName(value: string, index: number): RawTextTagName | undefined {
+		if (/^<script(?:\s|>|\/)/i.test(value.slice(index))) {
+			return "script";
+		}
+
+		if (/^<style(?:\s|>|\/)/i.test(value.slice(index))) {
+			return "style";
+		}
+
+		return undefined;
+	}
+
+	#startsClosingRawTextTag(
+		value: string,
+		index: number,
+		tagName: RawTextTagName,
+	) {
+		return new RegExp(`^</${tagName}\\s*>`, "i").test(value.slice(index));
+	}
+
+	#tagState(
+		rawTextTagName: RawTextTagName | undefined,
+	): DynamicAttributeScanState {
+		if (rawTextTagName === undefined) {
+			return { mode: "tag" };
+		}
+
+		return { mode: "tag", rawTextTagName };
+	}
+
+	#currentRawTextTagName(state: DynamicAttributeScanState) {
+		if ("rawTextTagName" in state) {
+			return state.rawTextTagName;
+		}
+
+		return undefined;
+	}
+
+	#rawTextTagNameProperty(state: DynamicAttributeScanState) {
+		const rawTextTagName = this.#currentRawTextTagName(state);
+
+		if (rawTextTagName === undefined) {
+			return {};
+		}
+
+		return { rawTextTagName };
 	}
 
 	#assertValidUrlAttributesInNodes(nodes: readonly TemplateASTNode[]) {

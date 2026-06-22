@@ -21,8 +21,11 @@ export type TextNode = {
 export type VariableNode = {
 	readonly type: "variable";
 	readonly expression: ExpressionNode;
+	readonly renderPosition?: VariableRenderPosition;
 	readonly span: SourceSpan;
 };
+
+export type VariableRenderPosition = "attributes" | "html";
 
 export type IfNode = {
 	readonly type: "if";
