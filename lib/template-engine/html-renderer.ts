@@ -1,6 +1,10 @@
 import { RenderError } from "./render-error.js";
 import type { RenderNode, RenderValueNode } from "./render-node.js";
-import { HtmlAttributes, SafeHtml } from "./render-values.js";
+import {
+	assertValidAttributeName,
+	HtmlAttributes,
+	SafeHtml,
+} from "./render-values.js";
 
 export class HtmlRenderer {
 	render(nodes: readonly RenderNode[]) {
@@ -37,7 +41,10 @@ export class HtmlRenderer {
 		}
 
 		if (value instanceof HtmlAttributes) {
-			return this.#renderAttributes(value);
+			throw new RenderError(
+				"HtmlAttributes can only render in attribute position",
+				{ expression },
+			);
 		}
 
 		if (!this.#isRenderableScalar(value)) {
@@ -85,13 +92,13 @@ export class HtmlRenderer {
 	}
 
 	#assertValidAttributeName(name: string) {
-		if (/^[^\s"'/>=]+$/.test(name)) {
-			return;
+		try {
+			assertValidAttributeName(name);
+		} catch {
+			throw new RenderError("Invalid HTML attribute name", {
+				expression: name,
+			});
 		}
-
-		throw new RenderError("Invalid HTML attribute name", {
-			expression: name,
-		});
 	}
 
 	#isRenderableScalar(value: unknown) {

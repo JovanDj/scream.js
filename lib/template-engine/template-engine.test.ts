@@ -152,16 +152,10 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			);
 		});
 
-		it("renders prepared HtmlAttributes with escaped values", (t: TestContext) => {
-			t.plan(3);
+		it("renders prepared HtmlAttributes only in attribute position", (t: TestContext) => {
+			t.plan(4);
 			const { templateEngine } = setupTemplateEngine();
 
-			const directResult = templateEngine.render("{{ attrs }}", {
-				attrs: HtmlAttributes.fromRecord({
-					class: "todo-row",
-					disabled: true,
-				}),
-			});
 			const tagResult = templateEngine.render(
 				"<button{{ attrs }}>Save</button>",
 				{
@@ -181,19 +175,32 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				},
 			);
 
-			t.assert.deepStrictEqual<string>(
-				directResult,
-				' class="todo-row" disabled',
+			t.assert.throws(
+				() =>
+					templateEngine.render("{{ attrs }}", {
+						attrs: HtmlAttributes.fromRecord({
+							class: "todo-row",
+							disabled: true,
+						}),
+					}),
+				/HtmlAttributes can only render in attribute position/,
 			);
 			t.assert.deepStrictEqual<string>(
 				tagResult,
 				'<button class="primary&amp;&quot;&lt;" disabled tabindex="0">Save</button>',
 			);
 			t.assert.deepStrictEqual<string>(emptyResult, "<button>Save</button>");
+			t.assert.throws(
+				() =>
+					templateEngine.render("<button{{ html }}>Save</button>", {
+						html: SafeHtml.fromTrustedHtml(' onclick="alert(1)"'),
+					}),
+				/Only HtmlAttributes can render in attribute position/,
+			);
 		});
 
 		it("rejects unsafe HtmlAttributes placement and names", (t: TestContext) => {
-			t.plan(2);
+			t.plan(3);
 			const { templateEngine } = setupTemplateEngine();
 
 			t.assert.throws(
@@ -204,14 +211,38 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				/Only HtmlAttributes can render in attribute position/,
 			);
 			t.assert.throws(
-				() =>
-					templateEngine.render("{{ attrs }}", {
-						attrs: HtmlAttributes.fromRecord({
-							"bad name": "value",
-						}),
-					}),
+				() => HtmlAttributes.fromRecord({ "bad name": "value" }),
 				/Invalid HTML attribute name/,
 			);
+			t.assert.throws(
+				() => HtmlAttributes.create().set("bad name", "value"),
+				/Invalid HTML attribute name/,
+			);
+		});
+
+		it("builds immutable HtmlAttributes", (t: TestContext) => {
+			t.plan(3);
+			const { templateEngine } = setupTemplateEngine();
+			const baseAttributes = HtmlAttributes.create().set("type", "text");
+			const nextAttributes = baseAttributes
+				.set("value", "Ada")
+				.when(true, "required")
+				.when(false, "hidden")
+				.class({ "input-error": true, muted: false });
+
+			t.assert.deepStrictEqual<string>(
+				templateEngine.render("<input{{ attrs }}>", {
+					attrs: baseAttributes,
+				}),
+				'<input type="text">',
+			);
+			t.assert.deepStrictEqual<string>(
+				templateEngine.render("<input{{ attrs }}>", {
+					attrs: nextAttributes,
+				}),
+				'<input type="text" value="Ada" required class="input-error">',
+			);
+			t.assert.notStrictEqual(baseAttributes, nextAttributes);
 		});
 	});
 
@@ -436,14 +467,33 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			);
 		});
 
+		it("applies mixed named and file-backed templates round-robin", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"even-row.scream",
+				'<li class="even">{{ attr.name }}</li>',
+			);
+
+			const result = templateEngine.render(
+				'{% template odd %}<li class="odd">{{ attr.name }}</li>{% endtemplate %}<ul>{% apply users to odd, "even-row.scream" %}</ul>',
+				{ users: [{ name: "Ada" }, { name: "Grace" }, { name: "Linus" }] },
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<ul><li class="odd">Ada</li><li class="even">Grace</li><li class="odd">Linus</li></ul>',
+			);
+		});
+
 		it("renders file-backed applied templates containing includes and applications", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
 				"user-row.scream",
-				'<li>{% include "name.scream" %}<ul>{% apply attr.tags %}<li>{{ attr }}</li>{% endapply %}</ul></li>',
+				'<li>{% include "name.scream" with name: attr.name %}<ul>{% apply attr.tags %}<li>{{ attr }}</li>{% endapply %}</ul></li>',
 			);
-			fileLoader.setTemplate("name.scream", "{{ attr.name }}");
+			fileLoader.setTemplate("name.scream", "{{ name }}");
 
 			const result = templateEngine.render(
 				'<ul>{% apply users to "user-row.scream" %}</ul>',
@@ -521,6 +571,15 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				);
 
 			t.assert.throws(act, /Duplicate template: row/);
+		});
+
+		it("rejects empty apply template references", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const act = () => templateEngine.render("{% apply users to %}", {});
+
+			t.assert.throws(act, /Template reference required after to/);
 		});
 
 		it("rejects invalid file-backed applied template paths", (t: TestContext) => {
@@ -604,6 +663,23 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 						users: [],
 					}),
 				/Applied templates cannot contain block directives/,
+			);
+		});
+
+		it("rejects template definitions inside file-backed applied templates", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"with-template.scream",
+				"{% template row %}X{% endtemplate %}",
+			);
+
+			t.assert.throws(
+				() =>
+					templateEngine.render('{% apply users to "with-template.scream" %}', {
+						users: [],
+					}),
+				/Applied templates cannot contain template definitions/,
 			);
 		});
 	});
@@ -718,7 +794,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 					templateEngine.render("<a href={{ base }}/todos>Todos</a>", {
 						base: "",
 					}),
-				/Dynamic attribute values must be quoted/,
+				/Variables in unquoted attributes are not allowed/,
 			);
 		});
 
@@ -728,15 +804,15 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			t.assert.throws(
 				() => templateEngine.render("<div class={{ value }}></div>", {}),
-				/Dynamic attribute values must be quoted/,
+				/Variables in unquoted attributes are not allowed/,
 			);
 			t.assert.throws(
 				() => templateEngine.render("<div class=item-{{ state }}></div>", {}),
-				/Dynamic attribute values must be quoted/,
+				/Variables in unquoted attributes are not allowed/,
 			);
 			t.assert.throws(
 				() => templateEngine.render("<a href={{ url }}>Link</a>", {}),
-				/Dynamic attribute values must be quoted/,
+				/Variables in unquoted attributes are not allowed/,
 			);
 			t.assert.throws(
 				() =>
@@ -751,7 +827,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 						"<div class={% if enabled %}{{ value }}{% endif %}></div>",
 						{ enabled: true, value: "a b" },
 					),
-				/Dynamic attribute values must be quoted/,
+				/Variables in unquoted attributes are not allowed/,
 			);
 		});
 
@@ -860,14 +936,14 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("renders static includes", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate("partial.scream", "<p>{{ title }}</p>");
+			fileLoader.setTemplate("partial.scream", "<p>Static</p>");
 
 			const result = templateEngine.render(
 				'Before{% include "partial.scream" %}After',
 				{ title: "Hello" },
 			);
 
-			t.assert.deepStrictEqual<string>(result, "Before<p>Hello</p>After");
+			t.assert.deepStrictEqual<string>(result, "Before<p>Static</p>After");
 		});
 
 		it("renders includes with scoped parameters", (t: TestContext) => {
@@ -895,6 +971,29 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			);
 		});
 
+		it("does not inherit outer context inside includes", (t: TestContext) => {
+			t.plan(2);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"card.scream",
+				"{{ user.name }} {{ currentUser.name }}",
+			);
+
+			t.assert.deepStrictEqual<string>(
+				templateEngine.render(
+					'{% include "card.scream" with user: currentUser %}',
+					{ currentUser: { name: "Ada" } },
+				),
+				"Ada ",
+			);
+			t.assert.deepStrictEqual<string>(
+				templateEngine.render('{% include "card.scream" %}', {
+					currentUser: { name: "Ada" },
+				}),
+				" ",
+			);
+		});
+
 		it("rejects scoped include variables in unquoted attribute values", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
@@ -906,7 +1005,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 					{ className: "active" },
 				);
 
-			t.assert.throws(act, /Dynamic attribute values must be quoted/);
+			t.assert.throws(act, /Variables in unquoted attributes are not allowed/);
 		});
 
 		it("rejects duplicate scoped include parameters", (t: TestContext) => {
@@ -988,13 +1087,16 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
 				"outer.scream",
-				'<section>{% include "inner.scream" %}</section>',
+				'<section>{% include "inner.scream" with title: title %}</section>',
 			);
 			fileLoader.setTemplate("inner.scream", "<p>{{ title }}</p>");
 
-			const result = templateEngine.render('{% include "outer.scream" %}', {
-				title: "Nested",
-			});
+			const result = templateEngine.render(
+				'{% include "outer.scream" with title: pageTitle %}',
+				{
+					pageTitle: "Nested",
+				},
+			);
 
 			t.assert.deepStrictEqual<string>(
 				result,
@@ -1012,7 +1114,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			fileLoader.setTemplate("partial.scream", "<p>{{ title }}</p>");
 			fileLoader.setTemplate(
 				"page.scream",
-				'{% extends "layout.scream" %}{% block content %}{% include "partial.scream" %}{% endblock content %}',
+				'{% extends "layout.scream" %}{% block content %}{% include "partial.scream" with title: title %}{% endblock content %}',
 			);
 
 			const result = templateEngine.renderView("page.scream", {
@@ -1022,17 +1124,20 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<string>(result, "<main><p>Block</p></main>");
 		});
 
-		it("renders includes containing apply and named template nodes", (t: TestContext) => {
+		it("renders includes containing apply nodes", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate(
 				"rows.scream",
-				"{% template row %}<li>{{ attr.title }}</li>{% endtemplate %}<ul>{% apply todos to row %}</ul>",
+				"<ul>{% apply todos to row %}</ul>",
 			);
 
-			const result = templateEngine.render('{% include "rows.scream" %}', {
-				todos: [{ title: "Ship" }],
-			});
+			const result = templateEngine.render(
+				'{% template row %}<li>{{ attr.title }}</li>{% endtemplate %}{% include "rows.scream" with todos: todos %}',
+				{
+					todos: [{ title: "Ship" }],
+				},
+			);
 
 			t.assert.deepStrictEqual<string>(result, "<ul><li>Ship</li></ul>");
 		});
@@ -1110,6 +1215,20 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.throws(
 				() => templateEngine.render('{% include "with-block.scream" %}', {}),
 				/Included templates cannot contain block directives/,
+			);
+		});
+
+		it("rejects template definitions inside included templates", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"with-template.scream",
+				"{% template row %}X{% endtemplate %}",
+			);
+
+			t.assert.throws(
+				() => templateEngine.render('{% include "with-template.scream" %}', {}),
+				/Included templates cannot contain template definitions/,
 			);
 		});
 	});
@@ -1276,9 +1395,17 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		});
 
 		it("rejects invalid template group names", (t: TestContext) => {
-			t.plan(5);
+			t.plan(7);
 
-			for (const group of ["", "/brand", "./brand", "../brand", "x/../brand"]) {
+			for (const group of [
+				"",
+				"/brand",
+				"./brand",
+				"../brand",
+				"x/../brand",
+				"C:\\brand",
+				"brand\\tenant",
+			]) {
 				t.assert.throws(
 					() => new TemplateGroupFileLoader({ groups: [group] }),
 					/Invalid template group/,
@@ -1306,7 +1433,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			);
 			writeFileSync(
 				path.join(viewsRoot, "brand", "page.scream"),
-				'Brand {{ title }} {% include "shared.scream" %}',
+				'Brand {{ title }} {% include "shared.scream" with title: title %}',
 			);
 			const templateEngine = ScreamTemplateEngine.create(
 				new TemplateGroupFileLoader({
@@ -1321,6 +1448,73 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 
 			t.assert.match(result, /Brand Home/);
 			t.assert.match(result, /<p>Shared Home<\/p>/);
+		});
+
+		it("falls back to later template groups when earlier groups are missing a view", (t: TestContext) => {
+			t.plan(1);
+			const viewsRoot = mkdtempSync(
+				path.join(tmpdir(), "scream-template-groups-"),
+			);
+			t.after(() => {
+				rmSync(viewsRoot, { force: true, recursive: true });
+			});
+			mkdirSync(path.join(viewsRoot, "default"), { recursive: true });
+			mkdirSync(path.join(viewsRoot, "custom"), { recursive: true });
+			writeFileSync(
+				path.join(viewsRoot, "default", "page.scream"),
+				"Default {{ title }}",
+			);
+			const templateEngine = ScreamTemplateEngine.create(
+				new TemplateGroupFileLoader({
+					groups: ["custom", "default"],
+					viewsRoot,
+				}),
+			);
+
+			const result = templateEngine.renderView("page.scream", {
+				title: "Home",
+			});
+
+			t.assert.deepStrictEqual<string>(result, "Default Home");
+		});
+
+		it("loads valid nested view names from template groups", (t: TestContext) => {
+			t.plan(2);
+			const viewsRoot = mkdtempSync(
+				path.join(tmpdir(), "scream-template-groups-"),
+			);
+			t.after(() => {
+				rmSync(viewsRoot, { force: true, recursive: true });
+			});
+			mkdirSync(path.join(viewsRoot, "default", "pages"), {
+				recursive: true,
+			});
+			mkdirSync(path.join(viewsRoot, "default", "components"), {
+				recursive: true,
+			});
+			writeFileSync(
+				path.join(viewsRoot, "default", "pages", "index.scream"),
+				'Page {% include "components/card.scream" with title: title %}',
+			);
+			writeFileSync(
+				path.join(viewsRoot, "default", "components", "card.scream"),
+				"Card {{ title }}",
+			);
+			const templateEngine = ScreamTemplateEngine.create(
+				new TemplateGroupFileLoader({
+					groups: ["default"],
+					viewsRoot,
+				}),
+			);
+
+			t.assert.deepStrictEqual<string>(
+				templateEngine.renderView("pages/index.scream", { title: "Home" }),
+				"Page Card Home",
+			);
+			t.assert.deepStrictEqual<string>(
+				templateEngine.renderView("components/card.scream", { title: "Home" }),
+				"Card Home",
+			);
 		});
 
 		it("rejects invalid grouped view names", (t: TestContext) => {

@@ -61,7 +61,7 @@ Templates follow Parr's strict model-view separation.
 * Controllers and model code prepare all presentation state explicitly.
 * Controllers provide complete route and asset URLs as attributes, including row-level URLs used inside template application.
 * Applied item templates receive only the item ViewModel as `attr`; they do not inherit outer template context.
-* Parameterized includes receive only their named parameters; they do not inherit outer template context.
+* Includes never inherit outer template context. Parameterized includes receive only their named parameters. Parameter-less includes receive an empty context.
 * Dynamic attribute values must be quoted, such as `class="{{ attr.className }}"`.
 * Prepared dynamic attribute lists must use `HtmlAttributes`, such as `<button{{ buttonAttributes }}>`.
 * URL-bearing attributes must use exactly one complete quoted attribute reference such as `href="{{ attr.showUrl }}"` or `src="{{ assetUrls.mainScript }}"`.
@@ -89,11 +89,11 @@ Example:
 * Unknown child block overrides fail loudly.
 * Missing templates fail loudly.
 * Layout cycles fail loudly and report the cycle path.
-* `{% include "partial.scream" %}` is static only and resolved at compile time.
+* `{% include "partial.scream" %}` is static only, resolved at compile time, and renders with an empty context.
 * `{% include "partial.scream" with label: todo.title, url: todo.showUrl %}` is static only and renders the partial with a scoped parameter context.
 * Included templates are inlined before rendering.
-* Included templates may contain text, attribute references, presence checks, template definitions, template application, and nested includes.
-* Included templates may not contain `{% extends %}` or `{% block %}` directives.
+* Included templates may contain text, attribute references, presence checks, template application, and nested includes.
+* Included templates may not contain `{% extends %}`, `{% block %}`, or `{% template %}` directives.
 * `{% apply items to "row.scream" %}` is static only and resolved at compile time.
 * `{% apply items to "odd-row.scream", "even-row.scream" %}` is also static only; file-backed templates are selected round-robin.
 * File-backed applied templates follow the same path and shape rules as includes.
@@ -114,10 +114,22 @@ Template groups and skins:
 * Templates cannot choose skins, groups, or fallback paths.
 * Skin selection is controller/application configuration, not template syntax.
 
+Example:
+
+```ts
+new TemplateGroupFileLoader({
+	groups: ["tenant-a", "default"],
+});
+```
+
+This searches `tenant-a` first and falls back to `default` when a template is missing.
+
 ## Expressions
 
 * Variable output is HTML-escaped by default.
 * Missing variable references render as an empty string.
+* Missing, `null`, and `undefined` are absent in presence conditionals.
+* `false`, `0`, and `""` are present values.
 * Paths are dot-separated attribute names only.
 * No raw or unescaped output.
 * No arbitrary JavaScript.
@@ -134,10 +146,26 @@ Template groups and skins:
 Renderer-level values:
 
 * `SafeHtml.fromTrustedHtml(html)` renders trusted HTML without escaping.
+* `SafeHtml` is not a sanitizer.
+* Never pass user input directly to `SafeHtml.fromTrustedHtml()`.
 * Only sanitized or framework-generated HTML may be wrapped as `SafeHtml`.
 * `HtmlAttributes.fromRecord(...)` renders prepared HTML attributes through the renderer.
+* `HtmlAttributes.create()` builds immutable prepared attribute lists with `.set(...)`, `.when(...)`, and `.class(...)`.
 * `HtmlAttributes` escapes string and number values, renders `true` as a boolean attribute, and omits `false`, `null`, and `undefined`.
-* Variables in attribute-list position must resolve to `HtmlAttributes`; scalar values fail loudly there.
+* `HtmlAttributes` may render only in attribute-list position. Body-position `{{ attrs }}` fails loudly.
+* Variables in attribute-list position must resolve to `HtmlAttributes`; scalar values and `SafeHtml` fail loudly there.
+
+Good:
+
+```ts
+const content = SafeHtml.fromTrustedHtml(sanitizedMarkdown);
+```
+
+Bad:
+
+```ts
+const content = SafeHtml.fromTrustedHtml(request.body.comment);
+```
 
 Allowed expression examples:
 
@@ -224,6 +252,8 @@ Static include:
 {% include "todo-list.scream" %}
 ```
 
+Static includes receive an empty context and should contain only static markup unless parameters are supplied.
+
 Scoped include:
 
 ```scream
@@ -241,7 +271,7 @@ Application rules:
 * Comma-separated applied templates are selected round-robin by item index.
 * Duplicate template names and unknown named applications fail loudly.
 * Include parameter values are path expressions only.
-* Parameterized includes read only their named parameters.
+* Includes read only explicitly supplied parameters. Parameter-less includes read no attributes.
 * Apply parameters are not current syntax.
 
 ## Push-Only ViewModel Contract
@@ -249,7 +279,7 @@ Application rules:
 Controllers push a complete ViewModel into templates. Templates never pull data from models, services, methods, globals, or computed expressions.
 
 * Top-level templates may read only pushed top-level attributes.
-* Parameterized include templates may read only their named parameters.
+* Included templates may read only explicitly supplied parameters.
 * Applied templates may read only `attr` and paths below it.
 * Controllers must prepare URLs, labels, booleans, selected-state markers, and form display values before rendering.
 * Controllers may pass `SafeHtml` only for trusted HTML that has already been sanitized or generated by framework code.
@@ -272,3 +302,7 @@ Unsupported old syntax:
 ## Tokenizer and Parser Boundary
 
 The tokenizer recognizes lexical shapes only. Directive names such as `if`, `apply`, `template`, `include`, and `endtemplate` are word tokens. The parser gives those words grammar meaning only in directive position.
+
+## Future Compiler Cleanup
+
+`TemplateCompiler` remains the public orchestration facade. After behavior tests are stable, split its internal responsibilities into focused components such as `TemplateReferenceResolver`, `RendererPlacementAnalyzer`, `UrlAttributePolicy`, `LayoutInheritanceResolver`, and `TemplatePathPolicy`. Keep feature coverage black-box at `ScreamTemplateEngine`; do not add tests for tokens, AST internals, private compiler methods, or render-node shape.
