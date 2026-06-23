@@ -367,6 +367,16 @@ export class Parser {
 	): ApplyTemplateReferenceResult {
 		const token = tokens[index];
 
+		if (
+			token === undefined ||
+			token.type === "closeDirective" ||
+			token.type === "comma"
+		) {
+			throw new TemplateSyntaxError("Template reference required after to", {
+				...(!token ? {} : { span: token.span }),
+			});
+		}
+
 		if (token?.type === "string") {
 			return {
 				nextIndex: index + 1,

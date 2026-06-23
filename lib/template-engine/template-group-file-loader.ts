@@ -74,6 +74,7 @@ export class TemplateGroupFileLoader implements FileLoader {
 		if (
 			group.length === 0 ||
 			group.includes(":") ||
+			group.includes("\\") ||
 			path.isAbsolute(group) ||
 			normalizedGroupName.startsWith("./") ||
 			normalizedGroupName.startsWith("../") ||

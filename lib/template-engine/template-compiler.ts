@@ -132,13 +132,9 @@ export class TemplateCompiler {
 				"include",
 			);
 
-			if (node.parameters === undefined) {
-				return children;
-			}
-
 			return [
 				{
-					bindings: node.parameters,
+					bindings: node.parameters ?? [],
 					children,
 					span: node.span,
 					type: "scope",
@@ -353,6 +349,15 @@ export class TemplateCompiler {
 					{ span: node.span },
 				);
 			}
+
+			if (node.type === "template") {
+				throw new TemplateSyntaxError(
+					kind === "include"
+						? "Included templates cannot contain template definitions"
+						: "Applied templates cannot contain template definitions",
+					{ span: node.span },
+				);
+			}
 		});
 	}
 
@@ -521,9 +526,10 @@ export class TemplateCompiler {
 			state.mode === "afterEquals" ||
 			state.mode === "unquotedAttributeValue"
 		) {
-			throw new TemplateSyntaxError("Dynamic attribute values must be quoted", {
-				span: node.span,
-			});
+			throw new TemplateSyntaxError(
+				"Variables in unquoted attributes are not allowed",
+				{ span: node.span },
+			);
 		}
 
 		return {
