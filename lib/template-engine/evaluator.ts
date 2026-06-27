@@ -12,6 +12,10 @@ import type { RenderNode } from "./render-node.js";
 const MISSING = Symbol("missing");
 
 type TemplateMap = ReadonlyMap<string, TemplateDefinitionNode>;
+type AppliedTemplate = {
+	readonly children: readonly TemplateASTNode[];
+	readonly parameters?: readonly TemplateParameterBinding[];
+};
 
 export class Evaluator {
 	evaluate(
@@ -107,15 +111,22 @@ export class Evaluator {
 
 		const items = Array.isArray(raw) ? raw : [raw];
 
-		return items.flatMap((item, index) =>
-			this.#evaluateNodes(
-				this.#applyChildrenForItem(node, index, templates),
+		return items.flatMap((item, index) => {
+			const appliedTemplate = this.#applyTemplateForItem(
+				node,
+				index,
+				templates,
+			);
+
+			return this.#evaluateNodes(
+				appliedTemplate.children,
 				{
 					attr: item,
+					...this.#scopeContext(appliedTemplate.parameters ?? [], context),
 				},
 				templates,
-			),
-		);
+			);
+		});
 	}
 
 	#scopeContext(
@@ -131,25 +142,35 @@ export class Evaluator {
 		);
 	}
 
-	#applyChildrenForItem(
+	#applyTemplateForItem(
 		node: Extract<TemplateASTNode, { type: "apply" }>,
 		index: number,
 		templates: TemplateMap,
-	) {
-		const template = this.#applyTemplateForItem(node.templates, index);
+	): AppliedTemplate {
+		const template = this.#applyTemplateReferenceForItem(node.templates, index);
 
 		if (!template) {
-			return node.children;
+			return { children: node.children };
 		}
 
 		if (template.type === "fileTemplate") {
-			return template.children;
+			return {
+				children: template.children,
+				...(template.parameters === undefined
+					? {}
+					: { parameters: template.parameters }),
+			};
 		}
 
-		return this.#templateChildren(template.name, templates);
+		return {
+			children: this.#templateChildren(template.name, templates),
+			...(template.parameters === undefined
+				? {}
+				: { parameters: template.parameters }),
+		};
 	}
 
-	#applyTemplateForItem(
+	#applyTemplateReferenceForItem(
 		templates: readonly ApplyTemplateReference[] | undefined,
 		index: number,
 	) {

@@ -47,12 +47,14 @@ export type ApplyTemplateReference =
 	| {
 			readonly type: "namedTemplate";
 			readonly name: string;
+			readonly parameters?: readonly TemplateParameterBinding[];
 			readonly span: SourceSpan;
 	  }
 	| {
 			readonly type: "fileTemplate";
 			readonly path: string;
 			readonly children: readonly TemplateASTNode[];
+			readonly parameters?: readonly TemplateParameterBinding[];
 			readonly span: SourceSpan;
 	  };
 
