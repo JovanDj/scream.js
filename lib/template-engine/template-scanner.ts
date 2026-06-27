@@ -185,6 +185,16 @@ class TagScanner {
 			return;
 		}
 
+		if (char === "(") {
+			this.#addToken("openParen");
+			return;
+		}
+
+		if (char === ")") {
+			this.#addToken("closeParen");
+			return;
+		}
+
 		throw new TemplateSyntaxError(`Unexpected character '${char}'`, {
 			span: this.#span(),
 		});
@@ -224,7 +234,7 @@ class TagScanner {
 		});
 	}
 
-	#addToken(type: "colon" | "comma" | "dot") {
+	#addToken(type: "closeParen" | "colon" | "comma" | "dot" | "openParen") {
 		this.#tokens.push({ span: this.#span(), type });
 	}
 

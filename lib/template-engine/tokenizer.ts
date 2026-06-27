@@ -19,7 +19,9 @@ export type Token =
 	  }
 	| { readonly type: "dot"; readonly span: SourceSpan }
 	| { readonly type: "comma"; readonly span: SourceSpan }
-	| { readonly type: "colon"; readonly span: SourceSpan };
+	| { readonly type: "colon"; readonly span: SourceSpan }
+	| { readonly type: "openParen"; readonly span: SourceSpan }
+	| { readonly type: "closeParen"; readonly span: SourceSpan };
 
 export class Tokenizer {
 	tokenize(template: string): readonly Token[] {

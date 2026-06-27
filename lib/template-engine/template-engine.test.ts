@@ -486,6 +486,157 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			);
 		});
 
+		it("passes scoped parameters to named applied templates", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				"{% template row %}<li>{{ csrf }} {{ attr.name }} {{ pageTitle }}</li>{% endtemplate %}<ul>{% apply users to row(csrf: csrfToken) %}</ul>",
+				{ csrfToken: "abc", pageTitle: "Users", users: [{ name: "Ada" }] },
+			);
+
+			t.assert.deepStrictEqual<string>(result, "<ul><li>abc Ada </li></ul>");
+		});
+
+		it("passes scoped parameters to file-backed applied templates", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"user-row.scream",
+				"<li>{{ csrf }} {{ attr.name }} {{ pageTitle }}</li>",
+			);
+
+			const result = templateEngine.render(
+				'{% apply users to "user-row.scream"(csrf: csrfToken) %}',
+				{ csrfToken: "abc", pageTitle: "Users", users: [{ name: "Ada" }] },
+			);
+
+			t.assert.deepStrictEqual<string>(result, "<li>abc Ada </li>");
+		});
+
+		it("supports per-reference parameters in round-robin application", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"even-row.scream",
+				'<li class="{{ className }}">{{ attr.name }}</li>',
+			);
+
+			const result = templateEngine.render(
+				'{% template odd %}<li class="{{ className }}">{{ attr.name }}</li>{% endtemplate %}<ul>{% apply users to odd(className: oddClass), "even-row.scream"(className: evenClass) %}</ul>',
+				{
+					evenClass: "even",
+					oddClass: "odd",
+					users: [{ name: "Ada" }, { name: "Grace" }, { name: "Linus" }],
+				},
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<ul><li class="odd">Ada</li><li class="even">Grace</li><li class="odd">Linus</li></ul>',
+			);
+		});
+
+		it("supports per-reference parameters in named round-robin application", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				'{% template odd %}<li class="{{ className }}">{{ attr.name }}</li>{% endtemplate %}{% template even %}<li class="{{ className }}">{{ attr.name }}</li>{% endtemplate %}<ul>{% apply users to odd(className: oddClass), even(className: evenClass) %}</ul>',
+				{
+					evenClass: "even",
+					oddClass: "odd",
+					users: [{ name: "Ada" }, { name: "Grace" }, { name: "Linus" }],
+				},
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<ul><li class="odd">Ada</li><li class="even">Grace</li><li class="odd">Linus</li></ul>',
+			);
+		});
+
+		it("supports per-reference parameters in file-backed round-robin application", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"odd-row.scream",
+				'<li class="{{ className }}">{{ attr.name }}</li>',
+			);
+			fileLoader.setTemplate(
+				"even-row.scream",
+				'<li class="{{ className }}">{{ attr.name }}</li>',
+			);
+
+			const result = templateEngine.render(
+				'{% apply users to "odd-row.scream"(className: oddClass), "even-row.scream"(className: evenClass) %}',
+				{
+					evenClass: "even",
+					oddClass: "odd",
+					users: [{ name: "Ada" }, { name: "Grace" }, { name: "Linus" }],
+				},
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<li class="odd">Ada</li><li class="even">Grace</li><li class="odd">Linus</li>',
+			);
+		});
+
+		it("evaluates applied template parameters from the caller scope", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				"{% template child %}<li>{{ prefix }} {{ attr.name }}</li>{% endtemplate %}{% template parent %}<section>{{ attr.name }}<ul>{% apply attr.children to child(prefix: attr.name) %}</ul></section>{% endtemplate %}{% apply tree to parent %}",
+				{
+					tree: [
+						{
+							children: [{ name: "Ada" }],
+							name: "Team",
+						},
+					],
+				},
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				"<section>Team<ul><li>Team Ada</li></ul></section>",
+			);
+		});
+
+		it("renders missing applied template parameters as empty values", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				"{% template row %}<li>{{ missingValue }} {{ attr.name }}</li>{% endtemplate %}{% apply users to row(missingValue: missing.path) %}",
+				{ users: [{ name: "Ada" }] },
+			);
+
+			t.assert.deepStrictEqual<string>(result, "<li> Ada</li>");
+		});
+
+		it("rejects invalid applied template parameters", (t: TestContext) => {
+			t.plan(7);
+			const { templateEngine } = setupTemplateEngine();
+
+			for (const template of [
+				"{% apply users to row(csrf: token, csrf: otherToken) %}",
+				"{% apply users to row(attr: item) %}",
+				"{% apply users to row() %}",
+				"{% apply users to row(csrf: token %}",
+				"{% apply users to row(csrf:) %}",
+				"{% apply users to row(csrf: token,) %}",
+				"{% apply users to row(user.name()) %}",
+			]) {
+				t.assert.throws(
+					() => templateEngine.render(template, { users: [] }),
+					/Duplicate template parameter|Template parameter|Expected|Empty expression|Malformed path expression|Unexpected character/,
+				);
+			}
+		});
+
 		it("renders file-backed applied templates containing includes and applications", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
@@ -969,6 +1120,19 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				result,
 				'Before<a href="/users/1">Ada</a>After',
 			);
+		});
+
+		it("allows attr as a scoped include parameter name", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("card.scream", "{{ attr.name }}");
+
+			const result = templateEngine.render(
+				'{% include "card.scream" with attr: user %}',
+				{ user: { name: "Ada" } },
+			);
+
+			t.assert.deepStrictEqual<string>(result, "Ada");
 		});
 
 		it("does not inherit outer context inside includes", (t: TestContext) => {

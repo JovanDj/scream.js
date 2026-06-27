@@ -45,7 +45,16 @@ type TemplateParameterBindingsResult = {
 	readonly nextIndex: number;
 };
 
-type PathExpressionStopTokenType = "closeDirective" | "closeVariable" | "comma";
+type OptionalTemplateParameterBindingsResult = {
+	readonly bindings?: readonly TemplateParameterBinding[];
+	readonly nextIndex: number;
+};
+
+type PathExpressionStopTokenType =
+	| "closeDirective"
+	| "closeParen"
+	| "closeVariable"
+	| "comma";
 
 export class Parser {
 	parse(tokens: readonly Token[]): readonly TemplateASTNode[] {
@@ -378,11 +387,19 @@ export class Parser {
 		}
 
 		if (token?.type === "string") {
+			const parameters = this.#parseOptionalApplyTemplateParameters(
+				tokens,
+				index + 1,
+			);
+
 			return {
-				nextIndex: index + 1,
+				nextIndex: parameters.nextIndex,
 				reference: {
 					children: [],
 					path: token.value,
+					...(parameters.bindings === undefined
+						? {}
+						: { parameters: parameters.bindings }),
 					span: token.span,
 					type: "fileTemplate",
 				},
@@ -390,14 +407,45 @@ export class Parser {
 		}
 
 		const name = this.#expectWord(tokens, index);
+		const parameters = this.#parseOptionalApplyTemplateParameters(
+			tokens,
+			index + 1,
+		);
 
 		return {
-			nextIndex: index + 1,
+			nextIndex: parameters.nextIndex,
 			reference: {
 				name: name.value,
+				...(parameters.bindings === undefined
+					? {}
+					: { parameters: parameters.bindings }),
 				span: name.span,
 				type: "namedTemplate",
 			},
+		};
+	}
+
+	#parseOptionalApplyTemplateParameters(
+		tokens: readonly Token[],
+		index: number,
+	): OptionalTemplateParameterBindingsResult {
+		const open = tokens[index];
+
+		if (open?.type !== "openParen") {
+			return { nextIndex: index };
+		}
+
+		const parameters = this.#parseTemplateParameters(
+			tokens,
+			index + 1,
+			["closeParen"],
+			true,
+		);
+		this.#expectToken(tokens, parameters.nextIndex, "closeParen");
+
+		return {
+			bindings: parameters.bindings,
+			nextIndex: parameters.nextIndex + 1,
 		};
 	}
 
@@ -446,7 +494,9 @@ export class Parser {
 		}
 
 		this.#expectWord(tokens, index + 3, "with");
-		const parameters = this.#parseTemplateParameters(tokens, index + 4);
+		const parameters = this.#parseTemplateParameters(tokens, index + 4, [
+			"closeDirective",
+		]);
 		const close = this.#expectToken(
 			tokens,
 			parameters.nextIndex,
@@ -467,13 +517,26 @@ export class Parser {
 	#parseTemplateParameters(
 		tokens: readonly Token[],
 		index: number,
+		stopTokenTypes: readonly PathExpressionStopTokenType[],
+		rejectAttrName = false,
 	): TemplateParameterBindingsResult {
-		const first = this.#parseTemplateParameter(tokens, index);
+		if (tokens[index]?.type === stopTokenTypes[0]) {
+			const token = tokens[index];
+			throw new TemplateSyntaxError("Template parameter required", {
+				...(!token ? {} : { span: token.span }),
+			});
+		}
+
+		const first = this.#parseTemplateParameter(tokens, index, rejectAttrName);
 		const bindings: TemplateParameterBinding[] = [first.binding];
 		let nextIndex = first.nextIndex;
 
 		while (tokens[nextIndex]?.type === "comma") {
-			const next = this.#parseTemplateParameter(tokens, nextIndex + 1);
+			const next = this.#parseTemplateParameter(
+				tokens,
+				nextIndex + 1,
+				rejectAttrName,
+			);
 			if (bindings.some((binding) => binding.name === next.binding.name)) {
 				throw new TemplateSyntaxError(
 					`Duplicate template parameter: ${next.binding.name}`,
@@ -490,13 +553,21 @@ export class Parser {
 	#parseTemplateParameter(
 		tokens: readonly Token[],
 		index: number,
+		rejectAttrName = false,
 	): TemplateParameterBindingResult {
 		const name = this.#expectWord(tokens, index);
 		this.#expectToken(tokens, index + 1, "colon");
 		const expression = this.#parsePathExpressionUntil(tokens, index + 2, [
 			"closeDirective",
+			"closeParen",
 			"comma",
 		]);
+
+		if (rejectAttrName && name.value === "attr") {
+			throw new TemplateSyntaxError("Template parameter cannot be named attr", {
+				span: name.span,
+			});
+		}
 
 		return {
 			binding: {
