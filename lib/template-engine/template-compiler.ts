@@ -2,6 +2,7 @@ import type {
 	ApplyTemplateReference,
 	BlockNode,
 	TemplateASTNode,
+	TemplateDefinitionNode,
 	VariableNode,
 } from "./ast.js";
 import type { FileLoader } from "./file-loader.js";
@@ -183,6 +184,18 @@ export class TemplateCompiler {
 						: {
 								templates: node.templates.map((template) =>
 									this.#resolveApplyTemplateReference(template, referenceChain),
+								),
+							}),
+					...(node.templateStages === undefined
+						? {}
+						: {
+								templateStages: node.templateStages.map((stage) =>
+									stage.map((template) =>
+										this.#resolveApplyTemplateReference(
+											template,
+											referenceChain,
+										),
+									),
 								),
 							}),
 				},
@@ -368,20 +381,45 @@ export class TemplateCompiler {
 	#prepareRendererValuePlacements(
 		nodes: readonly TemplateASTNode[],
 	): readonly TemplateASTNode[] {
-		return this.#prepareRendererValuePlacementsFrom(nodes, {
-			mode: "text",
-		}).nodes;
+		return this.#prepareRendererValuePlacementsFrom(
+			nodes,
+			{
+				mode: "text",
+			},
+			this.#templateDefinitions(nodes),
+		).nodes;
+	}
+
+	#templateDefinitions(
+		nodes: readonly TemplateASTNode[],
+	): ReadonlyMap<string, TemplateDefinitionNode> {
+		const definitions = new Map<string, TemplateDefinitionNode>();
+
+		this.#walkNodes(nodes, (node) => {
+			if (node.type === "template" && !definitions.has(node.name)) {
+				definitions.set(node.name, node);
+			}
+		});
+
+		return definitions;
 	}
 
 	#prepareRendererValuePlacementsFrom(
 		nodes: readonly TemplateASTNode[],
 		initialState: DynamicAttributeScanState,
+		definitions: ReadonlyMap<string, TemplateDefinitionNode>,
+		preparingNames: readonly string[] = [],
 	): RendererPlacementResult {
 		let state = initialState;
 		const nextNodes: TemplateASTNode[] = [];
 
 		for (const node of nodes) {
-			const result = this.#prepareRendererValuePlacementNode(node, state);
+			const result = this.#prepareRendererValuePlacementNode(
+				node,
+				state,
+				definitions,
+				preparingNames,
+			);
 			nextNodes.push(result.node);
 			state = result.state;
 		}
@@ -392,6 +430,8 @@ export class TemplateCompiler {
 	#prepareRendererValuePlacementNode(
 		node: TemplateASTNode,
 		state: DynamicAttributeScanState,
+		definitions: ReadonlyMap<string, TemplateDefinitionNode>,
+		preparingNames: readonly string[],
 	): RendererPlacementNodeResult {
 		if (node.type === "text") {
 			return {
@@ -414,10 +454,14 @@ export class TemplateCompiler {
 					alternate: this.#prepareRendererValuePlacementsFrom(
 						node.alternate,
 						state,
+						definitions,
+						preparingNames,
 					).nodes,
 					children: this.#prepareRendererValuePlacementsFrom(
 						node.children,
 						state,
+						definitions,
+						preparingNames,
 					).nodes,
 				},
 				state,
@@ -431,6 +475,8 @@ export class TemplateCompiler {
 					children: this.#prepareRendererValuePlacementsFrom(
 						node.children,
 						state,
+						definitions,
+						preparingNames,
 					).nodes,
 				},
 				state,
@@ -444,6 +490,8 @@ export class TemplateCompiler {
 					children: this.#prepareRendererValuePlacementsFrom(
 						node.children,
 						state,
+						definitions,
+						preparingNames,
 					).nodes,
 					...(node.templates === undefined
 						? {}
@@ -452,6 +500,22 @@ export class TemplateCompiler {
 									this.#prepareApplyTemplateReferencePlacements(
 										template,
 										state,
+										definitions,
+										preparingNames,
+									),
+								),
+							}),
+					...(node.templateStages === undefined
+						? {}
+						: {
+								templateStages: node.templateStages.map((stage) =>
+									stage.map((template) =>
+										this.#prepareApplyTemplateReferencePlacements(
+											template,
+											state,
+											definitions,
+											preparingNames,
+										),
 									),
 								),
 							}),
@@ -464,9 +528,14 @@ export class TemplateCompiler {
 			return {
 				node: {
 					...node,
-					children: this.#prepareRendererValuePlacementsFrom(node.children, {
-						mode: "text",
-					}).nodes,
+					children: this.#prepareRendererValuePlacementsFrom(
+						node.children,
+						{
+							mode: "text",
+						},
+						definitions,
+						preparingNames,
+					).nodes,
 				},
 				state,
 			};
@@ -476,6 +545,8 @@ export class TemplateCompiler {
 			const result = this.#prepareRendererValuePlacementsFrom(
 				node.children,
 				state,
+				definitions,
+				preparingNames,
 			);
 
 			return {
@@ -493,9 +564,36 @@ export class TemplateCompiler {
 	#prepareApplyTemplateReferencePlacements(
 		template: ApplyTemplateReference,
 		state: DynamicAttributeScanState,
+		definitions: ReadonlyMap<string, TemplateDefinitionNode>,
+		preparingNames: readonly string[],
 	): ApplyTemplateReference {
 		if (template.type === "namedTemplate") {
-			return template;
+			if (preparingNames.includes(template.name)) {
+				if (state.mode === "text") {
+					return template;
+				}
+
+				throw new TemplateSyntaxError(
+					"Recursive named templates cannot be applied in attribute or raw text positions",
+					{ span: template.span },
+				);
+			}
+
+			const definition = definitions.get(template.name);
+
+			if (!definition) {
+				return template;
+			}
+
+			return {
+				...template,
+				children: this.#prepareRendererValuePlacementsFrom(
+					definition.children,
+					state,
+					definitions,
+					[...preparingNames, template.name],
+				).nodes,
+			};
 		}
 
 		return {
@@ -503,6 +601,8 @@ export class TemplateCompiler {
 			children: this.#prepareRendererValuePlacementsFrom(
 				template.children,
 				state,
+				definitions,
+				preparingNames,
 			).nodes,
 		};
 	}
@@ -511,8 +611,15 @@ export class TemplateCompiler {
 		node: VariableNode,
 		state: DynamicAttributeScanState,
 	): VariableNode {
-		if (state.mode === "text" || state.mode === "quotedAttributeValue") {
+		if (state.mode === "text") {
 			return node;
+		}
+
+		if (state.mode === "quotedAttributeValue") {
+			return {
+				...node,
+				renderPosition: "attributeValue",
+			};
 		}
 
 		if (state.mode === "rawText") {
@@ -924,7 +1031,10 @@ export class TemplateCompiler {
 		const parentBlocks = this.#indexBlocks(resolvedParent);
 		this.#assertKnownChildBlocks(childBlocks, parentBlocks);
 
-		return this.#mergeBlocks(resolvedParent, childBlocks);
+		return [
+			...ast.filter((node) => node.type === "interface"),
+			...this.#mergeBlocks(resolvedParent, childBlocks),
+		];
 	}
 
 	#findExtendsNode(ast: readonly TemplateASTNode[]) {
@@ -1036,6 +1146,10 @@ export class TemplateCompiler {
 			}
 
 			if (node.type === "extends") {
+				continue;
+			}
+
+			if (node.type === "interface") {
 				continue;
 			}
 
@@ -1216,6 +1330,15 @@ export class TemplateCompiler {
 								this.#mergeApplyTemplateReference(template, childBlocks),
 							),
 						}),
+				...(node.templateStages === undefined
+					? {}
+					: {
+							templateStages: node.templateStages.map((stage) =>
+								stage.map((template) =>
+									this.#mergeApplyTemplateReference(template, childBlocks),
+								),
+							),
+						}),
 			};
 		}
 
@@ -1262,11 +1385,10 @@ export class TemplateCompiler {
 	#applyReferenceChildren(
 		node: Extract<TemplateASTNode, { type: "apply" }>,
 	): readonly (readonly TemplateASTNode[])[] {
-		return (
-			node.templates
-				?.filter((template) => template.type === "fileTemplate")
-				.map((template) => template.children) ?? []
-		);
+		return [node.templates, ...(node.templateStages ?? [])]
+			.flatMap((templates) => templates ?? [])
+			.filter((template) => template.type === "fileTemplate")
+			.map((template) => template.children);
 	}
 
 	#mergeApplyTemplateReference(

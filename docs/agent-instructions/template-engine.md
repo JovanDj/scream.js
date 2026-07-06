@@ -44,11 +44,12 @@ Every stage receives structured input, returns structured output, and does not d
 * Introduce a separate transform pipeline only when compile-time behavior grows beyond static template composition.
 * Named view loading and template group/skin selection belong to `FileLoader`; it does not parse template grammar or merge layouts.
 * Rendering is split into compile-time work (`TemplateCompiler`) and render-time work (`TemplateRenderer`).
-* `ScreamTemplateEngine.create(fileLoader)` is the public composition path for wiring the default tokenizer, parser, evaluator, and HTML renderer.
+* `ScreamTemplateEngine.create(fileLoader, renderer)` is the public composition path for wiring the default tokenizer, parser, evaluator, and renderer. Omit the renderer to use `HtmlRenderer`.
 * `TemplateGroupFileLoader` can search an active template group first and then fallback groups.
 * `renderView()` resolves source through `FileLoader` and reports named-view syntax or render failures with the relevant view name.
 * Missing attributes render as empty strings for variable output.
 * Invalid direct object/array/function/symbol rendering fails loudly.
+* Filesystem loaders read templates on each render and do not cache compiled output.
 * Template-engine coverage is intentionally black-box at the public `ScreamTemplateEngine` boundary.
 
 ## Model-View Separation
@@ -60,6 +61,7 @@ Templates follow Parr's strict model-view separation.
 * Templates must not hard-code URL values or URL fragments in URL-bearing attributes.
 * Controllers and model code prepare all presentation state explicitly.
 * Controllers provide complete route and asset URLs as attributes, including row-level URLs used inside template application.
+* The engine can reject template syntax and accessor pulls, but it cannot prove pushed values are free of display or layout information. Keep template names, CSS classes, route and asset URLs, `HtmlAttributes`, `SafeHtml`, formatted strings, and selected-state markers in controller/ViewModel mapping, not domain models.
 * Applied item templates receive only the item ViewModel as `attr`; they do not inherit outer template context.
 * Includes never inherit outer template context. Parameterized includes receive only their named parameters. Parameter-less includes receive an empty context.
 * Dynamic attribute values must be quoted, such as `class="{{ attr.className }}"`.
@@ -111,6 +113,7 @@ Template groups and skins:
 * `TemplateGroupFileLoader` searches configured group directories in order.
 * Active groups override fallback groups by file name.
 * Missing templates fall through to later groups.
+* This fallback order is ScreamJS skin inheritance: earlier groups inherit missing templates from later groups.
 * Templates cannot choose skins, groups, or fallback paths.
 * Skin selection is controller/application configuration, not template syntax.
 
@@ -154,6 +157,7 @@ Renderer-level values:
 * `HtmlAttributes` escapes string and number values, renders `true` as a boolean attribute, and omits `false`, `null`, and `undefined`.
 * `HtmlAttributes` may render only in attribute-list position. Body-position `{{ attrs }}` fails loudly.
 * Variables in attribute-list position must resolve to `HtmlAttributes`; scalar values and `SafeHtml` fail loudly there.
+* `FormattedDate.fromDate(...)` and `FormattedNumber.fromNumber(...)` are renderer-level formatting values. Templates still only reference paths.
 
 Good:
 
@@ -205,6 +209,16 @@ Example:
 <input name="title">
 {% endif %}
 ```
+
+## Interfaces
+
+Template interfaces declare required pushed attributes. They render nothing and do not declare types.
+
+```scream
+{% interface title, user.name %}
+```
+
+Missing, `null`, or `undefined` interface attributes fail loudly. `false`, `0`, and `""` satisfy the contract.
 
 ## Template Application
 
@@ -258,6 +272,12 @@ Round-robin file-backed application:
 {% apply todos to "todo-odd-row.scream", "todo-even-row.scream" %}
 ```
 
+Chained application:
+
+```scream
+{% apply names to bold then listItem %}
+```
+
 Static include:
 
 ```scream
@@ -282,6 +302,8 @@ Application rules:
 * Applied templates cannot read outer context; push every row value onto each item.
 * Named templates render only when applied.
 * Comma-separated applied templates are selected round-robin by item index.
+* `then` applies another template stage to the previous stage's rendered result.
+* Recursive template application assumes finite pushed data; do not use cyclic ViewModels.
 * Duplicate template names and unknown named applications fail loudly.
 * Include parameter values are path expressions only.
 * Includes read only explicitly supplied parameters. Parameter-less includes read no attributes.

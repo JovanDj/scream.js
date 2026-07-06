@@ -5,6 +5,7 @@ export type TemplateASTNode =
 	| TextNode
 	| VariableNode
 	| IfNode
+	| InterfaceNode
 	| ApplyNode
 	| ScopedTemplateNode
 	| TemplateDefinitionNode
@@ -25,7 +26,7 @@ export type VariableNode = {
 	readonly span: SourceSpan;
 };
 
-export type VariableRenderPosition = "attributes" | "html";
+export type VariableRenderPosition = "attributeValue" | "attributes" | "html";
 
 export type IfNode = {
 	readonly type: "if";
@@ -35,11 +36,18 @@ export type IfNode = {
 	readonly span: SourceSpan;
 };
 
+export type InterfaceNode = {
+	readonly type: "interface";
+	readonly attributes: readonly ExpressionNode[];
+	readonly span: SourceSpan;
+};
+
 export type ApplyNode = {
 	readonly type: "apply";
 	readonly source: ExpressionNode;
 	readonly children: readonly TemplateASTNode[];
 	readonly templates?: readonly ApplyTemplateReference[];
+	readonly templateStages?: readonly (readonly ApplyTemplateReference[])[];
 	readonly span: SourceSpan;
 };
 
@@ -47,6 +55,7 @@ export type ApplyTemplateReference =
 	| {
 			readonly type: "namedTemplate";
 			readonly name: string;
+			readonly children?: readonly TemplateASTNode[];
 			readonly parameters?: readonly TemplateParameterBinding[];
 			readonly span: SourceSpan;
 	  }

@@ -2,7 +2,10 @@ import { RenderError } from "./render-error.js";
 import type { RenderNode, RenderValueNode } from "./render-node.js";
 import {
 	assertValidAttributeName,
+	FormattedDate,
+	FormattedNumber,
 	HtmlAttributes,
+	RenderedTemplateValue,
 	SafeHtml,
 } from "./render-values.js";
 
@@ -28,6 +31,10 @@ export class HtmlRenderer {
 			return this.#renderAttributesValue(node.value, node.expression);
 		}
 
+		if (node.renderPosition === "attributeValue") {
+			return this.#renderQuotedAttributeValue(node.value, node.expression);
+		}
+
 		return this.#renderHtmlValue(node.value, node.expression);
 	}
 
@@ -38,6 +45,14 @@ export class HtmlRenderer {
 
 		if (value instanceof SafeHtml) {
 			return value.html;
+		}
+
+		if (value instanceof RenderedTemplateValue) {
+			return this.render(value.nodes);
+		}
+
+		if (this.#isFormattedValue(value)) {
+			return this.#escape(this.#formatValue(value));
 		}
 
 		if (value instanceof HtmlAttributes) {
@@ -66,6 +81,45 @@ export class HtmlRenderer {
 		throw new RenderError(
 			"Only HtmlAttributes can render in attribute position",
 			{ expression },
+		);
+	}
+
+	#renderQuotedAttributeValue(value: unknown, expression: string) {
+		if (value === null || value === undefined) {
+			return "";
+		}
+
+		if (
+			value instanceof SafeHtml ||
+			value instanceof HtmlAttributes ||
+			value instanceof RenderedTemplateValue ||
+			!this.#isRenderableScalar(value)
+		) {
+			if (this.#isFormattedValue(value)) {
+				return this.#escape(this.#formatValue(value));
+			}
+
+			throw new RenderError("Cannot render value in quoted attribute", {
+				expression,
+			});
+		}
+
+		return this.#escape(String(value));
+	}
+
+	#isFormattedValue(value: unknown): value is FormattedDate | FormattedNumber {
+		return value instanceof FormattedDate || value instanceof FormattedNumber;
+	}
+
+	#formatValue(value: FormattedDate | FormattedNumber) {
+		if (value instanceof FormattedDate) {
+			return new Intl.DateTimeFormat(value.locale, value.options).format(
+				value.date,
+			);
+		}
+
+		return new Intl.NumberFormat(value.locale, value.options).format(
+			value.value,
 		);
 	}
 

@@ -1,13 +1,17 @@
 import type { TemplateASTNode } from "./ast.js";
 import type { RenderContext } from "./context.js";
 import type { Evaluator } from "./evaluator.js";
-import type { HtmlRenderer } from "./html-renderer.js";
+import type { RenderNode } from "./render-node.js";
+
+export type HtmlRendererContract = {
+	render(nodes: readonly RenderNode[]): string;
+};
 
 export class TemplateRenderer {
 	readonly #evaluator: Evaluator;
-	readonly #htmlRenderer: HtmlRenderer;
+	readonly #htmlRenderer: HtmlRendererContract;
 
-	constructor(evaluator: Evaluator, htmlRenderer: HtmlRenderer) {
+	constructor(evaluator: Evaluator, htmlRenderer: HtmlRendererContract) {
 		this.#evaluator = evaluator;
 		this.#htmlRenderer = htmlRenderer;
 	}
