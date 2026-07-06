@@ -12,6 +12,9 @@ export class PagesController {
 
 	about(ctx: HttpContext) {
 		return ctx.render("about", {
+			homeUrl: "/",
+			pageTitle: "About",
+			tagsUrl: "/tags",
 			todosUrl: "/todos",
 		});
 	}
