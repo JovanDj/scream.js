@@ -8,6 +8,7 @@ import type { RenderContext } from "./context.js";
 import type { ExpressionNode } from "./expression.js";
 import { RenderError } from "./render-error.js";
 import type { RenderNode } from "./render-node.js";
+import { RenderedTemplateValue } from "./render-values.js";
 
 const MISSING = Symbol("missing");
 
@@ -68,6 +69,19 @@ export class Evaluator {
 			return this.#evaluateNodes(selectedBranch, context, templates);
 		}
 
+		if (node.type === "interface") {
+			for (const attribute of node.attributes) {
+				if (!this.#isPresent(attribute, context)) {
+					throw new RenderError(
+						`Missing template attribute: ${this.#formatExpression(attribute)}`,
+						{ expression: this.#formatExpression(attribute) },
+					);
+				}
+			}
+
+			return [];
+		}
+
 		if (node.type === "apply") {
 			return this.#evaluateApply(node, context, templates);
 		}
@@ -111,22 +125,70 @@ export class Evaluator {
 
 		const items = Array.isArray(raw) ? raw : [raw];
 
-		return items.flatMap((item, index) => {
-			const appliedTemplate = this.#applyTemplateForItem(
-				node,
-				index,
+		if (node.templates !== undefined) {
+			return this.#evaluateApplyTemplateStages(
+				items,
+				[node.templates, ...(node.templateStages ?? [])],
+				context,
 				templates,
 			);
+		}
 
+		return items.flatMap((item) => {
 			return this.#evaluateNodes(
-				appliedTemplate.children,
+				node.children,
 				{
 					attr: item,
-					...this.#scopeContext(appliedTemplate.parameters ?? [], context),
 				},
 				templates,
 			);
 		});
+	}
+
+	#evaluateApplyTemplateStages(
+		items: readonly unknown[],
+		stages: readonly (readonly ApplyTemplateReference[])[],
+		context: RenderContext,
+		templates: TemplateMap,
+	): readonly RenderNode[] {
+		const values = stages.reduce<readonly unknown[]>((currentItems, stage) => {
+			return currentItems.map((item, index) => {
+				return RenderedTemplateValue.fromNodes(
+					this.#evaluateAppliedTemplate(item, index, stage, context, templates),
+				);
+			});
+		}, items);
+
+		return values.flatMap((value) => {
+			if (value instanceof RenderedTemplateValue) {
+				return value.nodes;
+			}
+
+			return [];
+		});
+	}
+
+	#evaluateAppliedTemplate(
+		item: unknown,
+		index: number,
+		references: readonly ApplyTemplateReference[],
+		context: RenderContext,
+		templates: TemplateMap,
+	) {
+		const appliedTemplate = this.#applyTemplateForItem(
+			references,
+			index,
+			templates,
+		);
+
+		return this.#evaluateNodes(
+			appliedTemplate.children,
+			{
+				attr: item,
+				...this.#scopeContext(appliedTemplate.parameters ?? [], context),
+			},
+			templates,
+		);
 	}
 
 	#scopeContext(
@@ -143,15 +205,11 @@ export class Evaluator {
 	}
 
 	#applyTemplateForItem(
-		node: Extract<TemplateASTNode, { type: "apply" }>,
+		references: readonly ApplyTemplateReference[],
 		index: number,
 		templates: TemplateMap,
 	): AppliedTemplate {
-		const template = this.#applyTemplateReferenceForItem(node.templates, index);
-
-		if (!template) {
-			return { children: node.children };
-		}
+		const template = this.#applyTemplateReferenceForItem(references, index);
 
 		if (template.type === "fileTemplate") {
 			return {
@@ -163,7 +221,8 @@ export class Evaluator {
 		}
 
 		return {
-			children: this.#templateChildren(template.name, templates),
+			children:
+				template.children ?? this.#templateChildren(template.name, templates),
 			...(template.parameters === undefined
 				? {}
 				: { parameters: template.parameters }),
@@ -171,14 +230,16 @@ export class Evaluator {
 	}
 
 	#applyTemplateReferenceForItem(
-		templates: readonly ApplyTemplateReference[] | undefined,
+		templates: readonly ApplyTemplateReference[],
 		index: number,
 	) {
-		if (templates === undefined || templates.length === 0) {
-			return undefined;
+		const template = templates[index % templates.length];
+
+		if (template === undefined) {
+			throw new RenderError("Template reference required");
 		}
 
-		return templates[index % templates.length];
+		return template;
 	}
 
 	#templateChildren(name: string, templates: TemplateMap) {
@@ -220,7 +281,10 @@ export class Evaluator {
 				return;
 			}
 
-			for (const template of node.templates ?? []) {
+			for (const template of [
+				...(node.templates ?? []),
+				...(node.templateStages ?? []).flat(),
+			]) {
 				if (template.type === "fileTemplate") {
 					continue;
 				}
@@ -261,7 +325,10 @@ export class Evaluator {
 
 		if (node.type === "apply") {
 			this.#walkNodes(node.children, visit);
-			for (const template of node.templates ?? []) {
+			for (const template of [
+				...(node.templates ?? []),
+				...(node.templateStages ?? []).flat(),
+			]) {
 				if (template.type === "fileTemplate") {
 					this.#walkNodes(template.children, visit);
 				}
@@ -309,8 +376,20 @@ export class Evaluator {
 				});
 			}
 
-			if (this.#isRecord(acc) && Object.hasOwn(acc, key)) {
-				return acc[key];
+			if (this.#isRecord(acc)) {
+				const descriptor = Object.getOwnPropertyDescriptor(acc, key);
+
+				if (descriptor === undefined) {
+					return MISSING;
+				}
+
+				if (!("value" in descriptor)) {
+					throw new RenderError("Cannot access accessor property", {
+						expression: this.#formatPath(path),
+					});
+				}
+
+				return descriptor.value;
 			}
 
 			return MISSING;

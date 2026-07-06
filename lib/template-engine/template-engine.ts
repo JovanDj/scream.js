@@ -6,7 +6,10 @@ import { Parser } from "./parser.js";
 import { RenderError } from "./render-error.js";
 import { SystemFileLoader } from "./system-file-loader.js";
 import { TemplateCompiler } from "./template-compiler.js";
-import { TemplateRenderer } from "./template-renderer.js";
+import {
+	type HtmlRendererContract,
+	TemplateRenderer,
+} from "./template-renderer.js";
 import { TemplateSyntaxError } from "./template-syntax-error.js";
 import { Tokenizer } from "./tokenizer.js";
 
@@ -18,21 +21,30 @@ export type {
 	HtmlAttributeEntry,
 	HtmlAttributeValue,
 } from "./render-values.js";
-export { HtmlAttributes, SafeHtml } from "./render-values.js";
+export {
+	FormattedDate,
+	FormattedNumber,
+	HtmlAttributes,
+	SafeHtml,
+} from "./render-values.js";
 export {
 	TemplateGroupFileLoader,
 	type TemplateGroupFileLoaderOptions,
 } from "./template-group-file-loader.js";
+export type { HtmlRendererContract } from "./template-renderer.js";
 export { TemplateSyntaxError } from "./template-syntax-error.js";
 
 export class ScreamTemplateEngine {
 	readonly #compiler: TemplateCompiler;
 	readonly #renderer: TemplateRenderer;
 
-	static create(fileLoader: FileLoader = new SystemFileLoader()) {
+	static create(
+		fileLoader: FileLoader = new SystemFileLoader(),
+		htmlRenderer: HtmlRendererContract = new HtmlRenderer(),
+	) {
 		return new ScreamTemplateEngine(
 			new TemplateCompiler(fileLoader, new Tokenizer(), new Parser()),
-			new TemplateRenderer(new Evaluator(), new HtmlRenderer()),
+			new TemplateRenderer(new Evaluator(), htmlRenderer),
 		);
 	}
 

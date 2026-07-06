@@ -4,7 +4,10 @@ import path from "node:path";
 import { describe, it, type TestContext } from "node:test";
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
 import {
+	FormattedDate,
+	FormattedNumber,
 	HtmlAttributes,
+	type RenderNode,
 	SafeHtml,
 	ScreamTemplateEngine,
 	TemplateGroupFileLoader,
@@ -16,6 +19,22 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		const templateEngine = ScreamTemplateEngine.create(fileLoader);
 
 		return { fileLoader, templateEngine };
+	};
+
+	const renderNodeExpressions = (nodes: readonly RenderNode[]): string => {
+		return nodes
+			.map((node) => {
+				if (node.type === "text") {
+					return node.value;
+				}
+
+				if (node.type === "value") {
+					return `[${node.expression}]`;
+				}
+
+				return renderNodeExpressions(node.children);
+			})
+			.join("");
 	};
 
 	describe("attribute references", () => {
@@ -41,6 +60,20 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<string>(result, "Condition|Collection");
 		});
 
+		it("accepts a custom renderer through the public factory", (t: TestContext) => {
+			t.plan(1);
+			const templateEngine = ScreamTemplateEngine.create(
+				new InMemoryFileLoader(),
+				{ render: renderNodeExpressions },
+			);
+
+			const result = templateEngine.render("Hello, {{ name }}!", {
+				name: "Ada",
+			});
+
+			t.assert.deepStrictEqual<string>(result, "Hello, [name]!");
+		});
+
 		it("renders scalar attributes with HTML escaping", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
@@ -63,6 +96,31 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<string>(result, "<strong>Hi</strong>");
 		});
 
+		it("renders formatted renderer values", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				'<p>{{ publishedAt }} {{ total }}</p><span title="{{ publishedAt }}"></span>',
+				{
+					publishedAt: FormattedDate.fromDate(
+						new Date("2026-01-02T00:00:00.000Z"),
+						"en-US",
+						{ dateStyle: "medium", timeZone: "UTC" },
+					),
+					total: FormattedNumber.fromNumber(1234.5, "en-US", {
+						currency: "USD",
+						style: "currency",
+					}),
+				},
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<p>Jan 2, 2026 $1,234.50</p><span title="Jan 2, 2026"></span>',
+			);
+		});
+
 		it("renders missing attributes as an empty string", (t: TestContext) => {
 			t.plan(3);
 			const { templateEngine } = setupTemplateEngine();
@@ -78,6 +136,25 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				templateEngine.render("Hello, {{ name }}!", { name: undefined }),
 				"Hello, !",
 			);
+		});
+
+		it("rejects accessor properties without invoking them", (t: TestContext) => {
+			t.plan(2);
+			const { templateEngine } = setupTemplateEngine();
+			const user: Record<string, unknown> = {};
+			let getterCalls = 0;
+			Object.defineProperty(user, "name", {
+				get() {
+					getterCalls++;
+					return "Ada";
+				},
+			});
+
+			t.assert.throws(
+				() => templateEngine.render("{{ user.name }}", { user }),
+				/Cannot access accessor property/,
+			);
+			t.assert.deepStrictEqual<number>(getterCalls, 0);
 		});
 
 		it("rejects bracket path expressions", (t: TestContext) => {
@@ -122,7 +199,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		});
 
 		it("rejects literal expressions", (t: TestContext) => {
-			t.plan(6);
+			t.plan(8);
 			const { templateEngine } = setupTemplateEngine();
 
 			t.assert.throws(() => templateEngine.render("{{ true }}", {}), /literal/);
@@ -139,6 +216,14 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.throws(
 				() => templateEngine.render("{{ Infinity }}", {}),
 				/literal/,
+			);
+			t.assert.throws(
+				() => templateEngine.render('{{ "text" }}', {}),
+				/Expected word token/,
+			);
+			t.assert.throws(
+				() => templateEngine.render("{{ 123 }}", {}),
+				/Unexpected character/,
 			);
 		});
 
@@ -218,6 +303,26 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 						html: SafeHtml.fromTrustedHtml(' onclick="alert(1)"'),
 					}),
 				/Only HtmlAttributes can render in attribute position/,
+			);
+		});
+
+		it("rejects renderer-only values inside quoted attributes", (t: TestContext) => {
+			t.plan(2);
+			const { templateEngine } = setupTemplateEngine();
+
+			t.assert.throws(
+				() =>
+					templateEngine.render('<div class="{{ html }}"></div>', {
+						html: SafeHtml.fromTrustedHtml('" onclick="alert(1)'),
+					}),
+				/Cannot render value in quoted attribute/,
+			);
+			t.assert.throws(
+				() =>
+					templateEngine.render('<div class="{{ attrs }}"></div>', {
+						attrs: HtmlAttributes.fromRecord({ class: "primary" }),
+					}),
+				/Cannot render value in quoted attribute/,
 			);
 		});
 
@@ -343,6 +448,67 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				});
 
 			t.assert.throws(act, /Cannot access array value/);
+		});
+	});
+
+	describe("template interfaces", () => {
+		it("renders nothing when declared attributes are present", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				"{% interface title, user.name %}<h1>{{ title }}</h1>",
+				{ title: "Home", user: { name: "Ada" } },
+			);
+
+			t.assert.deepStrictEqual<string>(result, "<h1>Home</h1>");
+		});
+
+		it("throws when declared attributes are missing", (t: TestContext) => {
+			t.plan(2);
+			const { templateEngine } = setupTemplateEngine();
+
+			t.assert.throws(
+				() =>
+					templateEngine.render(
+						"{% interface title %}<h1>{{ title }}</h1>",
+						{},
+					),
+				/Missing template attribute: title/,
+			);
+			t.assert.throws(
+				() =>
+					templateEngine.render(
+						"{% interface user.name %}<h1>{{ user.name }}</h1>",
+						{
+							user: {},
+						},
+					),
+				/Missing template attribute: user\.name/,
+			);
+		});
+
+		it("checks included template interfaces against scoped parameters", (t: TestContext) => {
+			t.plan(2);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate(
+				"title.scream",
+				"{% interface title %}<h1>{{ title }}</h1>",
+			);
+
+			t.assert.deepStrictEqual<string>(
+				templateEngine.render(
+					'{% include "title.scream" with title: pageTitle %}',
+					{
+						pageTitle: "Home",
+					},
+				),
+				"<h1>Home</h1>",
+			);
+			t.assert.throws(
+				() => templateEngine.render('{% include "title.scream" %}', {}),
+				/Missing template attribute: title/,
+			);
 		});
 	});
 
@@ -605,6 +771,21 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			);
 		});
 
+		it("applies template stages left to right", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				"{% template bold %}<b>{{ attr }}</b>{% endtemplate %}{% template item %}<li>{{ attr }}</li>{% endtemplate %}<ul>{% apply names to bold then item %}</ul>",
+				{ names: ["Ada", "<Grace>"] },
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				"<ul><li><b>Ada</b></li><li><b>&lt;Grace&gt;</b></li></ul>",
+			);
+		});
+
 		it("evaluates applied template parameters from the caller scope", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
@@ -698,6 +879,39 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<string>(
 				result,
 				"<ul><li>Parent<ul><li>Child<ul></ul></li></ul></li></ul>",
+			);
+		});
+
+		it("renders hierarchical menus with presence-gated recursion", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+
+			const result = templateEngine.render(
+				'{% template menuItem %}<a href="{{ attr.url }}">{{ attr.title }}</a>{% if attr.showSubmenu %}<nav>{% apply attr.submenu to menuItem %}</nav>{% endif %}{% endtemplate %}{% apply choices to menuItem %}',
+				{
+					choices: [
+						{
+							showSubmenu: true,
+							submenu: [
+								{
+									title: "Docs",
+									url: "/docs",
+								},
+							],
+							title: "Products",
+							url: "/products",
+						},
+						{
+							title: "About",
+							url: "/about",
+						},
+					],
+				},
+			);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<a href="/products">Products</a><nav><a href="/docs">Docs</a></nav><a href="/about">About</a>',
 			);
 		});
 
@@ -972,7 +1186,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		});
 
 		it("rejects variables in unquoted attribute values", (t: TestContext) => {
-			t.plan(5);
+			t.plan(6);
 			const { templateEngine } = setupTemplateEngine();
 
 			t.assert.throws(
@@ -1002,6 +1216,14 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 					),
 				/Variables in unquoted attributes are not allowed/,
 			);
+			t.assert.throws(
+				() =>
+					templateEngine.render(
+						"{% template value %}{{ attr }}{% endtemplate %}<div class={% apply items to value %}></div>",
+						{ items: ["primary"] },
+					),
+				/Variables in unquoted attributes are not allowed/,
+			);
 		});
 
 		it("allows quoted non-URL dynamic attributes with escaping", (t: TestContext) => {
@@ -1019,7 +1241,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		});
 
 		it("rejects variables inside script and style bodies", (t: TestContext) => {
-			t.plan(4);
+			t.plan(5);
 			const { templateEngine } = setupTemplateEngine();
 
 			t.assert.throws(
@@ -1035,6 +1257,14 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 					templateEngine.render(
 						"<script>{% if payload %}{{ payload }}{% endif %}</script>",
 						{ payload: "{}" },
+					),
+				/Variables are not allowed inside script or style tags/,
+			);
+			t.assert.throws(
+				() =>
+					templateEngine.render(
+						"{% template value %}{{ attr }}{% endtemplate %}<script>{% apply items to value %}</script>",
+						{ items: ["{}"] },
 					),
 				/Variables are not allowed inside script or style tags/,
 			);
@@ -1662,6 +1892,37 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			});
 
 			t.assert.deepStrictEqual<string>(result, "Default Home");
+		});
+
+		it("reads grouped filesystem templates on every render", (t: TestContext) => {
+			t.plan(2);
+			const viewsRoot = mkdtempSync(
+				path.join(tmpdir(), "scream-template-groups-"),
+			);
+			t.after(() => {
+				rmSync(viewsRoot, { force: true, recursive: true });
+			});
+			mkdirSync(path.join(viewsRoot, "default"), { recursive: true });
+			const viewPath = path.join(viewsRoot, "default", "page.scream");
+			writeFileSync(viewPath, "First {{ title }}");
+			const templateEngine = ScreamTemplateEngine.create(
+				new TemplateGroupFileLoader({
+					groups: ["default"],
+					viewsRoot,
+				}),
+			);
+
+			t.assert.deepStrictEqual<string>(
+				templateEngine.renderView("page.scream", { title: "Title" }),
+				"First Title",
+			);
+
+			writeFileSync(viewPath, "Second {{ title }}");
+
+			t.assert.deepStrictEqual<string>(
+				templateEngine.renderView("page.scream", { title: "Title" }),
+				"Second Title",
+			);
 		});
 
 		it("loads valid nested view names from template groups", (t: TestContext) => {

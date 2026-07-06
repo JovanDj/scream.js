@@ -35,6 +35,11 @@ type ApplyTemplateReferencesResult = {
 	readonly references: readonly ApplyTemplateReference[];
 };
 
+type ApplyTemplateStagesResult = {
+	readonly nextIndex: number;
+	readonly stages: readonly (readonly ApplyTemplateReference[])[];
+};
+
 type TemplateParameterBindingResult = {
 	readonly binding: TemplateParameterBinding;
 	readonly nextIndex: number;
@@ -42,6 +47,11 @@ type TemplateParameterBindingResult = {
 
 type TemplateParameterBindingsResult = {
 	readonly bindings: readonly TemplateParameterBinding[];
+	readonly nextIndex: number;
+};
+
+type InterfaceAttributesResult = {
+	readonly attributes: readonly PathExpressionNode[];
 	readonly nextIndex: number;
 };
 
@@ -137,6 +147,10 @@ export class Parser {
 			return this.#parseIf(tokens, index);
 		}
 
+		if (directive.value === "interface") {
+			return this.#parseInterface(tokens, index);
+		}
+
 		if (directive.value === "apply") {
 			return this.#parseApply(tokens, index);
 		}
@@ -168,6 +182,49 @@ export class Parser {
 		throw new TemplateSyntaxError("Unknown directive", {
 			span: directive.span,
 		});
+	}
+
+	#parseInterface(tokens: readonly Token[], index: number): NodeResult {
+		const open = this.#expectToken(tokens, index, "openDirective");
+		this.#expectWord(tokens, index + 1, "interface");
+		const attributes = this.#parseInterfaceAttributes(tokens, index + 2);
+		const close = this.#expectToken(
+			tokens,
+			attributes.nextIndex,
+			"closeDirective",
+		);
+
+		return {
+			nextIndex: attributes.nextIndex + 1,
+			node: {
+				attributes: attributes.attributes,
+				span: { end: close.span.end, start: open.span.start },
+				type: "interface",
+			},
+		};
+	}
+
+	#parseInterfaceAttributes(
+		tokens: readonly Token[],
+		index: number,
+	): InterfaceAttributesResult {
+		const first = this.#parsePathExpressionUntil(tokens, index, [
+			"closeDirective",
+			"comma",
+		]);
+		const attributes: PathExpressionNode[] = [first.expression];
+		let nextIndex = first.nextIndex;
+
+		while (tokens[nextIndex]?.type === "comma") {
+			const next = this.#parsePathExpressionUntil(tokens, nextIndex + 1, [
+				"closeDirective",
+				"comma",
+			]);
+			attributes.push(next.expression);
+			nextIndex = next.nextIndex;
+		}
+
+		return { attributes, nextIndex };
 	}
 
 	#parseVariable(tokens: readonly Token[], index: number): NodeResult {
@@ -314,18 +371,25 @@ export class Parser {
 				tokens,
 				source.nextIndex + 1,
 			);
-			const close = this.#expectToken(
+			const stages = this.#parseApplyTemplateStages(
 				tokens,
 				templates.nextIndex,
+			);
+			const close = this.#expectToken(
+				tokens,
+				stages.nextIndex,
 				"closeDirective",
 			);
 
 			return {
-				nextIndex: templates.nextIndex + 1,
+				nextIndex: stages.nextIndex + 1,
 				node: {
 					children: [],
 					source: source.expression,
 					span: { end: close.span.end, start: open.span.start },
+					...(stages.stages.length === 0
+						? {}
+						: { templateStages: stages.stages }),
 					templates: templates.references,
 					type: "apply",
 				},
@@ -368,6 +432,25 @@ export class Parser {
 		}
 
 		return { nextIndex, references };
+	}
+
+	#parseApplyTemplateStages(
+		tokens: readonly Token[],
+		index: number,
+	): ApplyTemplateStagesResult {
+		const token = tokens[index];
+
+		if (token?.type !== "word" || token.value !== "then") {
+			return { nextIndex: index, stages: [] };
+		}
+
+		const stage = this.#parseApplyTemplateReferences(tokens, index + 1);
+		const next = this.#parseApplyTemplateStages(tokens, stage.nextIndex);
+
+		return {
+			nextIndex: next.nextIndex,
+			stages: [stage.references, ...next.stages],
+		};
 	}
 
 	#parseApplyTemplateReference(
