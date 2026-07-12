@@ -1,12 +1,9 @@
 import { RenderError } from "./render-error.js";
 import type { RenderNode, RenderValueNode } from "./render-node.js";
 import {
-	assertValidAttributeName,
 	FormattedDate,
 	FormattedNumber,
-	HtmlAttributes,
 	RenderedTemplateValue,
-	SafeHtml,
 } from "./render-values.js";
 
 export class HtmlRenderer {
@@ -27,10 +24,6 @@ export class HtmlRenderer {
 	}
 
 	#renderValue(node: RenderValueNode) {
-		if (node.renderPosition === "attributes") {
-			return this.#renderAttributesValue(node.value, node.expression);
-		}
-
 		if (node.renderPosition === "attributeValue") {
 			return this.#renderQuotedAttributeValue(node.value, node.expression);
 		}
@@ -43,23 +36,12 @@ export class HtmlRenderer {
 			return "";
 		}
 
-		if (value instanceof SafeHtml) {
-			return value.html;
-		}
-
 		if (value instanceof RenderedTemplateValue) {
 			return this.render(value.nodes);
 		}
 
 		if (this.#isFormattedValue(value)) {
 			return this.#escape(this.#formatValue(value));
-		}
-
-		if (value instanceof HtmlAttributes) {
-			throw new RenderError(
-				"HtmlAttributes can only render in attribute position",
-				{ expression },
-			);
 		}
 
 		if (!this.#isRenderableScalar(value)) {
@@ -69,29 +51,12 @@ export class HtmlRenderer {
 		return this.#escape(String(value));
 	}
 
-	#renderAttributesValue(value: unknown, expression: string) {
-		if (value === null || value === undefined) {
-			return "";
-		}
-
-		if (value instanceof HtmlAttributes) {
-			return this.#renderAttributes(value);
-		}
-
-		throw new RenderError(
-			"Only HtmlAttributes can render in attribute position",
-			{ expression },
-		);
-	}
-
 	#renderQuotedAttributeValue(value: unknown, expression: string) {
 		if (value === null || value === undefined) {
 			return "";
 		}
 
 		if (
-			value instanceof SafeHtml ||
-			value instanceof HtmlAttributes ||
 			value instanceof RenderedTemplateValue ||
 			!this.#isRenderableScalar(value)
 		) {
@@ -121,38 +86,6 @@ export class HtmlRenderer {
 		return new Intl.NumberFormat(value.locale, value.options).format(
 			value.value,
 		);
-	}
-
-	#renderAttributes(attributes: HtmlAttributes) {
-		return attributes.entries
-			.map((attribute) =>
-				this.#renderAttribute(attribute.name, attribute.value),
-			)
-			.join("");
-	}
-
-	#renderAttribute(name: string, value: unknown) {
-		this.#assertValidAttributeName(name);
-
-		if (value === null || value === undefined || value === false) {
-			return "";
-		}
-
-		if (value === true) {
-			return ` ${name}`;
-		}
-
-		return ` ${name}="${this.#escape(String(value))}"`;
-	}
-
-	#assertValidAttributeName(name: string) {
-		try {
-			assertValidAttributeName(name);
-		} catch {
-			throw new RenderError("Invalid HTML attribute name", {
-				expression: name,
-			});
-		}
 	}
 
 	#isRenderableScalar(value: unknown) {

@@ -45,6 +45,7 @@ Every stage receives structured input, returns structured output, and does not d
 * Named view loading and template group/skin selection belong to `FileLoader`; it does not parse template grammar or merge layouts.
 * Rendering is split into compile-time work (`TemplateCompiler`) and render-time work (`TemplateRenderer`).
 * `ScreamTemplateEngine.create(fileLoader, renderer)` is the public composition path for wiring the default tokenizer, parser, evaluator, and renderer. Omit the renderer to use `HtmlRenderer`.
+* `ExpressApp.create(engine)`, `KoaApp.create(engine)`, and `new ScreamApp(engine)` inject that composition into controller-driven rendering.
 * `TemplateGroupFileLoader` can search an active template group first and then fallback groups.
 * `renderView()` resolves source through `FileLoader` and reports named-view syntax or render failures with the relevant view name.
 * Missing attributes render as empty strings for variable output.
@@ -56,16 +57,19 @@ Every stage receives structured input, returns structured output, and does not d
 
 Templates follow Parr's strict model-view separation.
 
+The engine has entanglement index 1: it enforces the four decidable separation rules, but it cannot infer whether an otherwise inert pushed value carries display meaning.
+
 * Templates may reference attributes, test attribute presence, include static templates, and apply templates to attributes.
 * Templates must not perform business logic, arbitrary computation, JavaScript truthiness checks, method calls, filters, or collection length checks.
 * Templates must not hard-code URL values or URL fragments in URL-bearing attributes.
-* Controllers and model code prepare all presentation state explicitly.
 * Controllers provide complete route and asset URLs as attributes, including row-level URLs used inside template application.
-* The engine can reject template syntax and accessor pulls, but it cannot prove pushed values are free of display or layout information. Keep template names, CSS classes, route and asset URLs, `HtmlAttributes`, `SafeHtml`, formatted strings, and selected-state markers in controller/ViewModel mapping, not domain models.
+* Templates own fixed labels, HTML, CSS classes, and attribute layout. Models and controllers must not push those values as data.
+* Controllers may push presence markers computed from model data, form values, validation messages, and complete URLs.
+* Render contexts must contain inert data properties. Accessors and proxies fail before invocation.
 * Applied item templates receive only the item ViewModel as `attr`; they do not inherit outer template context.
 * Includes never inherit outer template context. Parameterized includes receive only their named parameters. Parameter-less includes receive an empty context.
 * Dynamic attribute values must be quoted, such as `class="{{ attr.className }}"`.
-* Prepared dynamic attribute lists must use `HtmlAttributes`, such as `<button{{ buttonAttributes }}>`.
+* Variables are forbidden in attribute-list position. Use literal attributes and presence-gated literal output.
 * URL-bearing attributes must use exactly one complete quoted attribute reference such as `href="{{ attr.showUrl }}"` or `src="{{ assetUrls.mainScript }}"`.
 * URL-bearing attributes include `href`, `action`, `src`, `srcset`, `formaction`, `poster`, `cite`, and `manifest`.
 * Variables are forbidden inside `<script>` and `<style>` bodies.
@@ -73,6 +77,7 @@ Templates follow Parr's strict model-view separation.
 * To hide a conditional branch, omit the attribute or set it to `undefined` or `null`.
 * Do not pass `false`, `0`, or an empty string to mean absent. Those values are present.
 * Conditional attributes are written as conditional literal output, not as a special directive.
+* Conditional branches, blocks, includes, and applied templates must preserve their surrounding HTML context.
 
 Example:
 
@@ -148,28 +153,8 @@ This searches `tenant-a` first and falls back to `default` when a template is mi
 
 Renderer-level values:
 
-* `SafeHtml.fromTrustedHtml(html)` renders trusted HTML without escaping.
-* `SafeHtml` is not a sanitizer.
-* Never pass user input directly to `SafeHtml.fromTrustedHtml()`.
-* Only sanitized or framework-generated HTML may be wrapped as `SafeHtml`.
-* `HtmlAttributes.fromRecord(...)` renders prepared HTML attributes through the renderer.
-* `HtmlAttributes.create()` builds immutable prepared attribute lists with `.set(...)`, `.when(...)`, and `.class(...)`.
-* `HtmlAttributes` escapes string and number values, renders `true` as a boolean attribute, and omits `false`, `null`, and `undefined`.
-* `HtmlAttributes` may render only in attribute-list position. Body-position `{{ attrs }}` fails loudly.
-* Variables in attribute-list position must resolve to `HtmlAttributes`; scalar values and `SafeHtml` fail loudly there.
 * `FormattedDate.fromDate(...)` and `FormattedNumber.fromNumber(...)` are renderer-level formatting values. Templates still only reference paths.
-
-Good:
-
-```ts
-const content = SafeHtml.fromTrustedHtml(sanitizedMarkdown);
-```
-
-Bad:
-
-```ts
-const content = SafeHtml.fromTrustedHtml(request.body.comment);
-```
+* Ordinary strings always render escaped. The public renderer API has no trusted-HTML or prepared-attribute escape value.
 
 Allowed expression examples:
 
@@ -316,10 +301,9 @@ Controllers push a complete ViewModel into templates. Templates never pull data 
 * Top-level templates may read only pushed top-level attributes.
 * Included templates may read only explicitly supplied parameters.
 * Applied templates may read only `attr`, paths below it, and explicit applied-template parameters.
-* Controllers must prepare URLs, labels, booleans, selected-state markers, and form display values before rendering.
-* Controllers may pass `SafeHtml` only for trusted HTML that has already been sanitized or generated by framework code.
-* Controllers may pass `HtmlAttributes` for prepared attribute lists.
-* Prepared `FormView` objects are planned for future renderer-level use.
+* Controllers prepare complete URLs, presence markers, form values, and validation messages before rendering.
+* Templates own fixed labels, CSS classes, HTML fragments, and attribute layout.
+* ViewModels must use inert own data properties. Accessors and proxies are rejected.
 
 Unsupported old syntax:
 

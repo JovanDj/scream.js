@@ -21,9 +21,10 @@ export class KoaApp implements Application {
 	readonly #koa: Koa;
 	readonly #router: Router;
 
-	static create(): Application {
+	static create(
+		templateEngine: ScreamTemplateEngine = ScreamTemplateEngine.create(),
+	): Application {
 		const koa = new KoaClass();
-		const templateEngine = ScreamTemplateEngine.create();
 
 		koa.use(bodyParser());
 		koa.use(async (ctx, next) => {
@@ -57,7 +58,6 @@ export class KoaApp implements Application {
 						viteClient: "http://127.0.0.1:5173/@vite/client",
 					},
 					lang: "en",
-					pageTitle: "ScreamJS",
 					...ctx.state,
 					...locals,
 				};

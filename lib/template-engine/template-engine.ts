@@ -17,16 +17,7 @@ export type { TemplateASTNode } from "./ast.js";
 export type { RenderContext } from "./context.js";
 export type { ExpressionNode, PathExpressionNode } from "./expression.js";
 export type { RenderNode } from "./render-node.js";
-export type {
-	HtmlAttributeEntry,
-	HtmlAttributeValue,
-} from "./render-values.js";
-export {
-	FormattedDate,
-	FormattedNumber,
-	HtmlAttributes,
-	SafeHtml,
-} from "./render-values.js";
+export { FormattedDate, FormattedNumber } from "./render-values.js";
 export {
 	TemplateGroupFileLoader,
 	type TemplateGroupFileLoaderOptions,
@@ -59,14 +50,14 @@ export class ScreamTemplateEngine {
 	render(template: string, context: RenderContext) {
 		const ast = this.#compiler.compile(template);
 
-		return this.#renderer.render(ast, { ...context });
+		return this.#renderer.render(ast, context);
 	}
 
 	renderView(viewName: string, context: RenderContext) {
 		try {
 			const ast = this.#compiler.compileView(viewName);
 
-			return this.#renderer.render(ast, { ...context });
+			return this.#renderer.render(ast, context);
 		} catch (error) {
 			throw this.#withViewName(error, viewName);
 		}

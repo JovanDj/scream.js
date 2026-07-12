@@ -26,7 +26,7 @@ export type VariableNode = {
 	readonly span: SourceSpan;
 };
 
-export type VariableRenderPosition = "attributeValue" | "attributes" | "html";
+export type VariableRenderPosition = "attributeValue";
 
 export type IfNode = {
 	readonly type: "if";

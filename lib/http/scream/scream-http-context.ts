@@ -5,18 +5,23 @@ import {
 } from "node:http";
 import path from "node:path";
 import { parse } from "node:url";
-import { ScreamTemplateEngine } from "@scream.js/template-engine/template-engine.js";
+import type { ScreamTemplateEngine } from "@scream.js/template-engine/template-engine.js";
 import type { HttpContext } from "../http-context.js";
 
 export class ScreamHttpContext implements HttpContext {
 	readonly #res: ServerResponse;
 	readonly #parsedUrl: ReturnType<typeof parse>;
 	#bodyData: unknown | undefined = undefined;
-	readonly #templateEngine = ScreamTemplateEngine.create();
+	readonly #templateEngine: ScreamTemplateEngine;
 
-	constructor(req: Readonly<IncomingMessage>, res: ServerResponse) {
+	constructor(
+		req: Readonly<IncomingMessage>,
+		res: ServerResponse,
+		templateEngine: ScreamTemplateEngine,
+	) {
 		this.#res = res;
 		this.#parsedUrl = parse(req.url || "", true);
+		this.#templateEngine = templateEngine;
 	}
 
 	notFound() {
@@ -57,8 +62,7 @@ export class ScreamHttpContext implements HttpContext {
 				viteClient: "http://127.0.0.1:5173/@vite/client",
 			},
 			lang: "en",
-			pageTitle: "ScreamJS",
-			...(locals || {}),
+			...locals,
 		});
 
 		this.#res

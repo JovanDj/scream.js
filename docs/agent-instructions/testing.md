@@ -8,6 +8,8 @@ Test observable behavior. Prefer a small number of integration-style tests over 
 
 * Use `node --test`.
 * Test public behavior as black-box behavior.
+* Write tests in Arrange, Act, Assert order with behavior-focused BDD names.
+* Keep logic out of tests: do not add branches, loops, mutable counters, or computed expectations.
 * Prefer real dependencies.
 * Keep tests colocated with the module they cover.
 * DB-backed tests must isolate their state and clean up after themselves.
