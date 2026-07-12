@@ -14,7 +14,17 @@ export class ProjectNoteShowController extends ShowController<
 	}
 
 	protected present(note: ProjectNoteData) {
-		return { note, pageTitle: note.title };
+		return {
+			action: `/project-notes/${note.id}`,
+			backUrl: `/project-notes?projectId=${note.projectId}`,
+			editUrl: `/project-notes/${note.id}/edit`,
+			homeUrl: "/",
+			note,
+			notesUrl: "/project-notes",
+			projectUrl: `/projects/${note.projectId}`,
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
+		};
 	}
 
 	protected template() {

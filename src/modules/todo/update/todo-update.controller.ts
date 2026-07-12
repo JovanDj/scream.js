@@ -30,14 +30,17 @@ export class TodosUpdateController implements Controller {
 				errors: this.#todoErrors(parsed.error.issues),
 				fields: {
 					dueAt: "",
-					isCompleted: false,
+					isCompleted: undefined,
 					isOpen: true,
 					statusCode: "open",
 					title: "",
 				},
-				pageTitle: `Edit Todo #${todoId}`,
-				submitLabel: "Update",
+				homeUrl: "/",
+				notesUrl: "/project-notes",
+				tagsUrl: "/tags",
 				todoId,
+				todosUrl: "/todos",
+				todoUrl: `/todos/${todoId}`,
 			});
 		}
 
@@ -50,7 +53,7 @@ export class TodosUpdateController implements Controller {
 	}
 
 	#todoErrors(issues: z.ZodError<TodoUpdateInput>["issues"]) {
-		const errors = { dueAt: "", title: "" };
+		const errors: { dueAt?: string; title?: string } = {};
 		for (const issue of issues) {
 			const key = issue.path.join(".");
 			if (key === "title" || key === "dueAt") {

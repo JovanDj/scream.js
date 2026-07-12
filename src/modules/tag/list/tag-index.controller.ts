@@ -16,13 +16,21 @@ export class TagIndexController extends IndexController<
 
 	protected present(tags: TagIndexData, input: TagIndexInput) {
 		return {
-			errors: { name: "" },
-			pageTitle: "Tags",
+			errors: {},
+			hasTags: tags.length > 0 ? true : undefined,
+			homeUrl: "/",
+			notesUrl: "/project-notes",
 			sorts: {
 				created: this.#sortUrl(input, "created", "desc"),
 				name: this.#sortUrl(input, "name", "asc"),
 			},
-			tags,
+			tags: tags.map((tag) => ({
+				...tag,
+				destroyUrl: `/tags/${tag.id}`,
+				showUrl: `/tags/${tag.id}`,
+			})),
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		};
 	}
 

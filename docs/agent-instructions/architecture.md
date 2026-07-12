@@ -67,9 +67,9 @@ Even in prototype mode, keep responsibilities conceptually clear:
 * Model = non-UI logic and data access, even if still simple
 * View = rendering and presentation only
 
-A rich domain model is not required for MVC. In prototype mode, the model may simply be transaction script logic, direct SQL, or simple query helpers.
+A rich domain model is not required for MVC. Services can implement focused transaction scripts with direct database access.
 
-Views must not contain business logic. Model code must not depend on HTTP or templates.
+Views must not contain business logic. Services must not depend on HTTP or templates.
 
 ## Controllers and Services
 
@@ -142,7 +142,7 @@ Do not extract SQL only to make the project look more architectural.
 
 Extract SQL only when duplication appears, queries get hard to reason about, or multiple use cases depend on the same query behavior.
 
-Whoever owns the persistence boundary must validate and parse raw rows before returning trusted module data. When a repository layer exists, it owns row parsing. When a controller, service, query object, or another module-local abstraction owns persistence directly, that layer owns row parsing instead.
+Services validate and parse raw rows before returning trusted module data. Keep database operations caller-independent and outside HTTP controllers.
 
 Do not return raw database rows from the persistence boundary.
 

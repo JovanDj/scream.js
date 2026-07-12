@@ -11,7 +11,13 @@ export class TagShowController extends ShowController<
 	}
 
 	protected present(tag: TagShowData) {
-		return { pageTitle: `Tag | ${tag.name}`, tag };
+		return {
+			homeUrl: "/",
+			notesUrl: "/project-notes",
+			tag,
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
+		};
 	}
 
 	protected template() {

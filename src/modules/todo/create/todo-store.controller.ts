@@ -22,7 +22,7 @@ export class TodosStoreController extends StoreController<
 		ctx: HttpContext,
 		error: z.ZodError<TodoStoreInput>,
 	) {
-		const errors = { dueAt: "", title: "" };
+		const errors: { dueAt?: string; title?: string } = {};
 		for (const issue of error.issues) {
 			const key = issue.path.join(".");
 			if (key === "title" || key === "dueAt") {
@@ -33,12 +33,15 @@ export class TodosStoreController extends StoreController<
 			errors,
 			fields: {
 				dueAt: "",
-				isCompleted: false,
+				isCompleted: undefined,
 				isOpen: true,
 				statusCode: "open",
 				title: "",
 			},
-			pageTitle: "New Todo",
+			homeUrl: "/",
+			notesUrl: "/project-notes",
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		});
 	}
 

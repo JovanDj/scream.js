@@ -31,13 +31,22 @@ export class ProjectNoteIndexController extends IndexController<
 				input.projectId === undefined
 					? "/project-notes/create"
 					: `/project-notes/create?projectId=${input.projectId}`,
-			isFiltered: input.projectId !== undefined,
-			notes,
-			pageTitle: "Project Notes",
+			hasNotes: notes.length > 0 ? true : undefined,
+			homeUrl: "/",
+			isFiltered: input.projectId !== undefined ? true : undefined,
+			notes: notes.map((note) => ({
+				...note,
+				editUrl: `/project-notes/${note.id}/edit`,
+				projectUrl: `/projects/${note.projectId}`,
+				showUrl: `/project-notes/${note.id}`,
+			})),
+			notesUrl: "/project-notes",
 			projectUrl:
 				input.projectId === undefined
 					? "/projects"
 					: `/projects/${input.projectId}`,
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		};
 	}
 

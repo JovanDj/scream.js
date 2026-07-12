@@ -34,7 +34,7 @@ export class TagStoreController extends StoreController<TagStoreInput, void> {
 		ctx: HttpContext,
 		error: z.ZodError<TagStoreInput>,
 	) {
-		const errors = { name: "" };
+		const errors: { name?: string } = {};
 		for (const issue of error.issues) {
 			if (issue.path.join(".") === "name") {
 				errors.name ||= issue.message;
@@ -58,18 +58,26 @@ export class TagStoreController extends StoreController<TagStoreInput, void> {
 		});
 	}
 
-	async #renderErrors(ctx: HttpContext, errors: { name: string }) {
+	async #renderErrors(ctx: HttpContext, errors: { name?: string }) {
 		const tags = await this.#listAllTags.execute();
 
 		return ctx.render("tag/index", {
 			errors,
-			pageTitle: "Tags",
-			pagination: { nextUrl: "", previousUrl: "" },
+			hasTags: tags.length > 0 ? true : undefined,
+			homeUrl: "/",
+			notesUrl: "/project-notes",
+			pagination: {},
 			sorts: {
 				created: "/tags?sort=created&direction=desc",
 				name: "/tags?direction=desc",
 			},
-			tags,
+			tags: tags.map((tag) => ({
+				...tag,
+				destroyUrl: `/tags/${tag.id}`,
+				showUrl: `/tags/${tag.id}`,
+			})),
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		});
 	}
 }

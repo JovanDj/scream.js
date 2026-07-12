@@ -1,22 +1,24 @@
 {% extends "layout.scream" %}
 
+{% block title %}{% if isEditing %}Edit Project Note{% else %}Create Project Note{% endif %}{% endblock title %}
+
 {% block content %}
 <div class="container py-4 px-3 mx-auto">
     <section class="page-shell">
-        <h1 class="page-title mb-3">{{ pageTitle }}</h1>
+        <h1 class="page-title mb-3">{% if isEditing %}Edit Project Note{% else %}Create Project Note{% endif %}</h1>
         <form action="{{ action }}" method="POST">
             {% if isEditing %}
             <input type="hidden" name="_method" value="PATCH">
             <p>Project: {{ projectName }}</p>
             {% else %}
-            {% if cannotSubmit %}<p>Create a <a href="/projects">project</a> before adding a note.</p>{% endif %}
+            {% if cannotSubmit %}<p>Create a <a href="{{ projectsUrl }}">project</a> before adding a note.</p>{% endif %}
             <div class="mb-3">
                 <label class="form-label" for="projectId">Project</label>
                 <select class="form-select" id="projectId" name="projectId" required aria-describedby="projectId-error">
                     <option value="">Select a project</option>
-                    {% for project in projects %}
-                    <option value="{{ project.id }}" {% attr selected if project.isSelected %}>{{ project.name }}</option>
-                    {% endfor %}
+                    {% apply projects %}
+                    <option value="{{ attr.id }}"{% if attr.isSelected %} selected{% endif %}>{{ attr.name }}</option>
+                    {% endapply %}
                 </select>
                 {% if errors.projectId %}<div class="invalid-feedback d-block" id="projectId-error">{{ errors.projectId }}</div>{% endif %}
             </div>
@@ -33,12 +35,12 @@
                 {% if errors.body %}<div class="invalid-feedback d-block" id="body-error">{{ errors.body }}</div>{% endif %}
             </div>
             <div class="d-flex flex-wrap gap-2">
-                <button class="btn btn-primary" type="submit" {% attr disabled if cannotSubmit %}>{{ submitLabel }}</button>
+                <button class="btn btn-primary" type="submit"{% if cannotSubmit %} disabled{% endif %}>{% if isEditing %}Update{% else %}Create{% endif %}</button>
                 <a class="btn btn-outline-secondary" href="{{ backUrl }}">Cancel</a>
             </div>
         </form>
         {% if isEditing %}
-        <form class="mt-3" action="/project-notes/{{ noteId }}" method="POST">
+        <form class="mt-3" action="{{ action }}" method="POST">
             <input type="hidden" name="_method" value="DELETE">
             <button class="btn btn-danger" type="submit">Delete</button>
         </form>

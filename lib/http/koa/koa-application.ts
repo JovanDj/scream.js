@@ -54,8 +54,10 @@ export class KoaApp implements Application {
 				const filename = path.extname(view) ? view : `${view}.scream`;
 				const data = {
 					assetUrls: {
-						mainScript: "http://127.0.0.1:5173/main.ts",
-						viteClient: "http://127.0.0.1:5173/@vite/client",
+						favicon: "data:,",
+						mainScript: "http://localhost:5173/main.ts",
+						mainStyles: "http://localhost:5173/styles.scss",
+						viteClient: "http://localhost:5173/@vite/client",
 					},
 					lang: "en",
 					...ctx.state,

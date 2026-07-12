@@ -40,7 +40,7 @@ export class ProjectNoteStoreController extends StoreController<
 		error: z.ZodError<ProjectNoteStoreInput>,
 	) {
 		const fields = projectNoteFormFieldsSchema.parse(ctx.body());
-		const errors = { body: "", projectId: "", title: "" };
+		const errors: { body?: string; projectId?: string; title?: string } = {};
 		for (const issue of error.issues) {
 			const key = issue.path[0];
 			if (key === "title" || key === "body" || key === "projectId") {
@@ -52,18 +52,21 @@ export class ProjectNoteStoreController extends StoreController<
 		return ctx.render("project-note/form", {
 			action: "/project-notes",
 			backUrl: "/project-notes",
-			cannotSubmit: projects.length === 0,
+			cannotSubmit: projects.length === 0 ? true : undefined,
 			errors,
 			fields,
-			isEditing: false,
+			homeUrl: "/",
+			isEditing: undefined,
 			noteId: 0,
-			pageTitle: "Create Project Note",
+			notesUrl: "/project-notes",
 			projectName: "",
 			projects: projects.map((project) => ({
 				...project,
-				isSelected: project.id === Number(fields.projectId),
+				isSelected: project.id === Number(fields.projectId) ? true : undefined,
 			})),
-			submitLabel: "Create",
+			projectsUrl: "/projects",
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		});
 	}
 

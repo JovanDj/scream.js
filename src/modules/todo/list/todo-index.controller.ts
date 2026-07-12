@@ -16,6 +16,7 @@ export class TodosIndexController extends IndexController<
 
 	protected present(todos: TodoIndexData, input: TodoIndexInput) {
 		return {
+			createTodoUrl: "/todos/create",
 			direction: input.direction,
 			filters: {
 				all: this.#createUrl(input, { page: 1, status: "all" }),
@@ -23,7 +24,9 @@ export class TodosIndexController extends IndexController<
 				dueToday: this.#createUrl(input, { page: 1, status: "dueToday" }),
 				open: this.#createUrl(input, { page: 1, status: "open" }),
 			},
-			pageTitle: "Todos",
+			hasTodos: todos.length > 0 ? true : undefined,
+			homeUrl: "/",
+			notesUrl: "/project-notes",
 			search: input.search,
 			sort: input.sort,
 			sorts: {
@@ -32,7 +35,13 @@ export class TodosIndexController extends IndexController<
 				title: this.#sortUrl(input, "title", "asc"),
 			},
 			status: input.status,
-			todos,
+			tagsUrl: "/tags",
+			todos: todos.map((todo) => ({
+				...todo,
+				editUrl: `/todos/${todo.id}/edit`,
+				showUrl: `/todos/${todo.id}`,
+			})),
+			todosUrl: "/todos",
 		};
 	}
 

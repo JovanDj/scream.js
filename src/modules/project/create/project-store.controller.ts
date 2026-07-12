@@ -25,7 +25,7 @@ export class ProjectStoreController extends StoreController<
 		ctx: HttpContext,
 		error: z.ZodError<ProjectStoreInput>,
 	) {
-		const errors = { name: "" };
+		const errors: { name?: string } = {};
 		for (const issue of error.issues) {
 			if (issue.path.join(".") === "name") {
 				errors.name ||= issue.message;
@@ -34,7 +34,11 @@ export class ProjectStoreController extends StoreController<
 		return ctx.render("project/create", {
 			errors,
 			fields: { name: "" },
-			pageTitle: "Create Project",
+			homeUrl: "/",
+			notesUrl: "/project-notes",
+			projectsUrl: "/projects",
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		});
 	}
 
@@ -55,7 +59,11 @@ export class ProjectStoreController extends StoreController<
 		return ctx.render("project/create", {
 			errors: { name: "Project name must be unique" },
 			fields: { name: input.name },
-			pageTitle: "Create Project",
+			homeUrl: "/",
+			notesUrl: "/project-notes",
+			projectsUrl: "/projects",
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		});
 	}
 }

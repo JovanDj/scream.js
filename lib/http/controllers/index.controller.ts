@@ -39,8 +39,11 @@ export abstract class IndexController<
 			...locals,
 			pagination: {
 				nextUrl:
-					rows.length > pageSize ? this.pageUrl(input, input.page + 1) : "",
-				previousUrl: input.page > 1 ? this.pageUrl(input, input.page - 1) : "",
+					rows.length > pageSize
+						? this.pageUrl(input, input.page + 1)
+						: undefined,
+				previousUrl:
+					input.page > 1 ? this.pageUrl(input, input.page - 1) : undefined,
 			},
 		});
 	}

@@ -16,17 +16,20 @@ export class TodosEditController extends EditController<
 	protected present(todo: TodoShowData) {
 		return {
 			action: `/todos/${todo.id}`,
-			errors: { dueAt: "", title: "" },
+			errors: {},
 			fields: {
 				dueAt: todo.dueAt ?? "",
-				isCompleted: todo.statusCode === "completed",
-				isOpen: todo.statusCode === "open",
+				isCompleted: todo.statusCode === "completed" ? true : undefined,
+				isOpen: todo.statusCode === "open" ? true : undefined,
 				statusCode: todo.statusCode,
 				title: todo.title,
 			},
-			pageTitle: `Edit Todo #${todo.id}`,
-			submitLabel: "Update",
+			homeUrl: "/",
+			notesUrl: "/project-notes",
+			tagsUrl: "/tags",
 			todoId: todo.id,
+			todosUrl: "/todos",
+			todoUrl: `/todos/${todo.id}`,
 		};
 	}
 

@@ -45,7 +45,7 @@ export class ProjectNoteUpdateController implements Controller {
 
 		const parsed = projectNoteUpdateInputSchema.safeParse(ctx.body());
 		if (!parsed.success) {
-			const errors = { body: "", projectId: "", title: "" };
+			const errors: { body?: string; title?: string } = {};
 			for (const issue of parsed.error.issues) {
 				const key = issue.path[0];
 				if (key === "title" || key === "body") {
@@ -55,18 +55,20 @@ export class ProjectNoteUpdateController implements Controller {
 			return ctx.render("project-note/form", {
 				action: `/project-notes/${note.id}`,
 				backUrl: `/project-notes/${note.id}`,
-				cannotSubmit: false,
+				cannotSubmit: undefined,
 				errors,
 				fields: {
 					...projectNoteFormFieldsSchema.parse(ctx.body()),
 					projectId: String(note.projectId),
 				},
+				homeUrl: "/",
 				isEditing: true,
 				noteId: note.id,
-				pageTitle: "Edit Project Note",
+				notesUrl: "/project-notes",
 				projectName: note.projectName,
 				projects: [],
-				submitLabel: "Update",
+				tagsUrl: "/tags",
+				todosUrl: "/todos",
 			});
 		}
 

@@ -17,19 +17,21 @@ export class ProjectNoteEditController extends EditController<
 		return {
 			action: `/project-notes/${note.id}`,
 			backUrl: `/project-notes/${note.id}`,
-			cannotSubmit: false,
-			errors: { body: "", projectId: "", title: "" },
+			cannotSubmit: undefined,
+			errors: {},
 			fields: {
 				body: note.body,
 				projectId: String(note.projectId),
 				title: note.title,
 			},
+			homeUrl: "/",
 			isEditing: true,
 			noteId: note.id,
-			pageTitle: "Edit Project Note",
+			notesUrl: "/project-notes",
 			projectName: note.projectName,
 			projects: [],
-			submitLabel: "Update",
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		};
 	}
 

@@ -22,8 +22,14 @@ export class ProjectIndexController extends IndexController<
 				all: this.#createUrl(input, { page: 1, status: "all" }),
 				archived: this.#createUrl(input, { page: 1, status: "archived" }),
 			},
-			pageTitle: "Projects",
-			projects,
+			hasProjects: projects.length > 0 ? true : undefined,
+			homeUrl: "/",
+			notesUrl: "/project-notes",
+			projects: projects.map((project) => ({
+				...project,
+				showUrl: `/projects/${project.id}`,
+			})),
+			projectsUrl: "/projects",
 			search: input.search,
 			sort: input.sort,
 			sorts: {
@@ -32,6 +38,8 @@ export class ProjectIndexController extends IndexController<
 				status: this.#sortUrl(input, "status", "asc"),
 			},
 			status: input.status,
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		};
 	}
 

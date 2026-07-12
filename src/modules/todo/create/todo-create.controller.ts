@@ -24,15 +24,18 @@ export class TodosCreateController extends CreateController<
 
 	protected present(todo: TodoCreateData) {
 		return {
-			errors: { dueAt: "", title: "" },
+			errors: {},
 			fields: {
 				dueAt: todo.dueAt ?? "",
-				isCompleted: todo.statusCode === "completed",
-				isOpen: todo.statusCode === "open",
+				isCompleted: todo.statusCode === "completed" ? true : undefined,
+				isOpen: todo.statusCode === "open" ? true : undefined,
 				statusCode: todo.statusCode,
 				title: todo.title,
 			},
-			pageTitle: "New Todo",
+			homeUrl: "/",
+			notesUrl: "/project-notes",
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		};
 	}
 

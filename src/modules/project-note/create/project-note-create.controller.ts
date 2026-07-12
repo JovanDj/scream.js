@@ -41,22 +41,25 @@ export class ProjectNoteCreateController extends CreateController<
 			action: "/project-notes",
 			backUrl:
 				projectId === undefined ? "/project-notes" : `/projects/${projectId}`,
-			cannotSubmit: projects.length === 0,
-			errors: { body: "", projectId: "", title: "" },
+			cannotSubmit: projects.length === 0 ? true : undefined,
+			errors: {},
 			fields: {
 				body: "",
 				projectId: projectId === undefined ? "" : String(projectId),
 				title: "",
 			},
-			isEditing: false,
+			homeUrl: "/",
+			isEditing: undefined,
 			noteId: 0,
-			pageTitle: "Create Project Note",
+			notesUrl: "/project-notes",
 			projectName: "",
 			projects: projects.map((project) => ({
 				...project,
-				isSelected: project.id === projectId,
+				isSelected: project.id === projectId ? true : undefined,
 			})),
-			submitLabel: "Create",
+			projectsUrl: "/projects",
+			tagsUrl: "/tags",
+			todosUrl: "/todos",
 		};
 	}
 

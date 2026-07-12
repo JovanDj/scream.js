@@ -1,5 +1,7 @@
 {% extends "layout.scream" %}
 
+{% block title %}Projects{% endblock title %}
+
 {% block content %}
 <div class="container py-4 px-3 mx-auto">
     <section class="page-shell">
@@ -7,7 +9,7 @@
             <h1 class="page-title">Projects</h1>
         </div>
 
-        <form method="GET" action="/projects" class="mb-3">
+        <form method="GET" action="{{ projectsUrl }}" class="mb-3">
 			<input type="hidden" name="direction" value="{{ direction }}">
 			<input type="hidden" name="sort" value="{{ sort }}">
             <input type="hidden" name="status" value="{{ status }}">
@@ -28,7 +30,7 @@
             <a class="btn btn-sm btn-outline-secondary" href="{{ filters.archived }}">Archived</a>
         </div>
 
-        {% if projects.length %}
+        {% if hasProjects %}
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead>
@@ -38,12 +40,12 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for project in projects %}
+                    {% apply projects %}
                     <tr>
-                        <td><a href="/projects/{{ project.id }}">{{ project.name }}</a></td>
-                        <td>{{ project.statusCode }}</td>
+                        <td><a href="{{ attr.showUrl }}">{{ attr.name }}</a></td>
+                        <td>{{ attr.statusCode }}</td>
                     </tr>
-                    {% endfor %}
+                    {% endapply %}
                 </tbody>
             </table>
         </div>

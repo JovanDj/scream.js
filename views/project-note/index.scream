@@ -1,5 +1,7 @@
 {% extends "layout.scream" %}
 
+{% block title %}Project Notes{% endblock title %}
+
 {% block content %}
 <div class="container py-4 px-3 mx-auto">
     <section class="page-shell">
@@ -8,21 +10,21 @@
             <a class="btn btn-primary" href="{{ createUrl }}">Add Note</a>
         </div>
         <div class="d-flex flex-wrap gap-2 mb-3">
-            {% if isFiltered %}<a href="/project-notes">All Notes</a>{% endif %}
+            {% if isFiltered %}<a href="{{ notesUrl }}">All Notes</a>{% endif %}
             <a href="{{ projectUrl }}">{% if isFiltered %}Back to Project{% else %}Projects{% endif %}</a>
         </div>
-        {% if notes.length %}
+        {% if hasNotes %}
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead><tr><th>Title</th><th>Project</th><th>Actions</th></tr></thead>
                 <tbody>
-                    {% for note in notes %}
+                    {% apply notes %}
                     <tr>
-                        <td><a href="/project-notes/{{ note.id }}">{{ note.title }}</a></td>
-                        <td><a href="/projects/{{ note.projectId }}">{{ note.projectName }}</a></td>
-                        <td><a class="btn btn-sm btn-outline-primary" href="/project-notes/{{ note.id }}/edit">Edit</a></td>
+                        <td><a href="{{ attr.showUrl }}">{{ attr.title }}</a></td>
+                        <td><a href="{{ attr.projectUrl }}">{{ attr.projectName }}</a></td>
+                        <td><a class="btn btn-sm btn-outline-primary" href="{{ attr.editUrl }}">Edit</a></td>
                     </tr>
-                    {% endfor %}
+                    {% endapply %}
                 </tbody>
             </table>
         </div>

@@ -12,10 +12,15 @@ export class TodosShowController extends ShowController<
 
 	protected present(todo: TodoShowData) {
 		return {
-			pageTitle: `Todo | ${todo.id}`,
-			todoDueAt: todo.dueAt ?? "",
+			action: `/todos/${todo.id}`,
+			editUrl: `/todos/${todo.id}/edit`,
+			homeUrl: "/",
+			notesUrl: "/project-notes",
+			tagsUrl: "/tags",
+			todoDueAt: todo.dueAt ?? undefined,
 			todoId: todo.id,
 			todoStatusCode: todo.statusCode,
+			todosUrl: "/todos",
 			todoTitle: todo.title,
 		};
 	}
