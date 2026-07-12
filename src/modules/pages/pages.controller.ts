@@ -4,7 +4,6 @@ export class PagesController {
 	index(ctx: HttpContext) {
 		return ctx.render("home", {
 			homeUrl: "/",
-			pageTitle: "ScreamJS Todo App",
 			tagsUrl: "/tags",
 			todosUrl: "/todos",
 		});
@@ -13,7 +12,6 @@ export class PagesController {
 	about(ctx: HttpContext) {
 		return ctx.render("about", {
 			homeUrl: "/",
-			pageTitle: "About",
 			tagsUrl: "/tags",
 			todosUrl: "/todos",
 		});

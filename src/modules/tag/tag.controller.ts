@@ -1,6 +1,9 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { schema } from "@scream.js/validator/schema.js";
+import { TagsTable } from "../../tables/tags.table.js";
+import { TodoTagsTable } from "../../tables/todo-tags.table.js";
+import { TodosTable } from "../../tables/todos.table.js";
 
 const tagErrors = (
 	issues: readonly { message: string; path: PropertyKey[] }[],
@@ -28,27 +31,17 @@ export class TagController {
 	}
 
 	async #renderIndex(ctx: HttpContext, errors: { name?: string }) {
-		const rows = await this.#db("tags")
-			.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
-			.orderBy("tags.name", "asc");
-		const tags = schema
-			.array(
-				schema.object({
-					id: schema.coerce.number().int().positive(),
-					name: schema.string(),
-				}),
-			)
-			.parse(rows);
+		const tags = await TagsTable.create(this.#db).list();
 		const tagViews = tags.map((tag) => ({
 			destroyUrl: `/tags/${tag.id}`,
 			id: tag.id,
 			name: tag.name,
 		}));
+
 		return ctx.render("tag-index", {
 			errors,
 			hasTags: tagViews.length > 0 ? true : undefined,
 			homeUrl: "/",
-			pageTitle: "Tags",
 			tags: tagViews,
 			tagsUrl: "/tags",
 			todosUrl: "/todos",
@@ -62,9 +55,7 @@ export class TagController {
 					.string()
 					.default("")
 					.transform((value) => value.trim())
-					.refine((value) => value.length > 0, {
-						message: "Required",
-					}),
+					.refine((value) => value.length > 0, { message: "Required" }),
 			})
 			.safeParse(ctx.body());
 		if (!parsed.success) {
@@ -72,14 +63,9 @@ export class TagController {
 		}
 
 		try {
-			await this.#db.transaction(async (tx) => {
-				const now = new Date().toISOString();
-				await tx("tags").insert({
-					created_at: now,
-					name: parsed.data.name,
-					updated_at: now,
-				});
-			});
+			await this.#db.transaction((tx) =>
+				TagsTable.create(tx).insert(parsed.data.name),
+			);
 			return ctx.redirect("/tags");
 		} catch {
 			return this.#renderIndex(ctx, { name: "Tag name must be unique" });
@@ -87,17 +73,18 @@ export class TagController {
 	}
 
 	async destroy(ctx: HttpContext) {
-		const parsedTagId = schema.coerce
+		const parsed = schema.coerce
 			.number()
 			.int()
 			.positive()
 			.safeParse(ctx.param("id"));
-		if (!parsedTagId.success) {
+		if (!parsed.success) {
 			return ctx.notFound();
 		}
-		const tagId = parsedTagId.data;
 
-		const deleted = (await this.#db("tags").where({ id: tagId }).del()) > 0;
+		const deleted = await this.#db.transaction((tx) =>
+			TagsTable.create(tx).delete(parsed.data),
+		);
 		if (!deleted) {
 			return ctx.notFound();
 		}
@@ -115,7 +102,6 @@ export class TagController {
 			return ctx.notFound();
 		}
 		const todoId = parsedTodoId.data;
-
 		const parsed = schema
 			.strictObject({
 				tagIds: schema.preprocess((value) => {
@@ -133,40 +119,24 @@ export class TagController {
 			return ctx.redirect(`/todos/${todoId}/edit`);
 		}
 
-		const replaced = await this.#db.transaction(async (tx) => {
-			const tagIds = [...new Set(parsed.data.tagIds)];
-			const todo = await tx("todos").where({ id: todoId }).first("id");
+		const assigned = await this.#db.transaction(async (tx) => {
+			const todo = await TodosTable.create(tx).find(todoId);
 			if (!todo) {
 				return false;
 			}
 
+			const tagIds = [...new Set(parsed.data.tagIds)];
 			if (tagIds.length > 0) {
-				const matchedTags = await tx("tags").whereIn("id", tagIds).select("id");
-				const matchedTagIds = matchedTags.map((row) => row.id);
-				if (matchedTagIds.length !== tagIds.length) {
+				const tags = await TagsTable.create(tx).findByIds(tagIds);
+				if (tags.length !== tagIds.length) {
 					return false;
 				}
 			}
 
-			await tx("todo_tags").where({ todo_id: todoId }).del();
-			if (tagIds.length > 0) {
-				await tx("todo_tags").insert(
-					tagIds.map((tagId) => ({
-						created_at: new Date().toISOString(),
-						tag_id: tagId,
-						todo_id: todoId,
-					})),
-				);
-			}
-
-			const affectedRows = await tx("todos").where({ id: todoId }).update({
-				updated_at: new Date().toISOString(),
-			});
-
-			return affectedRows > 0;
+			await TodoTagsTable.create(tx).replaceForTodo(todoId, tagIds);
+			return TodosTable.create(tx).touch(todoId);
 		});
-
-		if (!replaced) {
+		if (!assigned) {
 			return ctx.notFound();
 		}
 

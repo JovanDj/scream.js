@@ -1,5 +1,7 @@
 {% extends "layout.scream" %}
 
+{% block title %}Create Project{% endblock title %}
+
 {% block content %}
 <div class="container py-4 px-3 mx-auto">
     <section class="page-shell">

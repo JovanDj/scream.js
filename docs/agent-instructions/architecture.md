@@ -57,34 +57,35 @@ There is no requirement to keep controller, service, mapper, repository, and dom
 
 Even in prototype mode, keep responsibilities conceptually clear:
 
-* Controller = handles HTTP input and output
-* Model = non-UI logic and data access, even if still simple
+* Controller = Transaction Script that handles HTTP input and output
+* Table gateway = SQL and database-row parsing
 * View = rendering and presentation only
 
-A rich domain model is not required for MVC. In prototype mode, the model may simply be transaction script logic, direct SQL, or simple query helpers.
+A rich domain model is not required for MVC. Controller transaction scripts and simple table gateways are sufficient for low-complexity CRUD.
 
-Views must not contain business logic. Model code must not depend on HTTP or templates.
+Views must not contain business logic. Table gateways must not depend on HTTP or templates.
 
-## Controllers and DB Access
+## Tables and DB Access
 
-* Controllers may take `db` directly.
-* Controllers may perform queries, writes, and transactions directly when that is the simplest option.
-* Controllers may contain business logic if extracting it would only create ceremony.
-* In prototype mode, business logic kept in a controller must remain independent of HTTP concerns.
-* Controller-owned business logic must stay extractable without being rewritten.
-* Do not mix HTTP branching with business rules.
-* When controller-owned business logic becomes reusable or complex, it must move out of the controller.
-* Keep controller methods structured: parse and validate input, execute use-case logic, persist changes with SQL, then produce the response.
+* Table gateway class names match plural physical table names, such as `TodosTable`.
+* Table gateways expose `Table.create(db)` and hide SQL behind table-specific methods.
+* Table gateways own database-row parsing and may join related tables.
+* Modules inject `Database` into controllers, not table instances.
+* Controllers parse and validate HTTP input, invoke table methods, map results to ViewModels, and produce responses.
+* Controllers must not perform SQL.
+* Read actions create tables with the root database connection.
+* Write actions start a transaction and create every participating table with the same `tx`.
+* Table gateways never start transactions.
+* Table gateways must not depend on HTTP contexts, route URLs, or templates.
 * Keep the flow linear and readable.
-* If a controller method gets too long, extract a local private helper before introducing a new layer.
 * `HttpContext` must not expose database access.
 
-Prefer explicit local helpers over creating new service or mapper classes.
+Do not add repository or service layers unless a concrete second responsibility requires them.
 
 ## Transactions and Side Effects
 
 * No ambient DB globals inside modules. Pass `db` explicitly.
-* If a transaction is needed, start it in the place that currently owns the behavior, including a controller.
+* Start transactions in the controller method that owns the workflow.
 * Inside a transaction, consistently use `tx`.
 * Keep the whole use case atomic.
 * Commit only when all required writes succeed.
@@ -115,7 +116,7 @@ Do not extract SQL only to make the project look more architectural.
 
 Extract SQL only when duplication appears, queries get hard to reason about, or multiple use cases depend on the same query behavior.
 
-Whoever owns the persistence boundary must validate and parse raw rows before returning trusted module data. When a repository layer exists, it owns row parsing. When a controller, service, query object, or another module-local abstraction owns persistence directly, that layer owns row parsing instead.
+Table gateways validate and parse raw rows before returning trusted module data. If another persistence boundary replaces a table gateway, that boundary owns row parsing instead.
 
 Do not return raw database rows from the persistence boundary.
 
