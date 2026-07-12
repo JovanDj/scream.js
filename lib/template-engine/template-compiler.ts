@@ -52,6 +52,11 @@ type RendererPlacementNodeResult = {
 	readonly state: DynamicAttributeScanState;
 };
 
+type RendererPlacementTemplateResult = {
+	readonly state: DynamicAttributeScanState;
+	readonly template: ApplyTemplateReference;
+};
+
 export class TemplateCompiler {
 	readonly #fileLoader: FileLoader;
 	readonly #tokenizer: Tokenizer;
@@ -105,11 +110,14 @@ export class TemplateCompiler {
 			ast,
 			referenceChain,
 		);
-		const rendererReadyAst =
-			this.#prepareRendererValuePlacements(resolvedReferences);
+		const composedAst = this.#resolveLayoutInheritance(
+			resolvedReferences,
+			chain,
+		);
+		const rendererReadyAst = this.#prepareRendererValuePlacements(composedAst);
 		this.#assertValidUrlAttributes(rendererReadyAst);
 
-		return this.#resolveLayoutInheritance(rendererReadyAst, chain);
+		return rendererReadyAst;
 	}
 
 	#resolveTemplateReferences(
@@ -448,77 +456,88 @@ export class TemplateCompiler {
 		}
 
 		if (node.type === "if") {
+			const alternate = this.#prepareRendererValuePlacementsFrom(
+				node.alternate,
+				state,
+				definitions,
+				preparingNames,
+			);
+			const children = this.#prepareRendererValuePlacementsFrom(
+				node.children,
+				state,
+				definitions,
+				preparingNames,
+			);
+			this.#assertPreservedHtmlContext(
+				alternate.state,
+				children.state,
+				node.span,
+			);
+
 			return {
 				node: {
 					...node,
-					alternate: this.#prepareRendererValuePlacementsFrom(
-						node.alternate,
-						state,
-						definitions,
-						preparingNames,
-					).nodes,
-					children: this.#prepareRendererValuePlacementsFrom(
-						node.children,
-						state,
-						definitions,
-						preparingNames,
-					).nodes,
+					alternate: alternate.nodes,
+					children: children.nodes,
 				},
-				state,
+				state: children.state,
 			};
 		}
 
 		if (node.type === "block") {
+			const children = this.#prepareRendererValuePlacementsFrom(
+				node.children,
+				state,
+				definitions,
+				preparingNames,
+			);
+
 			return {
 				node: {
 					...node,
-					children: this.#prepareRendererValuePlacementsFrom(
-						node.children,
-						state,
-						definitions,
-						preparingNames,
-					).nodes,
+					children: children.nodes,
 				},
-				state,
+				state: children.state,
 			};
 		}
 
 		if (node.type === "apply") {
-			return {
-				node: {
-					...node,
-					children: this.#prepareRendererValuePlacementsFrom(
-						node.children,
+			const children = this.#prepareRendererValuePlacementsFrom(
+				node.children,
+				state,
+				definitions,
+				preparingNames,
+			);
+			this.#assertPreservedHtmlContext(state, children.state, node.span);
+			const templates = node.templates?.map((template) => {
+				const result = this.#prepareApplyTemplateReferencePlacements(
+					template,
+					state,
+					definitions,
+					preparingNames,
+				);
+				this.#assertPreservedHtmlContext(state, result.state, template.span);
+				return result.template;
+			});
+			const templateStages = node.templateStages?.map((stage) => {
+				return stage.map((template) => {
+					const result = this.#prepareApplyTemplateReferencePlacements(
+						template,
 						state,
 						definitions,
 						preparingNames,
-					).nodes,
-					...(node.templates === undefined
-						? {}
-						: {
-								templates: node.templates.map((template) =>
-									this.#prepareApplyTemplateReferencePlacements(
-										template,
-										state,
-										definitions,
-										preparingNames,
-									),
-								),
-							}),
-					...(node.templateStages === undefined
-						? {}
-						: {
-								templateStages: node.templateStages.map((stage) =>
-									stage.map((template) =>
-										this.#prepareApplyTemplateReferencePlacements(
-											template,
-											state,
-											definitions,
-											preparingNames,
-										),
-									),
-								),
-							}),
+					);
+					this.#assertPreservedHtmlContext(state, result.state, template.span);
+					return result.template;
+				});
+			});
+
+			return {
+				node: {
+					...node,
+					children: children.nodes,
+					...(templates === undefined ? {} : { templates }),
+					...(templateStages === undefined ? {} : { templateStages }),
 				},
 				state,
 			};
@@ -566,11 +585,11 @@ export class TemplateCompiler {
 		state: DynamicAttributeScanState,
 		definitions: ReadonlyMap<string, TemplateDefinitionNode>,
 		preparingNames: readonly string[],
-	): ApplyTemplateReference {
+	): RendererPlacementTemplateResult {
 		if (template.type === "namedTemplate") {
 			if (preparingNames.includes(template.name)) {
 				if (state.mode === "text") {
-					return template;
+					return { state, template };
 				}
 
 				throw new TemplateSyntaxError(
@@ -582,28 +601,30 @@ export class TemplateCompiler {
 			const definition = definitions.get(template.name);
 
 			if (!definition) {
-				return template;
+				return { state, template };
 			}
-
-			return {
-				...template,
-				children: this.#prepareRendererValuePlacementsFrom(
-					definition.children,
-					state,
-					definitions,
-					[...preparingNames, template.name],
-				).nodes,
-			};
-		}
-
-		return {
-			...template,
-			children: this.#prepareRendererValuePlacementsFrom(
-				template.children,
+			const children = this.#prepareRendererValuePlacementsFrom(
+				definition.children,
 				state,
 				definitions,
-				preparingNames,
-			).nodes,
+				[...preparingNames, template.name],
+			);
+
+			return {
+				state: children.state,
+				template: { ...template, children: children.nodes },
+			};
+		}
+		const children = this.#prepareRendererValuePlacementsFrom(
+			template.children,
+			state,
+			definitions,
+			preparingNames,
+		);
+
+		return {
+			state: children.state,
+			template: { ...template, children: children.nodes },
 		};
 	}
 
@@ -612,7 +633,11 @@ export class TemplateCompiler {
 		state: DynamicAttributeScanState,
 	): VariableNode {
 		if (state.mode === "text") {
-			return node;
+			return {
+				expression: node.expression,
+				span: node.span,
+				type: "variable",
+			};
 		}
 
 		if (state.mode === "quotedAttributeValue") {
@@ -639,10 +664,25 @@ export class TemplateCompiler {
 			);
 		}
 
-		return {
-			...node,
-			renderPosition: "attributes",
-		};
+		throw new TemplateSyntaxError(
+			"Variables in attribute-list position are not allowed",
+			{ span: node.span },
+		);
+	}
+
+	#assertPreservedHtmlContext(
+		left: DynamicAttributeScanState,
+		right: DynamicAttributeScanState,
+		span: SourceSpan,
+	) {
+		if (JSON.stringify(left) === JSON.stringify(right)) {
+			return;
+		}
+
+		throw new TemplateSyntaxError(
+			"Template composition must preserve HTML context",
+			{ span },
+		);
 	}
 
 	#scanDynamicAttributeText(

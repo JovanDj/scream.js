@@ -11,9 +11,10 @@ import { ExpressHttpContext } from "./express-http-context.js";
 export class ExpressApp implements Application {
 	readonly #express: Express.Application;
 
-	static create(): Application {
+	static create(
+		templateEngine: ScreamTemplateEngine = ScreamTemplateEngine.create(),
+	): Application {
 		const app = express();
-		const templateEngine = ScreamTemplateEngine.create();
 
 		const viewsPath = path.join(process.cwd(), "views");
 
@@ -26,7 +27,6 @@ export class ExpressApp implements Application {
 						viteClient: "http://127.0.0.1:5173/@vite/client",
 					},
 					lang: "en",
-					pageTitle: "ScreamJS",
 					...options,
 				});
 				callback(null, rendered);

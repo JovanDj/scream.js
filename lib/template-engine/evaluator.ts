@@ -1,3 +1,5 @@
+import { isProxy } from "node:util/types";
+
 import type {
 	ApplyTemplateReference,
 	TemplateASTNode,
@@ -365,14 +367,19 @@ export class Evaluator {
 	}
 
 	#resolvePath(root: unknown, path: readonly string[]) {
-		return path.reduce<unknown>((acc, key) => {
+		const expression = this.#formatPath(path);
+		const value = path.reduce<unknown>((acc, key) => {
 			if (acc === MISSING) {
 				return MISSING;
 			}
 
+			if (isProxy(acc)) {
+				throw new RenderError("Cannot access proxy value", { expression });
+			}
+
 			if (Array.isArray(acc)) {
 				throw new RenderError("Cannot access array value", {
-					expression: this.#formatPath(path),
+					expression,
 				});
 			}
 
@@ -385,7 +392,7 @@ export class Evaluator {
 
 				if (!("value" in descriptor)) {
 					throw new RenderError("Cannot access accessor property", {
-						expression: this.#formatPath(path),
+						expression,
 					});
 				}
 
@@ -394,5 +401,11 @@ export class Evaluator {
 
 			return MISSING;
 		}, root);
+
+		if (isProxy(value)) {
+			throw new RenderError("Cannot access proxy value", { expression });
+		}
+
+		return value;
 	}
 }

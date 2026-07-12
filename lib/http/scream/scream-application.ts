@@ -5,6 +5,7 @@ import {
 	STATUS_CODES,
 } from "node:http";
 import { parse } from "node:url";
+import { ScreamTemplateEngine } from "@scream.js/template-engine/template-engine.js";
 
 import type { Application } from "../application.js";
 import type { Handler } from "../handler.js";
@@ -14,6 +15,11 @@ import { ScreamHttpContext } from "./scream-http-context.js";
 
 export class ScreamApp implements Application {
 	readonly #routes = new Map<string, Map<string, Handler>>();
+	readonly #templateEngine: ScreamTemplateEngine;
+
+	constructor(templateEngine = ScreamTemplateEngine.create()) {
+		this.#templateEngine = templateEngine;
+	}
 
 	#registerRoute(method: string, path: string, handler: Handler) {
 		if (!this.#routes.has(method)) {
@@ -51,7 +57,11 @@ export class ScreamApp implements Application {
 	}
 
 	async #handleRequest(req: IncomingMessage, res: ServerResponse) {
-		const context: HttpContext = new ScreamHttpContext(req, res);
+		const context: HttpContext = new ScreamHttpContext(
+			req,
+			res,
+			this.#templateEngine,
+		);
 		const parsedUrl = parse(req.url || "", true);
 		const path = parsedUrl.pathname || "/";
 		const method = req.method || "GET";

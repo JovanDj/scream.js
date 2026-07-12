@@ -17,6 +17,7 @@ All tests must be black-box BDD. Describe a scenario, exercise a public boundary
 * Do not inspect private state, invoke protected hooks, assert internal collaborator calls, or reproduce the implementation's algorithm in expected values.
 * An internal refactor that preserves the public contract should not require changing test expectations.
 * Black-box does not mean HTTP-only or browser-only. Direct tests of public service and framework APIs are valid; emitted SQL or package contents may be asserted when they are the public contract.
+* Keep logic out of tests: do not add branches, loops, mutable counters, or computed expectations.
 * Prefer real dependencies.
 * Prefer classical state- and output-based tests over interaction-heavy mocking.
 * Use test doubles only at meaningful boundaries where a real dependency would make the test slow, nondeterministic, or impractical.
