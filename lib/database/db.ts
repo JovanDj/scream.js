@@ -1,24 +1,34 @@
-import BetterSqlite3 from "better-sqlite3";
 import knex, { type Knex } from "knex";
+import type { Connection } from "./connection.js";
 import config from "./knexfile.js";
+import { BetterSqliteConnection } from "./sqlite/better-sqlite-connection.js";
+import { Sqlite3Connection } from "./sqlite/sqlite3-connection.js";
 
-export type Database = Knex;
-export type SqliteDatabase = BetterSqlite3.Database;
+export type MigrationDatabase = Knex;
+export type DatabaseDriver = "better-sqlite3" | "sqlite3";
 
-export type CreateDatabaseOptions = {
+export type DatabaseOptions = {
+	readonly driver?: DatabaseDriver;
 	readonly environment?: string;
 	readonly filename?: string;
 };
 
-const configurationFor = (environment?: string) =>
-	config[environment ?? process.env["NODE_ENV"] ?? "development"];
+const configurationFor = (environment?: string) => {
+	const configuration =
+		config[environment ?? process.env["NODE_ENV"] ?? "development"];
+	if (configuration === undefined) {
+		throw new Error("Database environment is not configured");
+	}
 
-const filenameFor = (options: CreateDatabaseOptions) => {
+	return configuration;
+};
+
+const filenameFor = (options: DatabaseOptions) => {
 	if (options.filename !== undefined) {
 		return options.filename;
 	}
 
-	const connection = configurationFor(options.environment)?.connection;
+	const connection = configurationFor(options.environment).connection;
 	if (
 		connection === undefined ||
 		typeof connection !== "object" ||
@@ -31,11 +41,10 @@ const filenameFor = (options: CreateDatabaseOptions) => {
 	return connection.filename;
 };
 
-export const createDB = (options: CreateDatabaseOptions = {}): Database => {
+export const createMigrationDB = (
+	options: Omit<DatabaseOptions, "driver"> = {},
+): MigrationDatabase => {
 	const configuration = configurationFor(options.environment);
-	if (configuration === undefined) {
-		throw new Error("Database environment is not configured");
-	}
 
 	return knex({
 		...configuration,
@@ -45,11 +54,13 @@ export const createDB = (options: CreateDatabaseOptions = {}): Database => {
 	});
 };
 
-export const createSqliteDB = (
-	options: CreateDatabaseOptions = {},
-): SqliteDatabase => {
-	const db = new BetterSqlite3(filenameFor(options));
-	db.pragma("foreign_keys = ON");
+export const createConnection = async (
+	options: DatabaseOptions = {},
+): Promise<Connection> => {
+	const connectionOptions = { database: filenameFor(options) };
+	if (options.driver === "sqlite3") {
+		return Sqlite3Connection.connect(connectionOptions);
+	}
 
-	return db;
+	return BetterSqliteConnection.connect(connectionOptions);
 };

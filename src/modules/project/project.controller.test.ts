@@ -1,29 +1,30 @@
 import { describe, it, type TestContext } from "node:test";
-import type { SqliteDatabase } from "@scream.js/database/db.js";
+import type { Connection } from "@scream.js/database/connection.js";
+import { sql } from "@scream.js/database/query-builder/sql-template-string.js";
 import { sqliteDatabaseTestFixture } from "@scream.js/database/test-helpers.js";
 import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import { HttpServer } from "@scream.js/http/server.js";
 import { ProjectModule } from "./project.module.ts";
 
 describe("project controller", { concurrency: true }, () => {
-	const insertProject = (db: SqliteDatabase, name: string) => {
-		const status = db
-			.prepare<[string], { id: number }>(
-				"SELECT id FROM project_statuses WHERE code = ?",
-			)
-			.get("active");
+	const insertProject = async (db: Connection, name: string) => {
+		const status = await db.get<{ id: number }>(
+			sql`SELECT id FROM project_statuses WHERE code = ${"active"}`,
+		);
 		if (status === undefined) {
 			throw new Error("Active project status should exist");
 		}
 		const now = new Date().toISOString();
-		const result = db
-			.prepare<[string, number, string, string]>(
-				`INSERT INTO projects (name, status_id, created_at, updated_at)
-				VALUES (?, ?, ?, ?)`,
-			)
-			.run(name, status.id, now, now);
+		const result = await db.run(
+			sql`INSERT INTO projects (name, status_id, created_at, updated_at)
+			VALUES (${name}, ${status.id}, ${now}, ${now})`,
+		);
+		const id = result.insertedId();
+		if (id === undefined) {
+			throw new Error("Project should have an inserted ID");
+		}
 
-		return { id: Number(result.lastInsertRowid) };
+		return { id };
 	};
 
 	const setupServer = async () => {
@@ -205,15 +206,13 @@ describe("project controller", { concurrency: true }, () => {
 					signal: t.signal,
 				},
 			);
-			const archivedStatus = db
-				.prepare<[number], { code: string }>(
-					`SELECT project_statuses.code
-					FROM projects
-					INNER JOIN project_statuses
-						ON projects.status_id = project_statuses.id
-					WHERE projects.id = ?`,
-				)
-				.get(project.id);
+			const archivedStatus = await db.get<{ code: string }>(
+				sql`SELECT project_statuses.code
+				FROM projects
+				INNER JOIN project_statuses
+					ON projects.status_id = project_statuses.id
+				WHERE projects.id = ${project.id}`,
+			);
 			const unarchived = await fetch(
 				`http://localhost:${port}/projects/${project.id}/unarchive`,
 				{
@@ -222,15 +221,13 @@ describe("project controller", { concurrency: true }, () => {
 					signal: t.signal,
 				},
 			);
-			const unarchivedStatus = db
-				.prepare<[number], { code: string }>(
-					`SELECT project_statuses.code
-					FROM projects
-					INNER JOIN project_statuses
-						ON projects.status_id = project_statuses.id
-					WHERE projects.id = ?`,
-				)
-				.get(project.id);
+			const unarchivedStatus = await db.get<{ code: string }>(
+				sql`SELECT project_statuses.code
+				FROM projects
+				INNER JOIN project_statuses
+					ON projects.status_id = project_statuses.id
+				WHERE projects.id = ${project.id}`,
+			);
 
 			t.assert.deepStrictEqual(archived.status, 302);
 			t.assert.deepStrictEqual(

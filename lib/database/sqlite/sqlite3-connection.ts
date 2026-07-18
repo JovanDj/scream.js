@@ -4,10 +4,10 @@ import sqlite3 from "sqlite3";
 
 import type { Connection } from "../connection.js";
 import type { ConnectionOptions } from "../connection-options.js";
-import { InsertResult } from "../insert-result.js";
+import { ExecutionResult } from "../execution-result.js";
 import type { SqlQuery } from "../query-builder/sql-query.js";
 
-export class SqliteConnection implements Connection {
+export class Sqlite3Connection implements Connection {
 	readonly #db: sqlite.Database;
 
 	constructor(db: sqlite.Database) {
@@ -16,8 +16,13 @@ export class SqliteConnection implements Connection {
 
 	async run(query: SqlQuery) {
 		const result = await this.#db.run(query.sql, query.params);
+		const affectedRows = result.changes ?? 0;
+		const insertedId =
+			affectedRows > 0 && /^(INSERT|REPLACE)\b/i.test(query.sql.trimStart())
+				? result.lastID
+				: undefined;
 
-		return new InsertResult(result.lastID);
+		return new ExecutionResult(insertedId, affectedRows);
 	}
 
 	async all<T>(query: SqlQuery) {
@@ -40,7 +45,7 @@ export class SqliteConnection implements Connection {
 
 		await db.run("PRAGMA foreign_keys = ON;");
 		await db.run("PRAGMA journal_mode=WAL");
-		return new SqliteConnection(db);
+		return new Sqlite3Connection(db);
 	}
 
 	async transaction<T>(callback: (trx: Connection) => Promise<T>) {

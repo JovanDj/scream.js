@@ -1,44 +1,26 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createDB, createSqliteDB, type Database } from "./db.js";
+import type { Connection } from "./connection.js";
+import {
+	createConnection,
+	createMigrationDB,
+	type DatabaseDriver,
+} from "./db.js";
 
 export type SetupTestDbOptions = {
+	driver?: DatabaseDriver;
 	seed?: boolean;
-	prepare?: (db: Database) => Promise<void> | void;
-};
-
-export const databaseTestFixture = {
-	async setup(options: SetupTestDbOptions = {}) {
-		// Each setup call provisions a fresh DB instance backed by the in-memory
-		// integration config, which keeps DB-backed tests isolated and safe to run
-		// concurrently without relying on process env mutation.
-		const db = createDB({ environment: "integration" });
-
-		await db.migrate.latest();
-
-		if (options.seed) {
-			await db.seed.run();
-		}
-
-		if (options.prepare) {
-			await options.prepare(db);
-		}
-
-		const cleanup = async () => {
-			await db.migrate.rollback(undefined, true);
-			await db.destroy();
-		};
-
-		return { cleanup, db };
-	},
 };
 
 export const sqliteDatabaseTestFixture = {
-	async setup(options: Pick<SetupTestDbOptions, "seed"> = {}) {
+	async setup(options: SetupTestDbOptions = {}): Promise<{
+		cleanup: () => Promise<void>;
+		db: Connection;
+	}> {
 		const directory = await mkdtemp(join(tmpdir(), "scream-integration-"));
 		const filename = join(directory, "test.sqlite");
-		const migrationDb = createDB({
+		const migrationDb = createMigrationDB({
 			environment: "integration",
 			filename,
 		});
@@ -56,13 +38,16 @@ export const sqliteDatabaseTestFixture = {
 		}
 
 		await migrationDb.destroy();
-		const sqliteDb = createSqliteDB({ filename });
+		const connection = await createConnection({
+			filename,
+			...(options.driver === undefined ? {} : { driver: options.driver }),
+		});
 
 		const cleanup = async () => {
-			sqliteDb.close();
+			await connection.close();
 			await rm(directory, { force: true, recursive: true });
 		};
 
-		return { cleanup, db: sqliteDb };
+		return { cleanup, db: connection };
 	},
 };

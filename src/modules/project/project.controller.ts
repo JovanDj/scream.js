@@ -24,7 +24,7 @@ export class ProjectController {
 	}
 
 	async index(ctx: HttpContext) {
-		const projects = this.#projects.list().map((project) => ({
+		const projects = (await this.#projects.list()).map((project) => ({
 			id: project.id,
 			name: project.name,
 			statusCode: project.statusCode,
@@ -47,7 +47,7 @@ export class ProjectController {
 		}
 		const projectId = parsedProjectId.data;
 
-		const found = this.#projects.find(projectId);
+		const found = await this.#projects.find(projectId);
 		if (found === undefined) {
 			return ctx.notFound();
 		}
@@ -86,7 +86,7 @@ export class ProjectController {
 		}
 
 		try {
-			const result = this.#projects.create(parsed.data.name);
+			const result = await this.#projects.create(parsed.data.name);
 			return ctx.redirect(`/projects/${result}`);
 		} catch {
 			return ctx.render("project-create", {
@@ -110,7 +110,7 @@ export class ProjectController {
 		}
 		const projectId = parsedProjectId.data;
 
-		const result = this.#projects.archive(projectId);
+		const result = await this.#projects.archive(projectId);
 		if (result === undefined) {
 			return ctx.notFound();
 		}
@@ -129,7 +129,7 @@ export class ProjectController {
 		}
 		const projectId = parsedProjectId.data;
 
-		const result = this.#projects.unarchive(projectId);
+		const result = await this.#projects.unarchive(projectId);
 		if (result === undefined) {
 			return ctx.notFound();
 		}

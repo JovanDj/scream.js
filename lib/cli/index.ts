@@ -1,9 +1,12 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createDB, type Database } from "@scream.js/database/db.js";
+import {
+	createMigrationDB,
+	type MigrationDatabase,
+} from "@scream.js/database/db.js";
 import { Command } from "commander";
 
-export const createProgram = ({ db }: { db: Database }) => {
+export const createProgram = ({ db }: { db: MigrationDatabase }) => {
 	const program = new Command();
 
 	program.name("scream");
@@ -75,7 +78,7 @@ const isExecutedDirectly = () => {
 };
 
 if (isExecutedDirectly()) {
-	const db = createDB();
+	const db = createMigrationDB();
 
 	try {
 		await createProgram({ db }).parseAsync(process.argv);

@@ -2,11 +2,13 @@ import { describe, it, type TestContext } from "node:test";
 import { Database } from "./database.js";
 import { ScreamQueryBuilder } from "./query-builder/scream-query-builder.js";
 import { sql } from "./query-builder/sql-template-string.js";
-import { SqliteConnection } from "./sqlite/sqlite-connection.js";
+import { Sqlite3Connection } from "./sqlite/sqlite3-connection.js";
 
 describe("Database Read Queries", { concurrency: true }, () => {
 	const withDb = async () => {
-		const connection = await SqliteConnection.connect({ database: ":memory:" });
+		const connection = await Sqlite3Connection.connect({
+			database: ":memory:",
+		});
 		const queryBuilder = new ScreamQueryBuilder();
 		const db = new Database(connection, queryBuilder);
 

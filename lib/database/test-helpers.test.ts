@@ -1,32 +1,27 @@
 import { describe, it, type TestContext } from "node:test";
-import { databaseTestFixture } from "./test-helpers.js";
+import { sql } from "./query-builder/sql-template-string.js";
+import { sqliteDatabaseTestFixture } from "./test-helpers.js";
 
-describe("databaseTestFixture", { concurrency: true }, () => {
-	it("isolates state across independent setup calls", async (t: TestContext) => {
-		const fixtureA = await databaseTestFixture.setup({});
-		const fixtureB = await databaseTestFixture.setup({});
+describe("sqliteDatabaseTestFixture", { concurrency: true }, () => {
+	it("isolates temporary database files", async (t: TestContext) => {
+		const fixtureA = await sqliteDatabaseTestFixture.setup();
+		const fixtureB = await sqliteDatabaseTestFixture.setup();
 
 		try {
 			const now = new Date().toISOString();
-			await fixtureA.db("todos").insert({
-				created_at: now,
-				description: "",
-				priority_id: 2,
-				status_id: 1,
-				title: "Only In A",
-				updated_at: now,
-			});
+			await fixtureA.db.run(
+				sql`INSERT INTO tags (name, created_at, updated_at)
+				VALUES (${"Only In A"}, ${now}, ${now})`,
+			);
 
-			const foundInA = await fixtureA
-				.db("todos")
-				.where({ title: "Only In A" })
-				.first("title");
-			const foundInB = await fixtureB
-				.db("todos")
-				.where({ title: "Only In A" })
-				.first("title");
+			const foundInA = await fixtureA.db.get(
+				sql`SELECT name FROM tags WHERE name = ${"Only In A"}`,
+			);
+			const foundInB = await fixtureB.db.get(
+				sql`SELECT name FROM tags WHERE name = ${"Only In A"}`,
+			);
 
-			t.assert.deepStrictEqual(foundInA?.["title"], "Only In A");
+			t.assert.deepStrictEqual(foundInA, { name: "Only In A" });
 			t.assert.deepStrictEqual(foundInB, undefined);
 		} finally {
 			await fixtureA.cleanup();
@@ -34,33 +29,15 @@ describe("databaseTestFixture", { concurrency: true }, () => {
 		}
 	});
 
-	it("runs seed and prepare hooks when requested", async (t: TestContext) => {
-		const fixture = await databaseTestFixture.setup({
-			prepare: async (db) => {
-				const status = await db("todo_statuses")
-					.where({ code: "open" })
-					.first("id");
-				const priority = await db("todo_priorities")
-					.where({ code: "medium" })
-					.first("id");
-				const now = new Date().toISOString();
-
-				await db("todos").insert({
-					created_at: now,
-					description: "",
-					priority_id: Number(priority?.["id"]),
-					status_id: Number(status?.["id"]),
-					title: "Prepared",
-					updated_at: now,
-				});
-			},
-			seed: true,
-		});
+	it("runs seeds before opening the runtime connection", async (t: TestContext) => {
+		const fixture = await sqliteDatabaseTestFixture.setup({ seed: true });
 
 		try {
-			const prepared = await fixture.db("todos").where({ title: "Prepared" });
+			const todo = await fixture.db.get<{ title: string }>(
+				sql`SELECT title FROM todos ORDER BY id LIMIT 1`,
+			);
 
-			t.assert.deepStrictEqual(prepared.length, 1);
+			t.assert.ok(todo?.title);
 		} finally {
 			await fixture.cleanup();
 		}

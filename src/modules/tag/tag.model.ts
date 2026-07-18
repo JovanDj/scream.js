@@ -1,18 +1,17 @@
-import type { SqliteDatabase } from "@scream.js/database/db.js";
-import { Model } from "@scream.js/database/model.js";
+import type { Connection } from "@scream.js/database/connection.js";
+import { sql } from "@scream.js/database/query-builder/sql-template-string.js";
+import { TableModel } from "@scream.js/database/table-model.js";
 import { schema } from "@scream.js/validator/schema.js";
 
-export class TagModel extends Model {
-	constructor(db: SqliteDatabase) {
-		super(db, "tags");
+export class TagModel extends TableModel {
+	constructor(connection: Connection) {
+		super(connection, "tags");
 	}
 
-	list() {
-		const rows = this.db
-			.prepare<[], { id: number; name: string }>(
-				"SELECT id, name FROM tags ORDER BY name ASC",
-			)
-			.all();
+	async list() {
+		const rows = await this.connection.all(
+			sql`SELECT id, name FROM tags ORDER BY name ASC`,
+		);
 
 		return schema
 			.array(
@@ -24,63 +23,61 @@ export class TagModel extends Model {
 			.parse(rows);
 	}
 
-	create(name: string) {
+	async create(name: string) {
 		const now = new Date().toISOString();
-		this.insert({ created_at: now, name, updated_at: now });
+		await this.insert({ created_at: now, name, updated_at: now });
 	}
 
-	destroy(id: number) {
-		return this.deleteById(id);
+	async destroy(id: number) {
+		const result = await this.deleteById(id);
+
+		return result.affectedRows() > 0;
 	}
 
-	assignToTodo(todoId: number, tagIds: readonly number[]) {
-		return this.db.transaction(() => {
-			if (
-				this.db
-					.prepare<[number]>("SELECT id FROM todos WHERE id = ?")
-					.get(todoId) === undefined
-			) {
+	async assignToTodo(todoId: number, tagIds: readonly number[]) {
+		return this.connection.transaction(async (transaction) => {
+			const todo = await transaction.get(
+				sql`SELECT id FROM todos WHERE id = ${todoId}`,
+			);
+			if (todo === undefined) {
 				return false;
 			}
 
 			const uniqueTagIds = [...new Set(tagIds)];
 			if (uniqueTagIds.length > 0) {
-				const placeholders = uniqueTagIds.map(() => "?").join(", ");
 				const matchedTags = schema
 					.object({
 						count: schema.coerce.number().int().nonnegative(),
 					})
 					.parse(
-						this.db
-							.prepare<unknown[], { count: number }>(
-								`SELECT COUNT(*) AS count FROM tags WHERE id IN (${placeholders})`,
-							)
-							.get(...uniqueTagIds),
+						await transaction.get(
+							sql`SELECT COUNT(*) AS count
+							FROM tags
+							WHERE id IN (${uniqueTagIds})`,
+						),
 					);
 				if (matchedTags.count !== uniqueTagIds.length) {
 					return false;
 				}
 			}
 
-			this.db
-				.prepare<[number]>("DELETE FROM todo_tags WHERE todo_id = ?")
-				.run(todoId);
+			await transaction.run(
+				sql`DELETE FROM todo_tags WHERE todo_id = ${todoId}`,
+			);
 
 			const now = new Date().toISOString();
-			const insertTag = this.db.prepare(
-				"INSERT INTO todo_tags (created_at, tag_id, todo_id) VALUES (?, ?, ?)",
-			);
 			for (const tagId of uniqueTagIds) {
-				insertTag.run(now, tagId, todoId);
+				await transaction.run(
+					sql`INSERT INTO todo_tags (created_at, tag_id, todo_id)
+					VALUES (${now}, ${tagId}, ${todoId})`,
+				);
 			}
 
-			this.db
-				.prepare<[string, number]>(
-					"UPDATE todos SET updated_at = ? WHERE id = ?",
-				)
-				.run(now, todoId);
+			const result = await transaction.run(
+				sql`UPDATE todos SET updated_at = ${now} WHERE id = ${todoId}`,
+			);
 
-			return true;
-		})();
+			return result.affectedRows() > 0;
+		});
 	}
 }

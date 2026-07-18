@@ -63,7 +63,7 @@ export class TodosController implements Resource {
 		const search = parsedQuery.data.search;
 		const scope = parsedQuery.data.status;
 
-		const todos = this.#todos.list({ scope, search });
+		const todos = await this.#todos.list({ scope, search });
 
 		const todoViews = todos.map((todo) => ({
 			id: todo.id,
@@ -120,7 +120,7 @@ export class TodosController implements Resource {
 		}
 		const todoId = parsedTodoId.data;
 
-		const todo = this.#todos.find(todoId);
+		const todo = await this.#todos.find(todoId);
 		if (todo === undefined) {
 			return ctx.notFound();
 		}
@@ -161,7 +161,7 @@ export class TodosController implements Resource {
 				pageTitle: "New Todo",
 			});
 		}
-		const todoId = this.#todos.create({ title });
+		const todoId = await this.#todos.create({ title });
 
 		return ctx.redirect(`/todos/${todoId}`);
 	}
@@ -177,7 +177,7 @@ export class TodosController implements Resource {
 		}
 		const todoId = parsedTodoId.data;
 
-		const todo = this.#todos.find(todoId);
+		const todo = await this.#todos.find(todoId);
 		if (todo === undefined) {
 			return ctx.notFound();
 		}
@@ -229,7 +229,7 @@ export class TodosController implements Resource {
 			});
 		}
 
-		const result = this.#todos.update({
+		const result = await this.#todos.update({
 			id: todoId,
 			statusCode: parsed.data.statusCode,
 			title: parsed.data.title,
@@ -253,7 +253,7 @@ export class TodosController implements Resource {
 		}
 		const todoId = parsedTodoId.data;
 
-		const deleted = this.#todos.destroy(todoId);
+		const deleted = await this.#todos.destroy(todoId);
 		if (!deleted) {
 			return ctx.notFound();
 		}

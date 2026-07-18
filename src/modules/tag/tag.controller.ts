@@ -28,7 +28,7 @@ export class TagController {
 	}
 
 	async #renderIndex(ctx: HttpContext, errors: { name: string }) {
-		const tags = this.#tags.list().map((tag) => ({
+		const tags = (await this.#tags.list()).map((tag) => ({
 			id: tag.id,
 			name: tag.name,
 		}));
@@ -56,7 +56,7 @@ export class TagController {
 		}
 
 		try {
-			this.#tags.create(parsed.data.name);
+			await this.#tags.create(parsed.data.name);
 			return ctx.redirect("/tags");
 		} catch {
 			return this.#renderIndex(ctx, { name: "Tag name must be unique" });
@@ -74,7 +74,7 @@ export class TagController {
 		}
 		const tagId = parsedTagId.data;
 
-		const deleted = this.#tags.destroy(tagId);
+		const deleted = await this.#tags.destroy(tagId);
 		if (!deleted) {
 			return ctx.notFound();
 		}
@@ -110,7 +110,7 @@ export class TagController {
 			return ctx.redirect(`/todos/${todoId}/edit`);
 		}
 
-		const replaced = this.#tags.assignToTodo(todoId, parsed.data.tagIds);
+		const replaced = await this.#tags.assignToTodo(todoId, parsed.data.tagIds);
 
 		if (!replaced) {
 			return ctx.notFound();

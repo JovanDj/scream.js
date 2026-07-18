@@ -1,4 +1,4 @@
-import { createSqliteDB, type SqliteDatabase } from "@scream.js/database/db.js";
+import { createConnection } from "@scream.js/database/db.js";
 import type { Application } from "@scream.js/http/application.js";
 import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
@@ -10,15 +10,15 @@ import { ProjectModule } from "./src/modules/project/index.js";
 import { TagModule } from "./src/modules/tag/index.js";
 import { TodoModule } from "./src/modules/todo/index.js";
 
-const startServer = () => {
+const startServer = async () => {
 	const logger: Logger = createLogger();
-	const sqliteDb: SqliteDatabase = createSqliteDB();
+	const connection = await createConnection();
 
 	const modules: HttpModule[] = [
 		PagesModule.create(),
-		ProjectModule.create(sqliteDb),
-		TagModule.create(sqliteDb),
-		TodoModule.create(sqliteDb),
+		ProjectModule.create(connection),
+		TagModule.create(connection),
+		TodoModule.create(connection),
 	];
 
 	const app: Application = ExpressApp.create();
@@ -31,10 +31,10 @@ const startServer = () => {
 		app,
 		onListening: (port) => logger.log(`Listening on port ${port}`),
 		onShutdown: async () => {
-			sqliteDb.close();
+			await connection.close();
 		},
 		port: 3000,
 	});
 };
 
-startServer();
+await startServer();
