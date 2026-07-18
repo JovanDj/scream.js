@@ -1,32 +1,35 @@
 import { describe, it, type TestContext } from "node:test";
-import type { Database } from "@scream.js/database/db.js";
-import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
+import type { SqliteDatabase } from "@scream.js/database/db.js";
+import { sqliteDatabaseTestFixture } from "@scream.js/database/test-helpers.js";
 import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import { HttpServer } from "@scream.js/http/server.js";
 import { ProjectModule } from "./project.module.ts";
 
 describe("project controller", { concurrency: true }, () => {
-	const insertProject = async (db: Database, name: string) => {
-		const status = await db("project_statuses")
-			.where({ code: "active" })
-			.first("id");
-
+	const insertProject = (db: SqliteDatabase, name: string) => {
+		const status = db
+			.prepare<[string], { id: number }>(
+				"SELECT id FROM project_statuses WHERE code = ?",
+			)
+			.get("active");
+		if (status === undefined) {
+			throw new Error("Active project status should exist");
+		}
 		const now = new Date().toISOString();
+		const result = db
+			.prepare<[string, number, string, string]>(
+				`INSERT INTO projects (name, status_id, created_at, updated_at)
+				VALUES (?, ?, ?, ?)`,
+			)
+			.run(name, status.id, now, now);
 
-		const [row] = await db("projects")
-			.insert({
-				created_at: now,
-				name,
-				status_id: Number(status["id"]),
-				updated_at: now,
-			})
-			.returning(["id"]);
-
-		return { id: Number(row["id"]) };
+		return { id: Number(result.lastInsertRowid) };
 	};
 
 	const setupServer = async () => {
-		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({});
+		const { cleanup: cleanupDb, db } = await sqliteDatabaseTestFixture.setup(
+			{},
+		);
 		const module = ProjectModule.create(db);
 		const app = ExpressApp.create();
 
@@ -202,6 +205,15 @@ describe("project controller", { concurrency: true }, () => {
 					signal: t.signal,
 				},
 			);
+			const archivedStatus = db
+				.prepare<[number], { code: string }>(
+					`SELECT project_statuses.code
+					FROM projects
+					INNER JOIN project_statuses
+						ON projects.status_id = project_statuses.id
+					WHERE projects.id = ?`,
+				)
+				.get(project.id);
 			const unarchived = await fetch(
 				`http://localhost:${port}/projects/${project.id}/unarchive`,
 				{
@@ -210,17 +222,28 @@ describe("project controller", { concurrency: true }, () => {
 					signal: t.signal,
 				},
 			);
+			const unarchivedStatus = db
+				.prepare<[number], { code: string }>(
+					`SELECT project_statuses.code
+					FROM projects
+					INNER JOIN project_statuses
+						ON projects.status_id = project_statuses.id
+					WHERE projects.id = ?`,
+				)
+				.get(project.id);
 
 			t.assert.deepStrictEqual(archived.status, 302);
 			t.assert.deepStrictEqual(
 				archived.headers.get("Location"),
 				`/projects/${project.id}`,
 			);
+			t.assert.deepStrictEqual(archivedStatus?.code, "archived");
 			t.assert.deepStrictEqual(unarchived.status, 302);
 			t.assert.deepStrictEqual(
 				unarchived.headers.get("Location"),
 				`/projects/${project.id}`,
 			);
+			t.assert.deepStrictEqual(unarchivedStatus?.code, "active");
 		} finally {
 			await cleanup();
 		}

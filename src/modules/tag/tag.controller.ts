@@ -1,6 +1,6 @@
-import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { schema } from "@scream.js/validator/schema.js";
+import type { TagModel } from "./tag.model.js";
 
 const tagErrors = (
 	issues: readonly { message: string; path: PropertyKey[] }[],
@@ -17,10 +17,10 @@ const tagErrors = (
 };
 
 export class TagController {
-	readonly #db: Database;
+	readonly #tags: TagModel;
 
-	constructor(db: Database) {
-		this.#db = db;
+	constructor(tags: TagModel) {
+		this.#tags = tags;
 	}
 
 	async index(ctx: HttpContext) {
@@ -28,17 +28,10 @@ export class TagController {
 	}
 
 	async #renderIndex(ctx: HttpContext, errors: { name: string }) {
-		const rows = await this.#db("tags")
-			.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
-			.orderBy("tags.name", "asc");
-		const tags = schema
-			.array(
-				schema.object({
-					id: schema.coerce.number().int().positive(),
-					name: schema.string(),
-				}),
-			)
-			.parse(rows);
+		const tags = this.#tags.list().map((tag) => ({
+			id: tag.id,
+			name: tag.name,
+		}));
 		return ctx.render("tag-index", {
 			errors,
 			pageTitle: "Tags",
@@ -63,14 +56,7 @@ export class TagController {
 		}
 
 		try {
-			await this.#db.transaction(async (tx) => {
-				const now = new Date().toISOString();
-				await tx("tags").insert({
-					created_at: now,
-					name: parsed.data.name,
-					updated_at: now,
-				});
-			});
+			this.#tags.create(parsed.data.name);
 			return ctx.redirect("/tags");
 		} catch {
 			return this.#renderIndex(ctx, { name: "Tag name must be unique" });
@@ -88,7 +74,7 @@ export class TagController {
 		}
 		const tagId = parsedTagId.data;
 
-		const deleted = (await this.#db("tags").where({ id: tagId }).del()) > 0;
+		const deleted = this.#tags.destroy(tagId);
 		if (!deleted) {
 			return ctx.notFound();
 		}
@@ -124,38 +110,7 @@ export class TagController {
 			return ctx.redirect(`/todos/${todoId}/edit`);
 		}
 
-		const replaced = await this.#db.transaction(async (tx) => {
-			const tagIds = [...new Set(parsed.data.tagIds)];
-			const todo = await tx("todos").where({ id: todoId }).first("id");
-			if (!todo) {
-				return false;
-			}
-
-			if (tagIds.length > 0) {
-				const matchedTags = await tx("tags").whereIn("id", tagIds).select("id");
-				const matchedTagIds = matchedTags.map((row) => row.id);
-				if (matchedTagIds.length !== tagIds.length) {
-					return false;
-				}
-			}
-
-			await tx("todo_tags").where({ todo_id: todoId }).del();
-			if (tagIds.length > 0) {
-				await tx("todo_tags").insert(
-					tagIds.map((tagId) => ({
-						created_at: new Date().toISOString(),
-						tag_id: tagId,
-						todo_id: todoId,
-					})),
-				);
-			}
-
-			const affectedRows = await tx("todos").where({ id: todoId }).update({
-				updated_at: new Date().toISOString(),
-			});
-
-			return affectedRows > 0;
-		});
+		const replaced = this.#tags.assignToTodo(todoId, parsed.data.tagIds);
 
 		if (!replaced) {
 			return ctx.notFound();

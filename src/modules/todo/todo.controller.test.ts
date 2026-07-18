@@ -1,5 +1,5 @@
 import { describe, it, type TestContext } from "node:test";
-import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
+import { sqliteDatabaseTestFixture } from "@scream.js/database/test-helpers.js";
 import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import { HttpServer } from "@scream.js/http/server.js";
 import { PagesModule } from "../pages/index.js";
@@ -7,7 +7,7 @@ import { TodoModule } from "./todo.module.ts";
 
 describe("todo controller", { concurrency: true }, () => {
 	const setupServer = async () => {
-		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({
+		const { cleanup: cleanupDb, db } = await sqliteDatabaseTestFixture.setup({
 			seed: true,
 		});
 		const modules = [PagesModule.create(), TodoModule.create(db)];

@@ -1,13 +1,14 @@
-import type { Database } from "@scream.js/database/db.js";
+import type { SqliteDatabase } from "@scream.js/database/db.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
 import { ProjectController } from "./project.controller.js";
+import { ProjectModel } from "./project.model.js";
 
 export class ProjectModule implements HttpModule {
 	readonly #projectController: ProjectController;
 
-	static create(db: Database) {
-		const projectController = new ProjectController(db);
+	static create(db: SqliteDatabase) {
+		const projectController = new ProjectController(new ProjectModel(db));
 
 		return new ProjectModule(projectController);
 	}

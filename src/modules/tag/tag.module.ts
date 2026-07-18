@@ -1,13 +1,14 @@
-import type { Database } from "@scream.js/database/db.js";
+import type { SqliteDatabase } from "@scream.js/database/db.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
 import { TagController } from "./tag.controller.js";
+import { TagModel } from "./tag.model.js";
 
 export class TagModule implements HttpModule {
 	readonly #tagController: TagController;
 
-	static create(db: Database) {
-		const tagController = new TagController(db);
+	static create(db: SqliteDatabase) {
+		const tagController = new TagController(new TagModel(db));
 
 		return new TagModule(tagController);
 	}

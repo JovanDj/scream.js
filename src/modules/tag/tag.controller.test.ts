@@ -1,55 +1,56 @@
 import { describe, it, type TestContext } from "node:test";
-import type { Database } from "@scream.js/database/db.js";
-import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
+import type { SqliteDatabase } from "@scream.js/database/db.js";
+import { sqliteDatabaseTestFixture } from "@scream.js/database/test-helpers.js";
 import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import { HttpServer } from "@scream.js/http/server.js";
 import { PagesModule } from "../pages/index.js";
 import { TagModule } from "./index.js";
 
 describe("tag controller", { concurrency: true }, () => {
-	const findIdByCode = async (
-		db: Database,
+	const findIdByCode = (
+		db: SqliteDatabase,
 		table: "todo_priorities" | "todo_statuses",
 		code: string,
 	) => {
-		const row = await db(table).where({ code }).first("id");
-		return Number(row["id"]);
+		const row = db
+			.prepare<[string], { id: number }>(
+				`SELECT id FROM ${table} WHERE code = ?`,
+			)
+			.get(code);
+		if (row === undefined) {
+			throw new Error(`Missing ${table} row for ${code}`);
+		}
+		return row.id;
 	};
 
-	const insertTag = async (db: Database, name: string) => {
+	const insertTag = (db: SqliteDatabase, name: string) => {
 		const now = new Date().toISOString();
-		const [row] = await db("tags")
-			.insert({
-				created_at: now,
-				name,
-				updated_at: now,
-			})
-			.returning(["id"]);
+		const result = db
+			.prepare(
+				"INSERT INTO tags (created_at, name, updated_at) VALUES (?, ?, ?)",
+			)
+			.run(now, name, now);
 
-		return { id: Number(row["id"]) };
+		return { id: Number(result.lastInsertRowid) };
 	};
 
-	const insertTodo = async (db: Database, title: string) => {
+	const insertTodo = (db: SqliteDatabase, title: string) => {
 		const now = new Date().toISOString();
-		const priorityId = await findIdByCode(db, "todo_priorities", "medium");
-		const statusId = await findIdByCode(db, "todo_statuses", "open");
-		const [row] = await db("todos")
-			.insert({
-				created_at: now,
-				description: "",
-				priority_id: priorityId,
-				project_id: null,
-				status_id: statusId,
-				title,
-				updated_at: now,
-			})
-			.returning(["id"]);
+		const priorityId = findIdByCode(db, "todo_priorities", "medium");
+		const statusId = findIdByCode(db, "todo_statuses", "open");
+		const result = db
+			.prepare(
+				`INSERT INTO todos (
+					created_at, description, priority_id, project_id, status_id, title, updated_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			)
+			.run(now, "", priorityId, null, statusId, title, now);
 
-		return { id: Number(row["id"]) };
+		return { id: Number(result.lastInsertRowid) };
 	};
 
 	const setupServer = async () => {
-		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({});
+		const { cleanup: cleanupDb, db } = await sqliteDatabaseTestFixture.setup();
 		const modules = [PagesModule.create(), TagModule.create(db)];
 		const app = ExpressApp.create();
 
@@ -197,7 +198,9 @@ describe("tag controller", { concurrency: true }, () => {
 				redirect: "manual",
 				signal: t.signal,
 			});
-			const deleted = await db("tags").where({ id: tag.id }).first("id");
+			const deleted = db
+				.prepare<[number], { id: number }>("SELECT id FROM tags WHERE id = ?")
+				.get(tag.id);
 
 			t.assert.deepStrictEqual(response.status, 302);
 			t.assert.deepStrictEqual(response.headers.get("Location"), "/tags");
@@ -258,6 +261,39 @@ describe("tag controller", { concurrency: true }, () => {
 		}
 	});
 
+	it("POST /todos/:id/tags preserves assignments when a tag is missing", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			const todo = await insertTodo(db, "Todo");
+			const tag = await insertTag(db, "alpha");
+			db.prepare(
+				"INSERT INTO todo_tags (created_at, tag_id, todo_id) VALUES (?, ?, ?)",
+			).run(new Date().toISOString(), tag.id, todo.id);
+
+			const response = await fetch(
+				`http://localhost:${port}/todos/${todo.id}/tags`,
+				{
+					body: "tagIds=99999",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+					},
+					method: "POST",
+					signal: t.signal,
+				},
+			);
+			const assignment = db
+				.prepare<[number, number], { todo_id: number }>(
+					"SELECT todo_id FROM todo_tags WHERE todo_id = ? AND tag_id = ?",
+				)
+				.get(todo.id, tag.id);
+
+			t.assert.deepStrictEqual(response.status, 404);
+			t.assert.deepStrictEqual(assignment?.todo_id, todo.id);
+		} finally {
+			await cleanup();
+		}
+	});
+
 	it("POST /todos/:id/tags returns 404 when the todo id is invalid", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
 		try {
@@ -312,11 +348,9 @@ describe("tag controller", { concurrency: true }, () => {
 		try {
 			const todo = await insertTodo(db, "Todo");
 			const tag = await insertTag(db, "alpha");
-			await db("todo_tags").insert({
-				created_at: new Date().toISOString(),
-				tag_id: tag.id,
-				todo_id: todo.id,
-			});
+			db.prepare(
+				"INSERT INTO todo_tags (created_at, tag_id, todo_id) VALUES (?, ?, ?)",
+			).run(new Date().toISOString(), tag.id, todo.id);
 
 			const response = await fetch(
 				`http://localhost:${port}/todos/${todo.id}/tags`,
@@ -330,9 +364,11 @@ describe("tag controller", { concurrency: true }, () => {
 					signal: t.signal,
 				},
 			);
-			const remaining = await db("todo_tags")
-				.where({ todo_id: todo.id })
-				.first("todo_id");
+			const remaining = db
+				.prepare<[number], { todo_id: number }>(
+					"SELECT todo_id FROM todo_tags WHERE todo_id = ?",
+				)
+				.get(todo.id);
 
 			t.assert.deepStrictEqual(response.status, 302);
 			t.assert.deepStrictEqual(

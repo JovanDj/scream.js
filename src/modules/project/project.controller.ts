@@ -1,6 +1,6 @@
-import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { schema } from "@scream.js/validator/schema.js";
+import type { ProjectModel } from "./project.model.js";
 
 const projectErrors = (
 	issues: readonly { message: string; path: PropertyKey[] }[],
@@ -17,37 +17,18 @@ const projectErrors = (
 };
 
 export class ProjectController {
-	readonly #db: Database;
+	readonly #projects: ProjectModel;
 
-	constructor(db: Database) {
-		this.#db = db;
+	constructor(projects: ProjectModel) {
+		this.#projects = projects;
 	}
 
 	async index(ctx: HttpContext) {
-		const rows = await this.#db("projects")
-			.join("project_statuses", "projects.status_id", "project_statuses.id")
-			.select(
-				"projects.id",
-				"projects.name",
-				this.#db.ref("project_statuses.code").as("status_code"),
-			)
-			.orderBy("projects.id", "desc");
-		const projects = schema
-			.array(
-				schema.object({
-					id: schema.coerce.number().int().positive(),
-					name: schema.string(),
-					status_code: schema.enum(["active", "archived"]),
-				}),
-			)
-			.transform((parsedRows) =>
-				parsedRows.map((row) => ({
-					id: row.id,
-					name: row.name,
-					statusCode: row.status_code,
-				})),
-			)
-			.parse(rows);
+		const projects = this.#projects.list().map((project) => ({
+			id: project.id,
+			name: project.name,
+			statusCode: project.statusCode,
+		}));
 
 		return ctx.render("project-index", {
 			pageTitle: "Projects",
@@ -66,30 +47,15 @@ export class ProjectController {
 		}
 		const projectId = parsedProjectId.data;
 
-		const row = await this.#db("projects")
-			.join("project_statuses", "projects.status_id", "project_statuses.id")
-			.where({ "projects.id": projectId })
-			.select(
-				"projects.id",
-				"projects.name",
-				this.#db.ref("project_statuses.code").as("status_code"),
-			)
-			.first();
-		if (!row) {
+		const found = this.#projects.find(projectId);
+		if (found === undefined) {
 			return ctx.notFound();
 		}
-		const project = schema
-			.object({
-				id: schema.coerce.number().int().positive(),
-				name: schema.string(),
-				status_code: schema.enum(["active", "archived"]),
-			})
-			.transform((parsedRow) => ({
-				id: parsedRow.id,
-				name: parsedRow.name,
-				statusCode: parsedRow.status_code,
-			}))
-			.parse(row);
+		const project = {
+			id: found.id,
+			name: found.name,
+			statusCode: found.statusCode,
+		};
 
 		return ctx.render("project-show", {
 			pageTitle: `Project | ${project.name}`,
@@ -120,29 +86,7 @@ export class ProjectController {
 		}
 
 		try {
-			const result = await this.#db.transaction(async (tx) => {
-				const projectStatusRow = await tx("project_statuses")
-					.where({ code: "active" })
-					.first("id");
-
-				const projectStatus = schema
-					.object({
-						id: schema.coerce.number().positive(),
-					})
-					.parse(projectStatusRow);
-
-				const now = new Date().toISOString();
-				const [row] = await tx("projects")
-					.insert({
-						created_at: now,
-						name: parsed.data.name,
-						status_id: projectStatus.id,
-						updated_at: now,
-					})
-					.returning(["id"]);
-
-				return row.id;
-			});
+			const result = this.#projects.create(parsed.data.name);
 			return ctx.redirect(`/projects/${result}`);
 		} catch {
 			return ctx.render("project-create", {
@@ -166,33 +110,12 @@ export class ProjectController {
 		}
 		const projectId = parsedProjectId.data;
 
-		const result = await this.#db.transaction(async (tx) => {
-			const existing = await tx("projects")
-				.where({ id: projectId })
-				.first("id");
-			if (!existing) {
-				return;
-			}
-
-			const current = existing as { id: number };
-			const statusRow = await tx("project_statuses")
-				.where({ code: "archived" })
-				.first("id");
-
-			await tx("projects")
-				.where({ id: projectId })
-				.update({
-					status_id: (statusRow as { id: number }).id,
-					updated_at: new Date().toISOString(),
-				});
-
-			return { id: current.id };
-		});
-		if (!result) {
+		const result = this.#projects.archive(projectId);
+		if (result === undefined) {
 			return ctx.notFound();
 		}
 
-		return ctx.redirect(`/projects/${result.id}`);
+		return ctx.redirect(`/projects/${result}`);
 	}
 
 	async unarchive(ctx: HttpContext) {
@@ -206,32 +129,11 @@ export class ProjectController {
 		}
 		const projectId = parsedProjectId.data;
 
-		const result = await this.#db.transaction(async (tx) => {
-			const existing = await tx("projects")
-				.where({ id: projectId })
-				.first("id");
-			if (!existing) {
-				return;
-			}
-
-			const current = existing as { id: number };
-			const statusRow = await tx("project_statuses")
-				.where({ code: "active" })
-				.first("id");
-
-			await tx("projects")
-				.where({ id: projectId })
-				.update({
-					status_id: (statusRow as { id: number }).id,
-					updated_at: new Date().toISOString(),
-				});
-
-			return { id: current.id };
-		});
-		if (!result) {
+		const result = this.#projects.unarchive(projectId);
+		if (result === undefined) {
 			return ctx.notFound();
 		}
 
-		return ctx.redirect(`/projects/${result.id}`);
+		return ctx.redirect(`/projects/${result}`);
 	}
 }
