@@ -123,12 +123,13 @@ export class TodoModel extends TableModel {
 		title: string;
 	}) {
 		return this.connection.transaction(async (transaction) => {
-			const currentRow = await this.findById<{
-				completed_at: string | null;
-			}>(input.id, transaction);
+			const currentRow = await this.findById(input.id, transaction);
 			if (currentRow === undefined) {
 				return undefined;
 			}
+			const currentTodo = schema
+				.object({ completed_at: schema.string().nullable() })
+				.parse(currentRow);
 
 			const idSchema = schema.object({
 				id: schema.coerce.number().int().positive(),
@@ -147,7 +148,7 @@ export class TodoModel extends TableModel {
 			const now = new Date().toISOString();
 			const completedAt =
 				input.statusCode === "completed"
-					? (currentRow.completed_at ?? now)
+					? (currentTodo.completed_at ?? now)
 					: null;
 			const result = await this.updateById(
 				input.id,

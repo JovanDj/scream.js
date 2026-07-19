@@ -19,11 +19,8 @@ export abstract class TableModel extends Model {
 		});
 	}
 
-	protected findById<Row>(
-		id: number,
-		connection: Connection = this.connection,
-	) {
-		return connection.get<Row>({
+	protected findById(id: number, connection: Connection = this.connection) {
+		return connection.get<unknown>({
 			params: [id],
 			sql: `SELECT * FROM ${this.#table} WHERE id = ?`,
 		});
