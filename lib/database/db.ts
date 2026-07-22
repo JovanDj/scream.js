@@ -1,8 +1,10 @@
 import knex, { type Knex } from "knex";
 import type { Connection } from "./connection.js";
+import { ConnectionScheduler } from "./connection-scheduler.js";
 import config from "./knexfile.js";
-import { BetterSqliteConnection } from "./sqlite/better-sqlite-connection.js";
-import { Sqlite3Connection } from "./sqlite/sqlite3-connection.js";
+import { BetterSqliteDriver } from "./sqlite/better-sqlite-driver.js";
+import { SqliteConnection } from "./sqlite/sqlite-connection.js";
+import { Sqlite3Driver } from "./sqlite/sqlite3-driver.js";
 
 export type MigrationDatabase = Knex;
 export type DatabaseDriver = "better-sqlite3" | "sqlite3";
@@ -59,8 +61,14 @@ export const createConnection = async (
 ): Promise<Connection> => {
 	const connectionOptions = { database: filenameFor(options) };
 	if (options.driver === "sqlite3") {
-		return Sqlite3Connection.connect(connectionOptions);
+		return new SqliteConnection(
+			await Sqlite3Driver.connect(connectionOptions),
+			new ConnectionScheduler(),
+		);
 	}
 
-	return BetterSqliteConnection.connect(connectionOptions);
+	return new SqliteConnection(
+		await BetterSqliteDriver.connect(connectionOptions),
+		new ConnectionScheduler(),
+	);
 };

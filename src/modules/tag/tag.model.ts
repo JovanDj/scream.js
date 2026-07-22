@@ -42,6 +42,9 @@ export class TagModel extends TableModel {
 			if (todo === undefined) {
 				return false;
 			}
+			schema
+				.object({ id: schema.coerce.number().int().positive() })
+				.parse(todo);
 
 			const uniqueTagIds = [...new Set(tagIds)];
 			if (uniqueTagIds.length > 0) {

@@ -3,8 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it, type TestContext } from "node:test";
 import { createConnection, createMigrationDB } from "./db.js";
-import { BetterSqliteConnection } from "./sqlite/better-sqlite-connection.js";
-import { Sqlite3Connection } from "./sqlite/sqlite3-connection.js";
+import { SqliteConnection } from "./sqlite/sqlite-connection.js";
 
 describe("database factories", { concurrency: false }, () => {
 	const originalNodeEnv = process.env["NODE_ENV"];
@@ -23,7 +22,7 @@ describe("database factories", { concurrency: false }, () => {
 			environment: "integration",
 		});
 		try {
-			t.assert.ok(connection instanceof BetterSqliteConnection);
+			t.assert.ok(connection instanceof SqliteConnection);
 		} finally {
 			await connection.close();
 		}
@@ -35,7 +34,7 @@ describe("database factories", { concurrency: false }, () => {
 			environment: "integration",
 		});
 		try {
-			t.assert.ok(connection instanceof Sqlite3Connection);
+			t.assert.ok(connection instanceof SqliteConnection);
 		} finally {
 			await connection.close();
 		}

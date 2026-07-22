@@ -1,6 +1,6 @@
 import { describe, it, type TestContext } from "node:test";
 import { setTimeout } from "node:timers/promises";
-import type { Connection } from "./connection.js";
+import type { Connection, Transaction } from "./connection.js";
 import { sql } from "./query-builder/sql-template-string.js";
 
 export const connectionContract = (
@@ -211,40 +211,61 @@ export const connectionContract = (
 			}
 		});
 
-		it("restricts transaction-scoped connections", async (t: TestContext) => {
+		it("continues after a failed operation", async (t: TestContext) => {
 			const connection = await connect();
-			let transactionConnection: Connection | undefined;
+			try {
+				await t.assert.rejects(
+					connection.run(sql`INSERT INTO missing_table VALUES (${1})`),
+				);
+
+				const row = await connection.get<{ value: number }>(
+					sql`SELECT ${1} AS value`,
+				);
+
+				t.assert.deepStrictEqual(row, { value: 1 });
+			} finally {
+				await connection.close();
+			}
+		});
+
+		it("rejects transaction operations after completion", async (t: TestContext) => {
+			const connection = await connect();
+			let transaction: Transaction | undefined;
 			try {
 				await connection.run(
 					sql`CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)`,
 				);
 
 				await connection.transaction(async (trx) => {
-					transactionConnection = trx;
+					transaction = trx;
 					await trx.run(
 						sql`INSERT INTO users (id, name) VALUES (${1}, ${"Alice"})`,
 					);
-					await t.assert.rejects(() => trx.close(), {
-						message: "Cannot close a transaction connection",
-					});
-					await t.assert.rejects(() => trx.transaction(async () => undefined), {
-						message: "Nested transactions are not supported",
-					});
 				});
 
+				const completedTransaction = transaction as Transaction;
 				await t.assert.rejects(
-					() =>
-						transactionConnection?.get(
-							sql`SELECT id, name FROM users WHERE id = ${1}`,
-						) ?? Promise.resolve(),
-					{ message: "Transaction connection is no longer active" },
+					completedTransaction.get(
+						sql`SELECT id, name FROM users WHERE id = ${1}`,
+					),
+					{ message: "Transaction is no longer active" },
+				);
+				await t.assert.rejects(
+					completedTransaction.all(sql`SELECT id, name FROM users`),
+					{ message: "Transaction is no longer active" },
+				);
+				await t.assert.rejects(
+					completedTransaction.run(
+						sql`INSERT INTO users (id, name) VALUES (${2}, ${"Bob"})`,
+					),
+					{ message: "Transaction is no longer active" },
 				);
 			} finally {
 				await connection.close();
 			}
 		});
 
-		it("preserves the callback error when rollback also fails", async (t: TestContext) => {
+		it("preserves callback and rollback errors", async (t: TestContext) => {
 			const connection = await connect();
 			const callbackError = new Error("callback failed");
 			try {
@@ -253,11 +274,47 @@ export const connectionContract = (
 						await trx.run(sql`ROLLBACK`);
 						throw callbackError;
 					}),
-					(error) => error === callbackError,
+					(error) =>
+						error instanceof AggregateError &&
+						error.message === "Transaction and rollback failed" &&
+						error.errors[0] === callbackError &&
+						error.errors.length === 2,
 				);
 			} finally {
 				await connection.close();
 			}
+		});
+
+		it("queues close behind active work and rejects later operations", async (t: TestContext) => {
+			const connection = await connect();
+			const transactionStarted = Promise.withResolvers<void>();
+			const releaseTransaction = Promise.withResolvers<void>();
+			await connection.run(
+				sql`CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)`,
+			);
+			const transaction = connection.transaction(async (trx) => {
+				transactionStarted.resolve();
+				await releaseTransaction.promise;
+				await trx.run(
+					sql`INSERT INTO users (id, name) VALUES (${1}, ${"Alice"})`,
+				);
+			});
+			await transactionStarted.promise;
+
+			const close = connection.close();
+			const closeCompleted = await Promise.race([
+				close.then(() => true),
+				setTimeout(20, false),
+			]);
+
+			t.assert.strictEqual(closeCompleted, false);
+			await t.assert.rejects(
+				connection.get(sql`SELECT id, name FROM users WHERE id = ${1}`),
+				{ message: "Connection is closed" },
+			);
+			releaseTransaction.resolve();
+			await transaction;
+			await close;
 		});
 
 		it("closes the connection", async (t: TestContext) => {

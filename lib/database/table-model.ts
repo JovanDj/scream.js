@@ -1,4 +1,4 @@
-import type { Connection } from "./connection.js";
+import type { Connection, QueryExecutor } from "./connection.js";
 import { Model } from "./model.js";
 import type { SqlPrimitive } from "./query-builder/sql-query.js";
 
@@ -10,16 +10,16 @@ export abstract class TableModel extends Model {
 		this.#table = this.#identifier(table);
 	}
 
-	protected all<Row>(
-		connection: Connection = this.connection,
-	): Promise<readonly Row[]> {
-		return connection.all<Row>({
+	protected all(
+		connection: QueryExecutor = this.connection,
+	): Promise<readonly unknown[]> {
+		return connection.all<unknown>({
 			params: [],
 			sql: `SELECT * FROM ${this.#table}`,
 		});
 	}
 
-	protected findById(id: number, connection: Connection = this.connection) {
+	protected findById(id: number, connection: QueryExecutor = this.connection) {
 		return connection.get<unknown>({
 			params: [id],
 			sql: `SELECT * FROM ${this.#table} WHERE id = ?`,
@@ -28,7 +28,7 @@ export abstract class TableModel extends Model {
 
 	protected insert(
 		values: Readonly<Record<string, SqlPrimitive>>,
-		connection: Connection = this.connection,
+		connection: QueryExecutor = this.connection,
 	) {
 		const entries = Object.entries(values);
 		if (entries.length === 0) {
@@ -47,7 +47,7 @@ export abstract class TableModel extends Model {
 	protected updateById(
 		id: number,
 		values: Readonly<Record<string, SqlPrimitive>>,
-		connection: Connection = this.connection,
+		connection: QueryExecutor = this.connection,
 	) {
 		const entries = Object.entries(values);
 		if (entries.length === 0) {
@@ -64,7 +64,10 @@ export abstract class TableModel extends Model {
 		});
 	}
 
-	protected deleteById(id: number, connection: Connection = this.connection) {
+	protected deleteById(
+		id: number,
+		connection: QueryExecutor = this.connection,
+	) {
 		return connection.run({
 			params: [id],
 			sql: `DELETE FROM ${this.#table} WHERE id = ?`,

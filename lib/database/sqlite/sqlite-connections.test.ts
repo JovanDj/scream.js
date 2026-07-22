@@ -1,11 +1,23 @@
 import { connectionContract } from "../connection.contract.js";
-import { BetterSqliteConnection } from "./better-sqlite-connection.js";
-import { Sqlite3Connection } from "./sqlite3-connection.js";
+import { ConnectionScheduler } from "../connection-scheduler.js";
+import { BetterSqliteDriver } from "./better-sqlite-driver.js";
+import { SqliteConnection } from "./sqlite-connection.js";
+import { Sqlite3Driver } from "./sqlite3-driver.js";
 
-connectionContract("BetterSqliteConnection", () =>
-	BetterSqliteConnection.connect({ database: ":memory:" }),
+connectionContract(
+	"BetterSqliteDriver",
+	async () =>
+		new SqliteConnection(
+			await BetterSqliteDriver.connect({ database: ":memory:" }),
+			new ConnectionScheduler(),
+		),
 );
 
-connectionContract("Sqlite3Connection", () =>
-	Sqlite3Connection.connect({ database: ":memory:" }),
+connectionContract(
+	"Sqlite3Driver",
+	async () =>
+		new SqliteConnection(
+			await Sqlite3Driver.connect({ database: ":memory:" }),
+			new ConnectionScheduler(),
+		),
 );
