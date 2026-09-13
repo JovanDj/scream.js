@@ -6,9 +6,13 @@ import { HttpServer } from "@scream.js/http/server.js";
 import { ProjectModule } from "./project.module.ts";
 
 describe("project controller", { concurrency: true }, () => {
-	const insertProject = async (db: Database, name: string) => {
+	const insertProject = async (
+		db: Database,
+		name: string,
+		statusCode: "active" | "archived" = "active",
+	) => {
 		const status = await db("project_statuses")
-			.where({ code: "active" })
+			.where({ code: statusCode })
 			.first("id");
 
 		const now = new Date().toISOString();
@@ -53,6 +57,81 @@ describe("project controller", { concurrency: true }, () => {
 			t.assert.deepStrictEqual(response.status, 200);
 			t.assert.match(html, /Projects/);
 			t.assert.match(html, /Alpha/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /projects filters projects by status", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			await insertProject(db, "Visible Archived Project", "archived");
+			await insertProject(db, "Hidden Active Project");
+
+			const response = await fetch(
+				`http://localhost:${port}/projects?status=archived`,
+				{ signal: t.signal },
+			);
+			const html = await response.text();
+
+			t.assert.deepStrictEqual(response.status, 200);
+			t.assert.match(html, /Visible Archived Project/);
+			t.assert.doesNotMatch(html, /Hidden Active Project/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /projects searches projects by name", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			await insertProject(db, "Searchable Project");
+			await insertProject(db, "Hidden Project");
+
+			const response = await fetch(
+				`http://localhost:${port}/projects?search=Searchable`,
+				{ signal: t.signal },
+			);
+			const html = await response.text();
+
+			t.assert.deepStrictEqual(response.status, 200);
+			t.assert.match(html, /Searchable Project/);
+			t.assert.doesNotMatch(html, /Hidden Project/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /projects preserves search in status filters", async (t: TestContext) => {
+		const { cleanup, port } = await setupServer();
+		try {
+			const response = await fetch(
+				`http://localhost:${port}/projects?status=active&search=website`,
+				{ signal: t.signal },
+			);
+			const html = await response.text();
+
+			t.assert.deepStrictEqual(response.status, 200);
+			t.assert.match(html, /name="status" value="active"/);
+			t.assert.match(html, /href="\/projects\?search=website"/);
+			t.assert.match(
+				html,
+				/href="\/projects\?status=archived&amp;search=website"/,
+			);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /projects with invalid status returns 404", async (t: TestContext) => {
+		const { cleanup, port } = await setupServer();
+		try {
+			const response = await fetch(
+				`http://localhost:${port}/projects?status=invalid-filter`,
+				{ signal: t.signal },
+			);
+
+			t.assert.deepStrictEqual(response.status, 404);
 		} finally {
 			await cleanup();
 		}

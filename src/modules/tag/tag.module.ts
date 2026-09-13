@@ -2,12 +2,13 @@ import type { Database } from "@scream.js/database/db.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
 import { TagController } from "./tag.controller.js";
+import { TagIndexAction } from "./tag-index.action.js";
 
 export class TagModule implements HttpModule {
 	readonly #tagController: TagController;
 
 	static create(db: Database) {
-		const tagController = new TagController(db);
+		const tagController = new TagController(db, new TagIndexAction(db));
 
 		return new TagModule(tagController);
 	}

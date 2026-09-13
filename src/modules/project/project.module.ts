@@ -2,12 +2,16 @@ import type { Database } from "@scream.js/database/db.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
 import { ProjectController } from "./project.controller.js";
+import { ProjectIndexAction } from "./project-index.action.js";
 
 export class ProjectModule implements HttpModule {
 	readonly #projectController: ProjectController;
 
 	static create(db: Database) {
-		const projectController = new ProjectController(db);
+		const projectController = new ProjectController(
+			db,
+			new ProjectIndexAction(db),
+		);
 
 		return new ProjectModule(projectController);
 	}

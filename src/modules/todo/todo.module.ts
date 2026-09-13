@@ -2,12 +2,13 @@ import type { Database } from "@scream.js/database/db.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
 import { TodosController } from "./todo.controller.js";
+import { TodosIndexAction } from "./todo-index.action.js";
 
 export class TodoModule implements HttpModule {
 	readonly #todosController: TodosController;
 
 	static create(db: Database) {
-		const todosController = new TodosController(db);
+		const todosController = new TodosController(db, new TodosIndexAction(db));
 
 		return new TodoModule(todosController);
 	}

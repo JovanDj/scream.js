@@ -1,6 +1,7 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { schema } from "@scream.js/validator/schema.js";
+import type { ProjectIndexAction } from "./project-index.action.js";
 
 const projectErrors = (
 	issues: readonly { message: string; path: PropertyKey[] }[],
@@ -18,41 +19,15 @@ const projectErrors = (
 
 export class ProjectController {
 	readonly #db: Database;
+	readonly #indexAction: ProjectIndexAction;
 
-	constructor(db: Database) {
+	constructor(db: Database, indexAction: ProjectIndexAction) {
 		this.#db = db;
+		this.#indexAction = indexAction;
 	}
 
 	async index(ctx: HttpContext) {
-		const rows = await this.#db("projects")
-			.join("project_statuses", "projects.status_id", "project_statuses.id")
-			.select(
-				"projects.id",
-				"projects.name",
-				this.#db.ref("project_statuses.code").as("status_code"),
-			)
-			.orderBy("projects.id", "desc");
-		const projects = schema
-			.array(
-				schema.object({
-					id: schema.coerce.number().int().positive(),
-					name: schema.string(),
-					status_code: schema.enum(["active", "archived"]),
-				}),
-			)
-			.transform((parsedRows) =>
-				parsedRows.map((row) => ({
-					id: row.id,
-					name: row.name,
-					statusCode: row.status_code,
-				})),
-			)
-			.parse(rows);
-
-		return ctx.render("project-index", {
-			pageTitle: "Projects",
-			projects,
-		});
+		return this.#indexAction.handle(ctx);
 	}
 
 	async show(ctx: HttpContext) {
@@ -104,17 +79,13 @@ export class ProjectController {
 					.string()
 					.default("")
 					.transform((value) => value.trim())
-					.refine((value) => value.length > 0, {
-						message: "Required",
-					}),
+					.refine((value) => value.length > 0, { message: "Required" }),
 			})
 			.safeParse(ctx.body());
 		if (!parsed.success) {
 			return ctx.render("project-create", {
 				errors: projectErrors(parsed.error.issues),
-				fields: {
-					name: "",
-				},
+				fields: { name: "" },
 				pageTitle: "Create Project",
 			});
 		}
@@ -124,13 +95,9 @@ export class ProjectController {
 				const projectStatusRow = await tx("project_statuses")
 					.where({ code: "active" })
 					.first("id");
-
 				const projectStatus = schema
-					.object({
-						id: schema.coerce.number().positive(),
-					})
+					.object({ id: schema.coerce.number().positive() })
 					.parse(projectStatusRow);
-
 				const now = new Date().toISOString();
 				const [row] = await tx("projects")
 					.insert({
@@ -147,9 +114,7 @@ export class ProjectController {
 		} catch {
 			return ctx.render("project-create", {
 				errors: { name: "Project name must be unique" },
-				fields: {
-					name: parsed.data.name,
-				},
+				fields: { name: parsed.data.name },
 				pageTitle: "Create Project",
 			});
 		}
@@ -173,7 +138,6 @@ export class ProjectController {
 			if (!existing) {
 				return;
 			}
-
 			const current = existing as { id: number };
 			const statusRow = await tx("project_statuses")
 				.where({ code: "archived" })
@@ -213,7 +177,6 @@ export class ProjectController {
 			if (!existing) {
 				return;
 			}
-
 			const current = existing as { id: number };
 			const statusRow = await tx("project_statuses")
 				.where({ code: "active" })

@@ -1,6 +1,7 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { schema } from "@scream.js/validator/schema.js";
+import type { TagIndexAction } from "./tag-index.action.js";
 
 const tagErrors = (
 	issues: readonly { message: string; path: PropertyKey[] }[],
@@ -18,32 +19,15 @@ const tagErrors = (
 
 export class TagController {
 	readonly #db: Database;
+	readonly #indexAction: TagIndexAction;
 
-	constructor(db: Database) {
+	constructor(db: Database, indexAction: TagIndexAction) {
 		this.#db = db;
+		this.#indexAction = indexAction;
 	}
 
 	async index(ctx: HttpContext) {
-		return this.#renderIndex(ctx, tagErrors([]));
-	}
-
-	async #renderIndex(ctx: HttpContext, errors: { name: string }) {
-		const rows = await this.#db("tags")
-			.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
-			.orderBy("tags.name", "asc");
-		const tags = schema
-			.array(
-				schema.object({
-					id: schema.coerce.number().int().positive(),
-					name: schema.string(),
-				}),
-			)
-			.parse(rows);
-		return ctx.render("tag-index", {
-			errors,
-			pageTitle: "Tags",
-			tags,
-		});
+		return this.#indexAction.handle(ctx);
 	}
 
 	async store(ctx: HttpContext) {
@@ -53,9 +37,7 @@ export class TagController {
 					.string()
 					.default("")
 					.transform((value) => value.trim())
-					.refine((value) => value.length > 0, {
-						message: "Required",
-					}),
+					.refine((value) => value.length > 0, { message: "Required" }),
 			})
 			.safeParse(ctx.body());
 		if (!parsed.success) {
@@ -102,6 +84,7 @@ export class TagController {
 			.int()
 			.positive()
 			.safeParse(ctx.param("id"));
+
 		if (!parsedTodoId.success) {
 			return ctx.notFound();
 		}
@@ -162,5 +145,21 @@ export class TagController {
 		}
 
 		return ctx.redirect(`/todos/${todoId}/edit`);
+	}
+
+	async #renderIndex(ctx: HttpContext, errors: { name: string }) {
+		const rows = await this.#db("tags")
+			.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
+			.orderBy("tags.name", "asc");
+		const tags = schema
+			.array(
+				schema.object({
+					id: schema.coerce.number().int().positive(),
+					name: schema.string(),
+				}),
+			)
+			.parse(rows);
+
+		return ctx.render("tag-index", { errors, pageTitle: "Tags", tags });
 	}
 }

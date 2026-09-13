@@ -2,6 +2,7 @@ import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Resource } from "@scream.js/http/resource.js";
 import { schema } from "@scream.js/validator/schema.js";
+import type { TodosIndexAction } from "./todo-index.action.js";
 
 const todoErrors = (
 	issues: readonly { message: string; path: PropertyKey[] }[],
@@ -36,113 +37,15 @@ const todoFields = (input: {
 
 export class TodosController implements Resource {
 	readonly #db: Database;
+	readonly #indexAction: TodosIndexAction;
 
-	constructor(db: Database) {
+	constructor(db: Database, indexAction: TodosIndexAction) {
 		this.#db = db;
+		this.#indexAction = indexAction;
 	}
 
 	async index(ctx: HttpContext) {
-		const parsedQuery = schema
-			.object({
-				search: schema
-					.string()
-					.optional()
-					.default("")
-					.transform((value) => value.trim()),
-				status: schema
-					.enum(["all", "completed", "dueToday", "open"])
-					.optional()
-					.default("all"),
-			})
-			.safeParse(ctx.query());
-
-		if (!parsedQuery.success) {
-			return ctx.notFound();
-		}
-
-		const search = parsedQuery.data.search;
-		const scope = parsedQuery.data.status;
-
-		const query = this.#db("todos")
-			.join("todo_statuses", "todos.status_id", "todo_statuses.id")
-			.select(
-				"todos.id",
-				"todos.title",
-				this.#db.ref("todo_statuses.code").as("status_code"),
-			);
-
-		if (search.length > 0) {
-			query.andWhereLike("todos.title", `%${search}%`);
-		}
-		if (scope === "open") {
-			query.where({ "todo_statuses.code": "open" });
-		}
-		if (scope === "completed") {
-			query.where({ "todo_statuses.code": "completed" });
-		}
-		if (scope === "dueToday") {
-			query.where({ "todo_statuses.code": "open" });
-			query.whereRaw("date(todos.due_at) = date('now', 'localtime')");
-		}
-		const todos = schema
-			.array(
-				schema.object({
-					id: schema.coerce.number().int().positive(),
-					status_code: schema.enum(["open", "completed"]),
-					title: schema.string().nonempty(),
-				}),
-			)
-			.transform((rows) =>
-				rows.map((row) => ({
-					id: row.id,
-					statusCode: row.status_code,
-					title: row.title,
-				})),
-			)
-			.parse(await query.orderBy("todos.id", "desc"));
-
-		const todoViews = todos.map((todo) => ({
-			id: todo.id,
-			statusCode: todo.statusCode,
-			title: todo.title,
-		}));
-
-		const createFilterUrl = (input: {
-			search: string;
-			status: "all" | "completed" | "dueToday" | "open";
-		}) => {
-			const params = new URLSearchParams();
-			if (input.status !== "all") {
-				params.set("status", input.status);
-			}
-			if (input.search.length > 0) {
-				params.set("search", input.search);
-			}
-
-			const query = params.toString();
-			return query.length > 0 ? `/todos?${query}` : "/todos";
-		};
-
-		return ctx.render("index", {
-			filters: {
-				all: createFilterUrl({
-					search: parsedQuery.data.search,
-					status: "all",
-				}),
-				completed: createFilterUrl({
-					search: parsedQuery.data.search,
-					status: "completed",
-				}),
-				open: createFilterUrl({
-					search: parsedQuery.data.search,
-					status: "open",
-				}),
-			},
-			pageTitle: "Todos",
-			search: parsedQuery.data.search,
-			status: parsedQuery.data.status,
-			todos: todoViews,
-		});
+		return this.#indexAction.handle(ctx);
 	}
 
 	async show(ctx: HttpContext) {
@@ -298,9 +201,7 @@ export class TodosController implements Resource {
 					.string()
 					.default("")
 					.transform((value) => value.trim())
-					.refine((value) => value.length > 0, {
-						message: "Required",
-					}),
+					.refine((value) => value.length > 0, { message: "Required" }),
 			})
 			.safeParse(ctx.body());
 		if (!parsed.success) {
@@ -329,7 +230,6 @@ export class TodosController implements Resource {
 			const status = await tx("todo_statuses")
 				.where({ code: parsed.data.statusCode })
 				.first("id");
-
 			const now = new Date().toISOString();
 			const completedAt =
 				parsed.data.statusCode === "completed"
@@ -346,7 +246,6 @@ export class TodosController implements Resource {
 
 			return { id: todoId };
 		});
-
 		if (!result) {
 			return ctx.notFound();
 		}
