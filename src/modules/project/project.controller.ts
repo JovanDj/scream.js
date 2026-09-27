@@ -2,67 +2,11 @@ import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { schema } from "@scream.js/validator/schema.js";
 
-const projectErrors = (
-	issues: readonly { message: string; path: PropertyKey[] }[],
-) => {
-	const errors = { name: "" };
-
-	for (const issue of issues) {
-		if (issue.path.join(".") === "name") {
-			errors.name ||= issue.message;
-		}
-	}
-
-	return errors;
-};
-
 export class ProjectController {
 	readonly #db: Database;
 
 	constructor(db: Database) {
 		this.#db = db;
-	}
-
-	async show(ctx: HttpContext) {
-		const parsedProjectId = schema.coerce
-			.number()
-			.int()
-			.positive()
-			.safeParse(ctx.param("id"));
-		if (!parsedProjectId.success) {
-			return ctx.notFound();
-		}
-		const projectId = parsedProjectId.data;
-
-		const row = await this.#db("projects")
-			.join("project_statuses", "projects.status_id", "project_statuses.id")
-			.where({ "projects.id": projectId })
-			.select(
-				"projects.id",
-				"projects.name",
-				this.#db.ref("project_statuses.code").as("status_code"),
-			)
-			.first();
-		if (!row) {
-			return ctx.notFound();
-		}
-		const project = schema
-			.object({
-				id: schema.coerce.number().int().positive(),
-				name: schema.string(),
-				status_code: schema.enum(["active", "archived"]),
-			})
-			.transform((parsedRow) => ({
-				id: parsedRow.id,
-				name: parsedRow.name,
-				statusCode: parsedRow.status_code,
-			}))
-			.parse(row);
-
-		return ctx.render("project-show", {
-			pageTitle: `Project | ${project.name}`,
-			project,
-		});
 	}
 
 	async store(ctx: HttpContext) {
@@ -77,7 +21,7 @@ export class ProjectController {
 			.safeParse(ctx.body());
 		if (!parsed.success) {
 			return ctx.render("project-create", {
-				errors: projectErrors(parsed.error.issues),
+				errors: this.#projectErrors(parsed.error.issues),
 				fields: { name: "" },
 				pageTitle: "Create Project",
 			});
@@ -189,5 +133,17 @@ export class ProjectController {
 		}
 
 		return ctx.redirect(`/projects/${result.id}`);
+	}
+
+	#projectErrors(issues: readonly { message: string; path: PropertyKey[] }[]) {
+		const errors = { name: "" };
+
+		for (const issue of issues) {
+			if (issue.path.join(".") === "name") {
+				errors.name ||= issue.message;
+			}
+		}
+
+		return errors;
 	}
 }

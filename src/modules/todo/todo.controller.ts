@@ -1,87 +1,19 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
-import type { Show, Writable } from "@scream.js/http/resource.js";
+import type { Writable } from "@scream.js/http/resource.js";
 import { schema } from "@scream.js/validator/schema.js";
 
-const todoErrors = (
-	issues: readonly { message: string; path: PropertyKey[] }[],
-) => {
-	const errors = { dueAt: "", title: "" };
-
-	for (const issue of issues) {
-		const key = issue.path.join(".");
-		if (key === "title" || key === "dueAt") {
-			errors[key] ||= issue.message;
-		}
-	}
-
-	return errors;
-};
-
-const todoFields = (input: {
-	dueAt?: string;
-	statusCode?: "completed" | "open";
-	title?: string;
-}) => {
-	const statusCode = input.statusCode ?? "open";
-
-	return {
-		dueAt: input.dueAt ?? "",
-		isCompleted: statusCode === "completed",
-		isOpen: statusCode === "open",
-		statusCode,
-		title: input.title ?? "",
-	};
-};
-
-export class TodosController implements Show, Writable {
+export class TodosController implements Writable {
 	readonly #db: Database;
 
 	constructor(db: Database) {
 		this.#db = db;
 	}
 
-	async show(ctx: HttpContext) {
-		const parsedTodoId = schema.coerce
-			.number()
-			.int()
-			.positive()
-			.safeParse(ctx.param("id"));
-		if (!parsedTodoId.success) {
-			return ctx.notFound();
-		}
-		const todoId = parsedTodoId.data;
-
-		const row = await this.#db("todos")
-			.join("todo_statuses", "todos.status_id", "todo_statuses.id")
-			.where({ "todos.id": todoId })
-			.select(
-				"todos.id",
-				"todos.title",
-				this.#db.ref("todo_statuses.code").as("status_code"),
-			)
-			.first();
-		if (!row) {
-			return ctx.notFound();
-		}
-		const todo = {
-			id: row.id,
-			statusCode: row.status_code,
-			title: row.title,
-		};
-
-		return ctx.render("show", {
-			pageTitle: `Todo | ${todo.id}`,
-			todoId: todo.id,
-			todoStatusCode: todo.statusCode,
-			todoTitle: todo.title,
-		});
-	}
-
 	async create(ctx: HttpContext) {
 		return ctx.render("create", {
-			errors: todoErrors([]),
-			fields: todoFields({}),
+			errors: this.#todoErrors([]),
+			fields: this.#todoFields({}),
 			pageTitle: "New Todo",
 		});
 	}
@@ -94,15 +26,15 @@ export class TodosController implements Show, Writable {
 		if (title.length < 1) {
 			return ctx.render("create", {
 				errors: { dueAt: "", title: "Required" },
-				fields: todoFields({}),
+				fields: this.#todoFields({}),
 				pageTitle: "New Todo",
 			});
 		}
 
-		if (dueAt.length > 0 && Number.isNaN(new Date(dueAt).getTime())) {
+		if (!this.#isValidDueDate(dueAt)) {
 			return ctx.render("create", {
 				errors: { dueAt: "Invalid date", title: "" },
-				fields: todoFields({}),
+				fields: this.#todoFields({}),
 				pageTitle: "New Todo",
 			});
 		}
@@ -120,7 +52,7 @@ export class TodosController implements Show, Writable {
 					completed_at: null,
 					created_at: now,
 					description: "",
-					due_at: null,
+					due_at: dueAt.length > 0 ? dueAt : null,
 					priority_id: priority.id,
 					status_id: status.id,
 					title,
@@ -149,6 +81,7 @@ export class TodosController implements Show, Writable {
 			.join("todo_statuses", "todos.status_id", "todo_statuses.id")
 			.where({ "todos.id": todoId })
 			.select(
+				"todos.due_at",
 				"todos.id",
 				"todos.title",
 				this.#db.ref("todo_statuses.code").as("status_code"),
@@ -158,6 +91,7 @@ export class TodosController implements Show, Writable {
 			return ctx.notFound();
 		}
 		const todo = {
+			dueAt: row.due_at,
 			id: row.id,
 			statusCode: row.status_code,
 			title: row.title,
@@ -165,8 +99,9 @@ export class TodosController implements Show, Writable {
 
 		return ctx.render("edit", {
 			action: `/todos/${todo.id}`,
-			errors: todoErrors([]),
-			fields: todoFields({
+			errors: this.#todoErrors([]),
+			fields: this.#todoFields({
+				dueAt: todo.dueAt ?? "",
 				statusCode: todo.statusCode,
 				title: todo.title,
 			}),
@@ -189,6 +124,13 @@ export class TodosController implements Show, Writable {
 
 		const parsed = schema
 			.object({
+				dueAt: schema
+					.string()
+					.default("")
+					.transform((value) => value.trim())
+					.refine((value) => this.#isValidDueDate(value), {
+						message: "Invalid date",
+					}),
 				statusCode: schema.enum(["open", "completed"]).default("open"),
 				title: schema
 					.string()
@@ -200,8 +142,8 @@ export class TodosController implements Show, Writable {
 		if (!parsed.success) {
 			return ctx.render("edit", {
 				action: `/todos/${todoId}`,
-				errors: todoErrors(parsed.error.issues),
-				fields: todoFields({}),
+				errors: this.#todoErrors(parsed.error.issues),
+				fields: this.#todoFields({}),
 				pageTitle: `Edit Todo #${todoId}`,
 				submitLabel: "Update",
 				todoId,
@@ -229,13 +171,16 @@ export class TodosController implements Show, Writable {
 					? (currentRow.completed_at ?? now)
 					: null;
 
-			await tx("todos").where({ id: todoId }).update({
-				completed_at: completedAt,
-				priority_id: priority.id,
-				status_id: status.id,
-				title: parsed.data.title,
-				updated_at: now,
-			});
+			await tx("todos")
+				.where({ id: todoId })
+				.update({
+					completed_at: completedAt,
+					due_at: parsed.data.dueAt.length > 0 ? parsed.data.dueAt : null,
+					priority_id: priority.id,
+					status_id: status.id,
+					title: parsed.data.title,
+					updated_at: now,
+				});
 
 			return { id: todoId };
 		});
@@ -263,5 +208,38 @@ export class TodosController implements Show, Writable {
 		}
 
 		return ctx.redirect("/todos");
+	}
+
+	#isValidDueDate(value: string) {
+		return value.length === 0 || schema.iso.date().safeParse(value).success;
+	}
+
+	#todoErrors(issues: readonly { message: string; path: PropertyKey[] }[]) {
+		const errors = { dueAt: "", title: "" };
+
+		for (const issue of issues) {
+			const key = issue.path.join(".");
+			if (key === "title" || key === "dueAt") {
+				errors[key] ||= issue.message;
+			}
+		}
+
+		return errors;
+	}
+
+	#todoFields(input: {
+		dueAt?: string;
+		statusCode?: "completed" | "open";
+		title?: string;
+	}) {
+		const statusCode = input.statusCode ?? "open";
+
+		return {
+			dueAt: input.dueAt ?? "",
+			isCompleted: statusCode === "completed",
+			isOpen: statusCode === "open",
+			statusCode,
+			title: input.title ?? "",
+		};
 	}
 }

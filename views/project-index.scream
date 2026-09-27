@@ -8,6 +8,8 @@
         </div>
 
         <form method="GET" action="/projects" class="mb-3">
+			<input type="hidden" name="direction" value="{{ direction }}">
+			<input type="hidden" name="sort" value="{{ sort }}">
             <input type="hidden" name="status" value="{{ status }}">
             <div class="row g-2">
                 <div class="col-8">
@@ -20,6 +22,7 @@
         </form>
 
         <div class="d-flex flex-wrap gap-2 mb-3">
+			<a class="btn btn-sm btn-outline-secondary" href="{{ sorts.created }}">Newest</a>
             <a class="btn btn-sm btn-outline-secondary" href="{{ filters.all }}">All</a>
             <a class="btn btn-sm btn-outline-secondary" href="{{ filters.active }}">Active</a>
             <a class="btn btn-sm btn-outline-secondary" href="{{ filters.archived }}">Archived</a>
@@ -30,8 +33,8 @@
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Status</th>
+                        <th><a href="{{ sorts.name }}">Name</a></th>
+                        <th><a href="{{ sorts.status }}">Status</a></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -47,6 +50,11 @@
         {% else %}
         <p class="muted mb-0">No projects yet.</p>
         {% endif %}
+
+		<nav class="d-flex justify-content-between mt-3" aria-label="Project pages">
+			{% if pagination.previousUrl %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination.previousUrl }}">Previous</a>{% else %}<span></span>{% endif %}
+			{% if pagination.nextUrl %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination.nextUrl }}">Next</a>{% endif %}
+		</nav>
     </section>
 </div>
 {% endblock content %}

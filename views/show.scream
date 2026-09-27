@@ -8,6 +8,9 @@
                 <span data-testid="todo-title-show" class="h5 d-inline">{{ todoTitle }}</span>
                 <span class="badge text-bg-secondary ms-2" data-testid="todo-status">{{ todoStatusCode }}</span>
             </div>
+			{% if todoDueAt %}
+			<p>Due: <time datetime="{{ todoDueAt }}">{{ todoDueAt }}</time></p>
+			{% endif %}
             <div class="d-flex gap-2 flex-wrap">
                 <a class="btn btn-outline-primary" href="/todos/{{ todoId }}/edit">Edit</a>
                 <form action="/todos/{{ todoId }}" method="POST" class="d-inline">

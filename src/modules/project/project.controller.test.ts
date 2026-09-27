@@ -3,6 +3,7 @@ import type { Database } from "@scream.js/database/db.js";
 import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
 import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import { HttpServer } from "@scream.js/http/server.js";
+import { load } from "cheerio";
 import { ProjectModule } from "./project.module.ts";
 
 describe("project controller", { concurrency: true }, () => {
@@ -137,9 +138,140 @@ describe("project controller", { concurrency: true }, () => {
 		}
 	});
 
+	it("GET /projects sorts and paginates while preserving query state", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			for (const index of [6, 2, 9, 1, 11, 4, 8, 3, 10, 5, 7]) {
+				await insertProject(
+					db,
+					`Paged Project ${String(index).padStart(2, "0")}`,
+				);
+			}
+
+			const firstResponse = await fetch(
+				`http://localhost:${port}/projects?status=active&search=Paged&sort=name&direction=asc`,
+				{ signal: t.signal },
+			);
+			const firstPage = await firstResponse.text();
+			const secondResponse = await fetch(
+				`http://localhost:${port}/projects?status=active&search=Paged&sort=name&direction=asc&page=2`,
+				{ signal: t.signal },
+			);
+			const secondPage = await secondResponse.text();
+			const firstDocument = load(firstPage);
+			const secondDocument = load(secondPage);
+			const next = firstDocument("a").filter(
+				(_, link) => firstDocument(link).text().trim() === "Next",
+			);
+			const previous = secondDocument("a").filter(
+				(_, link) => secondDocument(link).text().trim() === "Previous",
+			);
+			const firstPrevious = firstDocument("a").filter(
+				(_, link) => firstDocument(link).text().trim() === "Previous",
+			);
+			const lastNext = secondDocument("a").filter(
+				(_, link) => secondDocument(link).text().trim() === "Next",
+			);
+			const nextUrl = new URL(
+				next.attr("href") ?? "",
+				`http://localhost:${port}`,
+			);
+			const previousUrl = new URL(
+				previous.attr("href") ?? "",
+				`http://localhost:${port}`,
+			);
+
+			t.assert.deepStrictEqual(firstResponse.status, 200);
+			const firstNames = Array.from(
+				firstPage.matchAll(/Paged Project \d{2}/g),
+				(match) => match[0],
+			);
+			const secondNames = Array.from(
+				secondPage.matchAll(/Paged Project \d{2}/g),
+				(match) => match[0],
+			);
+			t.assert.deepStrictEqual<string[]>(firstNames, [
+				"Paged Project 01",
+				"Paged Project 02",
+				"Paged Project 03",
+				"Paged Project 04",
+				"Paged Project 05",
+				"Paged Project 06",
+				"Paged Project 07",
+				"Paged Project 08",
+				"Paged Project 09",
+				"Paged Project 10",
+			]);
+			t.assert.deepStrictEqual<number>(next.length, 1);
+			t.assert.deepStrictEqual<string>(nextUrl.pathname, "/projects");
+			t.assert.deepStrictEqual<[string, string][]>(
+				Array.from(nextUrl.searchParams).sort(),
+				[
+					["direction", "asc"],
+					["page", "2"],
+					["search", "Paged"],
+					["sort", "name"],
+					["status", "active"],
+				],
+			);
+			t.assert.deepStrictEqual<number>(firstPrevious.length, 0);
+			t.assert.deepStrictEqual(secondResponse.status, 200);
+			t.assert.deepStrictEqual<string[]>(secondNames, ["Paged Project 11"]);
+			t.assert.deepStrictEqual<number>(previous.length, 1);
+			t.assert.deepStrictEqual<string>(previousUrl.pathname, "/projects");
+			t.assert.deepStrictEqual<[string, string][]>(
+				Array.from(previousUrl.searchParams).sort(),
+				[
+					["direction", "asc"],
+					["search", "Paged"],
+					["sort", "name"],
+					["status", "active"],
+				],
+			);
+			t.assert.deepStrictEqual<number>(lastNext.length, 0);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /projects rejects invalid pagination and sorting", async (t: TestContext) => {
+		const { cleanup, port } = await setupServer();
+		try {
+			const invalidPage = await fetch(
+				`http://localhost:${port}/projects?page=0`,
+				{ signal: t.signal },
+			);
+			const invalidSort = await fetch(
+				`http://localhost:${port}/projects?sort=unknown`,
+				{ signal: t.signal },
+			);
+
+			t.assert.deepStrictEqual(invalidPage.status, 404);
+			t.assert.deepStrictEqual(invalidSort.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("GET /projects/:id returns 404 for a missing project", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			await insertProject(db, "Unrelated show sentinel");
+
+			const response = await fetch(`http://localhost:${port}/projects/999999`, {
+				signal: t.signal,
+			});
+
+			t.assert.deepStrictEqual<number>(response.status, 404);
+		} finally {
+			await cleanup();
+		}
+	});
+
 	it("GET /projects/:id shows a project", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
 		try {
+			await insertProject(db, "Unrelated show sentinel", "archived");
 			const project = await insertProject(db, "Show Me");
 			const response = await fetch(
 				`http://localhost:${port}/projects/${project.id}`,
@@ -149,6 +281,7 @@ describe("project controller", { concurrency: true }, () => {
 
 			t.assert.deepStrictEqual(response.status, 200);
 			t.assert.match(html, /Show Me/);
+			t.assert.doesNotMatch(html, /Unrelated show sentinel/);
 			t.assert.match(html, /Status:\s*active/);
 		} finally {
 			await cleanup();
@@ -190,7 +323,7 @@ describe("project controller", { concurrency: true }, () => {
 	});
 
 	it("POST /projects redirects to the created project", async (t: TestContext) => {
-		const { cleanup, port } = await setupServer();
+		const { cleanup, db, port } = await setupServer();
 		try {
 			const response = await fetch(`http://localhost:${port}/projects`, {
 				body: "name=Created+Project",
@@ -201,9 +334,17 @@ describe("project controller", { concurrency: true }, () => {
 				redirect: "manual",
 				signal: t.signal,
 			});
+			const showResponse = await fetch(`http://localhost:${port}/projects/1`, {
+				signal: t.signal,
+			});
+			const html = await showResponse.text();
+			const rows = await db("projects").select("name");
 
+			t.assert.deepStrictEqual(rows, [{ name: "Created Project" }]);
 			t.assert.deepStrictEqual(response.status, 302);
 			t.assert.deepStrictEqual(response.headers.get("Location"), "/projects/1");
+			t.assert.deepStrictEqual<number>(showResponse.status, 200);
+			t.assert.match(html, /Created Project/);
 		} finally {
 			await cleanup();
 		}
@@ -281,6 +422,11 @@ describe("project controller", { concurrency: true }, () => {
 					signal: t.signal,
 				},
 			);
+			const archivedResponse = await fetch(
+				`http://localhost:${port}/projects/${project.id}`,
+				{ signal: t.signal },
+			);
+			const archivedHtml = await archivedResponse.text();
 			const unarchived = await fetch(
 				`http://localhost:${port}/projects/${project.id}/unarchive`,
 				{
@@ -289,8 +435,17 @@ describe("project controller", { concurrency: true }, () => {
 					signal: t.signal,
 				},
 			);
+			const activeResponse = await fetch(
+				`http://localhost:${port}/projects/${project.id}`,
+				{ signal: t.signal },
+			);
+			const activeHtml = await activeResponse.text();
 
 			t.assert.deepStrictEqual(archived.status, 302);
+			t.assert.deepStrictEqual<number>(archivedResponse.status, 200);
+			t.assert.match(archivedHtml, /Status:\s*archived/);
+			t.assert.deepStrictEqual<number>(activeResponse.status, 200);
+			t.assert.match(activeHtml, /Status:\s*active/);
 			t.assert.deepStrictEqual(
 				archived.headers.get("Location"),
 				`/projects/${project.id}`,
