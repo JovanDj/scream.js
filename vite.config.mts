@@ -24,6 +24,9 @@ export default defineConfig({
 	},
 	plugins: [tsconfigPaths()],
 	root: resolve(__dirname, "resources"),
+	server: {
+		strictPort: true,
+	},
 	test: {
 		bail: 1,
 		reporters: ["verbose"],

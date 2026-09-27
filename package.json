@@ -116,6 +116,6 @@
 	"types": "dist/index.d.ts",
 	"version": "0.1.0",
 	"volta": {
-		"node": "24.15.0"
+		"node": "24.21.0"
 	}
 }
