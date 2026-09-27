@@ -2,7 +2,7 @@
 
 ## Overview
 
-Prototype mode is the default starting point for greenfield work. Start with the minimum structure that works, while keeping the code easy to reshape later.
+Prototype mode is the default starting point for greenfield work. Start with the minimum structure that works, while keeping the code easy to reshape later. Follow Gall's law: evolve complexity from a simpler working system instead of designing the final architecture upfront.
 
 ## Manual Dependency Composition
 
@@ -22,6 +22,8 @@ The composition root may assemble the app. The framework must not secretly assem
 ## Start Simple
 
 For new greenfield features, prefer the simplest implementation that can be shipped safely.
+
+Start with readable concrete code. Observe actual repetition and change pressure before extracting an abstraction. Trial an extraction against the concrete callers and revert it when it makes them harder to understand.
 
 Default to:
 
@@ -81,6 +83,23 @@ Views must not contain business logic. Model code must not depend on HTTP or tem
 
 Prefer explicit local helpers over creating new service or mapper classes.
 
+## Action Workflow Abstractions
+
+Do not add general-purpose controller base classes.
+
+A narrow action-specific base class is allowed only when the same lifecycle already exists across multiple CRUD controllers. For example, repeated index actions may share one index-action abstraction without forcing show, store, update, or non-CRUD actions into the same workflow.
+
+Rules:
+
+* the base class owns lifecycle ordering and stable shared mechanics only
+* concrete actions own domain validation, queries, row schemas, presentation, URLs, and templates
+* protected members exist only as deliberate extension points required by the lifecycle
+* unrelated and unique actions remain concrete until repetition is demonstrated
+* non-CRUD controllers do not inherit CRUD workflows merely for consistency
+* each action must remain independently movable into a one-action controller later
+
+Judge the abstraction by its concrete subclasses. If they become harder to read or require indirection to explain their data, simplify or remove the abstraction.
+
 ## Transactions and Side Effects
 
 * No ambient DB globals inside modules. Pass `db` explicitly.
@@ -128,7 +147,7 @@ Do not return raw database rows from the persistence boundary.
 
 Do not add:
 
-* base classes
+* general-purpose controller base classes
 * generic repositories
 * generic mappers
 * indirection-only interfaces
@@ -175,3 +194,7 @@ Before introducing a new abstraction, ask:
 4. Would a simpler extraction solve the same problem?
 
 If the answer is vague, do not add the abstraction yet.
+
+## External Libraries
+
+Before implementing generic infrastructure from scratch, check whether a popular maintained package already provides it. Prefer a small package with an MIT or compatible permissive license when it fits the existing boundaries without importing a larger framework model.

@@ -26,6 +26,18 @@ Request values stay raw until validation. Boundary parsing turns untrusted input
 
 Actual schemas and validators remain explicit and reusable.
 
+## Runtime-Derived Types
+
+Runtime schemas are the source of truth for external input and persistence rows.
+
+* infer trusted TypeScript types from their runtime schemas
+* do not invent a parallel input type before defining validation
+* use readable named aliases when they make concrete action code easier to understand
+* do not replace clear domain types with nested `ReturnType` or builder indirection merely to avoid an alias
+* validate database rows separately from loading them
+
+Framework-owned values may enrich input after external input has been parsed. For example, an index lifecycle may add `limit` and `offset` to validated query input before loading rows. Raw query or form values must never control these internal fields.
+
 ## Validation Result
 
 Applying a validator must return either a trusted parsed value or structured errors.
