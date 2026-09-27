@@ -26,10 +26,6 @@ export class TagController {
 		this.#indexAction = indexAction;
 	}
 
-	async index(ctx: HttpContext) {
-		return this.#indexAction.handle(ctx);
-	}
-
 	async store(ctx: HttpContext) {
 		const parsed = schema
 			.strictObject({

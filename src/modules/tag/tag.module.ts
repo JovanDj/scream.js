@@ -6,19 +6,22 @@ import { TagIndexAction } from "./tag-index.action.js";
 
 export class TagModule implements HttpModule {
 	readonly #tagController: TagController;
+	readonly #indexAction: TagIndexAction;
 
 	static create(db: Database) {
-		const tagController = new TagController(db, new TagIndexAction(db));
+		const indexAction = new TagIndexAction(db);
+		const tagController = new TagController(db, indexAction);
 
-		return new TagModule(tagController);
+		return new TagModule(tagController, indexAction);
 	}
 
-	constructor(tagController: TagController) {
+	constructor(tagController: TagController, indexAction: TagIndexAction) {
 		this.#tagController = tagController;
+		this.#indexAction = indexAction;
 	}
 
 	mount(app: Application) {
-		app.get("/tags", (ctx) => this.#tagController.index(ctx));
+		app.get("/tags", (ctx) => this.#indexAction.handle(ctx));
 		app.post("/tags", (ctx) => this.#tagController.store(ctx));
 		app.delete("/tags/:id", (ctx) => this.#tagController.destroy(ctx));
 		app.post("/todos/:id/tags", (ctx) => this.#tagController.assignToTodo(ctx));

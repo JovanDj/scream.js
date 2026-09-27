@@ -6,18 +6,28 @@ import { TodosIndexAction } from "./todo-index.action.js";
 
 export class TodoModule implements HttpModule {
 	readonly #todosController: TodosController;
+	readonly #indexAction: TodosIndexAction;
 
 	static create(db: Database) {
-		const todosController = new TodosController(db, new TodosIndexAction(db));
+		const todosController = new TodosController(db);
 
-		return new TodoModule(todosController);
+		return new TodoModule(todosController, new TodosIndexAction(db));
 	}
 
-	constructor(todosController: TodosController) {
+	constructor(todosController: TodosController, indexAction: TodosIndexAction) {
 		this.#todosController = todosController;
+		this.#indexAction = indexAction;
 	}
 
 	mount(app: Application) {
-		app.resource("/todos", this.#todosController);
+		app.resource("/todos", {
+			create: (ctx) => this.#todosController.create(ctx),
+			destroy: (ctx) => this.#todosController.destroy(ctx),
+			edit: (ctx) => this.#todosController.edit(ctx),
+			index: (ctx) => this.#indexAction.handle(ctx),
+			show: (ctx) => this.#todosController.show(ctx),
+			store: (ctx) => this.#todosController.store(ctx),
+			update: (ctx) => this.#todosController.update(ctx),
+		});
 	}
 }

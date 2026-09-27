@@ -1,8 +1,7 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
-import type { Resource } from "@scream.js/http/resource.js";
+import type { Show, Writable } from "@scream.js/http/resource.js";
 import { schema } from "@scream.js/validator/schema.js";
-import type { TodosIndexAction } from "./todo-index.action.js";
 
 const todoErrors = (
 	issues: readonly { message: string; path: PropertyKey[] }[],
@@ -35,17 +34,11 @@ const todoFields = (input: {
 	};
 };
 
-export class TodosController implements Resource {
+export class TodosController implements Show, Writable {
 	readonly #db: Database;
-	readonly #indexAction: TodosIndexAction;
 
-	constructor(db: Database, indexAction: TodosIndexAction) {
+	constructor(db: Database) {
 		this.#db = db;
-		this.#indexAction = indexAction;
-	}
-
-	async index(ctx: HttpContext) {
-		return this.#indexAction.handle(ctx);
 	}
 
 	async show(ctx: HttpContext) {

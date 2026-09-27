@@ -6,22 +6,24 @@ import { ProjectIndexAction } from "./project-index.action.js";
 
 export class ProjectModule implements HttpModule {
 	readonly #projectController: ProjectController;
+	readonly #indexAction: ProjectIndexAction;
 
 	static create(db: Database) {
-		const projectController = new ProjectController(
-			db,
-			new ProjectIndexAction(db),
-		);
+		const projectController = new ProjectController(db);
 
-		return new ProjectModule(projectController);
+		return new ProjectModule(projectController, new ProjectIndexAction(db));
 	}
 
-	constructor(projectController: ProjectController) {
+	constructor(
+		projectController: ProjectController,
+		indexAction: ProjectIndexAction,
+	) {
 		this.#projectController = projectController;
+		this.#indexAction = indexAction;
 	}
 
 	mount(app: Application) {
-		app.get("/projects", (ctx) => this.#projectController.index(ctx));
+		app.get("/projects", (ctx) => this.#indexAction.handle(ctx));
 		app.post("/projects", (ctx) => this.#projectController.store(ctx));
 		app.get("/projects/:id", (ctx) => this.#projectController.show(ctx));
 		app.post("/projects/:id/archive", (ctx) =>

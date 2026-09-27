@@ -1,7 +1,6 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { schema } from "@scream.js/validator/schema.js";
-import type { ProjectIndexAction } from "./project-index.action.js";
 
 const projectErrors = (
 	issues: readonly { message: string; path: PropertyKey[] }[],
@@ -19,15 +18,9 @@ const projectErrors = (
 
 export class ProjectController {
 	readonly #db: Database;
-	readonly #indexAction: ProjectIndexAction;
 
-	constructor(db: Database, indexAction: ProjectIndexAction) {
+	constructor(db: Database) {
 		this.#db = db;
-		this.#indexAction = indexAction;
-	}
-
-	async index(ctx: HttpContext) {
-		return this.#indexAction.handle(ctx);
 	}
 
 	async show(ctx: HttpContext) {
