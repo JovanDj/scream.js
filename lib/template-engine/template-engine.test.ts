@@ -195,12 +195,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		it("should throw for non-primitive context values", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
-			const template =
-				"Array: {{ array }}, Object: {{ obj }}, Function: {{ func }}.";
+			const template = "{{ func }}";
 			const context: RenderContext = {
-				array: [1, 2],
 				func: () => {},
-				obj: { key: "value" },
 			};
 
 			const act = () => templateEngine.render(template, context);

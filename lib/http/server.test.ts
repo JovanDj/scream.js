@@ -3,32 +3,43 @@ import { ExpressApp } from "./express/express-application.js";
 import { HttpServer } from "./server.js";
 
 describe("HttpServer", { concurrency: true }, () => {
-	it("runs listening and shutdown callbacks", async (t: TestContext) => {
-		t.plan(3);
-		let listenedPort = 0;
-		let shutdownCalled = false;
-		const app = ExpressApp.create();
+	it(
+		"runs listening and shutdown callbacks",
+		{ timeout: 2000 },
+		async (t: TestContext) => {
+			t.plan(3);
+			const listening = Promise.withResolvers<number>();
+			let shutdownCalled = false;
+			const app = ExpressApp.create();
 
-		const httpServer = HttpServer.start({
-			app,
-			onListening: (port) => {
-				listenedPort = port;
-			},
-			onShutdown: async () => {
-				shutdownCalled = true;
-			},
-			port: 0,
-		});
+			const httpServer = HttpServer.start({
+				app,
+				onListening: (port) => {
+					listening.resolve(port);
+				},
+				onShutdown: async () => {
+					shutdownCalled = true;
+				},
+				port: 0,
+			});
 
-		try {
-			t.assert.deepStrictEqual(listenedPort, 0);
-			t.assert.ok(httpServer.port > 0);
-		} finally {
-			await httpServer.shutdown();
-		}
+			t.after(async () => {
+				if (!shutdownCalled) {
+					await httpServer.shutdown();
+				}
+			});
+			try {
+				const listenedPort = await listening.promise;
 
-		t.assert.deepStrictEqual(shutdownCalled, true);
-	});
+				t.assert.deepStrictEqual<number>(listenedPort, 0);
+				t.assert.ok(httpServer.port > 0);
+			} finally {
+				await httpServer.shutdown();
+			}
+
+			t.assert.deepStrictEqual(shutdownCalled, true);
+		},
+	);
 
 	it("rejects when shutting down an already closed server", async (t: TestContext) => {
 		t.plan(1);

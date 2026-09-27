@@ -140,23 +140,27 @@ describe("SqliteDatabase", { concurrency: true }, () => {
 		});
 
 		it("rolls back a transaction on error", async (t: TestContext) => {
-			t.plan(1);
+			t.plan(3);
 			const { connection, cleanup } = await withConnection();
 			try {
 				await connection.run(
 					sql`CREATE TABLE test (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT);`,
 				);
 
-				try {
-					await connection.transaction(async (trx) => {
+				const error = new Error("Forced error to rollback transaction");
+				const act = () =>
+					connection.transaction(async (trx) => {
 						await trx.run(
 							sql`INSERT INTO test (id, name) VALUES (${["1", "Alice"]})`,
 						);
-						throw new Error("Forced error to rollback transaction");
+						const inserted = await trx.get<{ id: number; name: string }>(
+							sql`SELECT * FROM test WHERE id = ${"1"};`,
+						);
+						t.assert.deepStrictEqual(inserted, { id: 1, name: "Alice" });
+						throw error;
 					});
-				} catch (_error) {
-					// error expected
-				}
+
+				await t.assert.rejects(act, (caught: unknown) => caught === error);
 
 				const row = await connection.get(
 					sql`SELECT * FROM test WHERE id = ${"1"};`,
