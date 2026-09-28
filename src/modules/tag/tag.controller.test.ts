@@ -7,7 +7,7 @@ import { HttpServer } from "@scream.js/http/server.js";
 import { load } from "cheerio";
 import { PagesModule } from "../pages/index.js";
 import { TagModule } from "./index.js";
-import { TagIndexAction } from "./tag-index.action.js";
+import { TagIndexController } from "./tag-index.controller.js";
 
 describe("tag controller", { concurrency: true }, () => {
 	const findIdByCode = async (
@@ -256,7 +256,7 @@ describe("tag controller", { concurrency: true }, () => {
 				name: Buffer.from("invalid"),
 				updated_at: now,
 			});
-			const action = new TagIndexAction(db);
+			const controller = new TagIndexController(db);
 			const ctx: HttpContext = {
 				body: () => ({}),
 				notFound: () => {},
@@ -266,7 +266,7 @@ describe("tag controller", { concurrency: true }, () => {
 				render: async () => {},
 			};
 
-			const act = () => action.handle(ctx);
+			const act = () => controller.handle(ctx);
 
 			await t.assert.rejects(act, /expected string, received Buffer/);
 		} finally {

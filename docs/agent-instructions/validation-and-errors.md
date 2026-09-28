@@ -32,7 +32,7 @@ Runtime schemas are the source of truth for external input and persistence rows.
 
 * infer trusted TypeScript types from their runtime schemas
 * do not invent a parallel input type before defining validation
-* use readable named aliases when they make concrete action code easier to understand
+* use readable named aliases when they make concrete controller code easier to understand
 * do not replace clear domain types with nested `ReturnType` or builder indirection merely to avoid an alias
 * validate database rows separately from loading them
 

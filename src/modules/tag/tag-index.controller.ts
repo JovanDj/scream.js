@@ -1,9 +1,12 @@
 import type { Database } from "@scream.js/database/db.js";
-import { IndexAction, type IndexInput } from "../index.action.js";
+import { IndexController, type IndexInput } from "../index.controller.js";
 import type { TagIndexData, TagIndexInput } from "./tag.schema.js";
 import { tagIndexDataSchema, tagIndexInputSchema } from "./tag.schema.js";
 
-export class TagIndexAction extends IndexAction<TagIndexInput, TagIndexData> {
+export class TagIndexController extends IndexController<
+	TagIndexInput,
+	TagIndexData
+> {
 	protected inputSchema() {
 		return tagIndexInputSchema;
 	}

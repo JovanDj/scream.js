@@ -1,8 +1,8 @@
 import type { Database } from "@scream.js/database/db.js";
-import { DestroyAction } from "../destroy.action.js";
+import { DestroyController } from "../destroy.controller.js";
 import { type TodoShowInput, todoShowInputSchema } from "./todo.schema.js";
 
-export class TodosDestroyAction extends DestroyAction<TodoShowInput> {
+export class TodosDestroyController extends DestroyController<TodoShowInput> {
 	protected inputSchema() {
 		return todoShowInputSchema;
 	}

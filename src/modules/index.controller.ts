@@ -1,15 +1,17 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
-import type { Action } from "./action.js";
+import type { Controller } from "./controller.js";
 
 export type IndexInput<Input> = Input & {
 	readonly limit: number;
 	readonly offset: number;
 };
 
-export abstract class IndexAction<Input extends { readonly page: number }, Data>
-	implements Action
+export abstract class IndexController<
+	Input extends { readonly page: number },
+	Data,
+> implements Controller
 {
 	readonly #db: Database;
 

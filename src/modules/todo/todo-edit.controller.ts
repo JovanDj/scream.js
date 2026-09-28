@@ -1,9 +1,9 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
-import type { Action } from "../action.js";
+import type { Controller } from "../controller.js";
 import { todoShowDataSchema, todoShowInputSchema } from "./todo.schema.js";
 
-export class TodosEditAction implements Action {
+export class TodosEditController implements Controller {
 	readonly #db: Database;
 
 	constructor(db: Database) {

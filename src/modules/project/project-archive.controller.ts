@@ -1,10 +1,10 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { schema } from "@scream.js/validator/schema.js";
-import type { Action } from "../action.js";
+import type { Controller } from "../controller.js";
 import { projectShowInputSchema } from "./project.schema.js";
 
-export class ProjectUnarchiveAction implements Action {
+export class ProjectArchiveController implements Controller {
 	readonly #db: Database;
 
 	constructor(db: Database) {
@@ -25,7 +25,7 @@ export class ProjectUnarchiveAction implements Action {
 			}
 
 			const statusRow = await tx("project_statuses")
-				.where({ code: "active" })
+				.where({ code: "archived" })
 				.first("id");
 			const status = schema
 				.object({ id: schema.coerce.number().positive() })

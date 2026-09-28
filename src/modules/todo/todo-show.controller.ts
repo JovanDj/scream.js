@@ -1,9 +1,12 @@
 import type { Database } from "@scream.js/database/db.js";
-import { ShowAction } from "../show.action.js";
+import { ShowController } from "../show.controller.js";
 import type { TodoShowData, TodoShowInput } from "./todo.schema.js";
 import { todoShowDataSchema, todoShowInputSchema } from "./todo.schema.js";
 
-export class TodosShowAction extends ShowAction<TodoShowInput, TodoShowData> {
+export class TodosShowController extends ShowController<
+	TodoShowInput,
+	TodoShowData
+> {
 	protected inputSchema() {
 		return todoShowInputSchema;
 	}

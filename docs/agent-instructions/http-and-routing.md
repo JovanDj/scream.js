@@ -8,7 +8,7 @@ Scream.js is SSR form-first and CRUD-first. Routing should stay resource-based, 
 
 Default routing should be resource-based for SSR CRUD.
 
-Canonical actions:
+Canonical resource methods:
 
 * `index`
 * `create`
@@ -20,11 +20,11 @@ Canonical actions:
 
 Use Laravel-style `create`/`store`, not Rails-style `new`/`create`. Use `destroy`, not `delete`.
 
-Resource routing should use separate action interfaces, so users can pick actions individually. Full CRUD is a prebuilt composition of those action interfaces.
+Resource routing should let users supply controller methods individually. Full CRUD is a prebuilt composition of those methods.
 
 Default resource routes:
 
-| HTTP | Path | Action |
+| HTTP | Path | Controller method |
 | --- | --- | --- |
 | GET | `/todos` | `index` |
 | GET | `/todos/create` | `create` |

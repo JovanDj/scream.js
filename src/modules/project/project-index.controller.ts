@@ -1,12 +1,12 @@
 import type { Database } from "@scream.js/database/db.js";
-import { IndexAction, type IndexInput } from "../index.action.js";
+import { IndexController, type IndexInput } from "../index.controller.js";
 import type { ProjectIndexData, ProjectIndexInput } from "./project.schema.js";
 import {
 	projectIndexDataSchema,
 	projectIndexInputSchema,
 } from "./project.schema.js";
 
-export class ProjectIndexAction extends IndexAction<
+export class ProjectIndexController extends IndexController<
 	ProjectIndexInput,
 	ProjectIndexData
 > {

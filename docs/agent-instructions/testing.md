@@ -26,11 +26,11 @@ Good default test targets:
 
 * HTTP behavior for controller-driven modules
 * DB-visible outcomes for persistence-heavy flows
-* shared action lifecycles through their public `handle()` method when the shared behavior is substantial
-* concrete action filtering, sorting, rendering, and persistence through HTTP tests
+* shared controller lifecycles through their public `handle()` method when the shared behavior is substantial
+* concrete controller filtering, sorting, rendering, and persistence through HTTP tests
 * caller-independent services by invoking their public operation directly with explicit dependencies, without an HTTP controller or `HttpContext`
 * small pure tests where logic is genuinely easier to verify in isolation
 
 For database-backed services, use an isolated real database to assert returned values, committed changes, and rollback. Keep HTTP tests for controller response behavior; neither layer's tests replace the other when both have distinct behavior.
 
-A recording `HttpContext` test implementation may replace an HTTP boundary in a focused action test. It must record observable outcomes such as rendering, redirects, and not-found responses rather than exposing or asserting internal calls.
+A recording `HttpContext` test implementation may replace an HTTP boundary in a focused controller test. It must record observable outcomes such as rendering, redirects, and not-found responses rather than exposing or asserting internal calls.

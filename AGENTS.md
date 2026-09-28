@@ -21,7 +21,7 @@ This file is intentionally minimal. Read the linked instruction file for any are
 * Use manual dependency composition; dependencies must be visible in constructors.
 * Treat external input as raw until parsed into trusted values.
 * Make public behavior testable with supplied dependencies; prefer observable black-box behavior over brittle structure and interaction tests.
-* HTTP entry points are Controllers; caller-independent application operations are Services. Existing `Action`-named classes need not be renamed until an explicit migration.
+* HTTP entry points are Controllers; caller-independent application operations are Services.
 * CRUD controllers are conveniences, not constraints. Custom controllers and services for non-HTTP callers are first-class.
 * Preserve existing user changes in the worktree. Do not revert unrelated edits.
 
@@ -31,7 +31,7 @@ This file is intentionally minimal. Read the linked instruction file for any are
 * Use `khorikov_testing_reviewer` for public-behavior testability and test-quality reviews.
 * Use `fowler_enterprise_patterns_reviewer` when deciding whether an existing enterprise pattern fits or a different pattern is justified by current code.
 * Use `screamjs_cqrs_engineer` only for an explicitly approved task after reading [CQRS Architecture Context](docs/agent-instructions/cqrs-architecture-context.md). Its current Controller/Service convention supersedes older Action/Handler examples in the agent brief; installing the agent does not authorize an application migration.
-* For architecture reviews or changes to dependency boundaries/shared action workflows, ask both agents to review the affected scope before completion. Do not request whole-repository audits for routine changes.
+* For architecture reviews or changes to dependency boundaries/shared controller workflows, ask both agents to review the affected scope before completion. Do not request whole-repository audits for routine changes.
 * Agents live in `.codex/agents/`. Reviewers are read-only; the CQRS engineer may edit only its delegated scope. Evaluate findings against project conventions and reproduce suspected defects before changing production code.
 
 ## Detailed Instructions

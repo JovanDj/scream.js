@@ -20,10 +20,10 @@ Use straightforward code with explicit data flow. Refactor only when it makes th
 
 ## Class Encapsulation
 
-Production classes must own their action-specific behavior and configuration.
+Production classes must own their controller-specific behavior and configuration.
 
 * Module scope should normally contain only imports, exports, and the exported class.
-* Do not declare action-specific constants, lookup objects, functions, or types at module scope.
+* Do not declare controller-specific constants, lookup objects, functions, or types at module scope.
 * Put fixed configuration and decision logic inside the class that owns it.
 * Use ECMAScript `#private` fields and methods whenever behavior does not belong to a subclass contract.
 * Use `protected` only for members that an abstract base class requires subclasses to implement or access.

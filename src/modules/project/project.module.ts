@@ -1,50 +1,52 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
-import { ProjectArchiveAction } from "./project-archive.action.js";
-import { ProjectIndexAction } from "./project-index.action.js";
-import { ProjectShowAction } from "./project-show.action.js";
-import { ProjectStoreAction } from "./project-store.action.js";
-import { ProjectUnarchiveAction } from "./project-unarchive.action.js";
+import { ProjectArchiveController } from "./project-archive.controller.js";
+import { ProjectIndexController } from "./project-index.controller.js";
+import { ProjectShowController } from "./project-show.controller.js";
+import { ProjectStoreController } from "./project-store.controller.js";
+import { ProjectUnarchiveController } from "./project-unarchive.controller.js";
 
 export class ProjectModule implements HttpModule {
-	readonly #archiveAction: ProjectArchiveAction;
-	readonly #indexAction: ProjectIndexAction;
-	readonly #showAction: ProjectShowAction;
-	readonly #storeAction: ProjectStoreAction;
-	readonly #unarchiveAction: ProjectUnarchiveAction;
+	readonly #archiveController: ProjectArchiveController;
+	readonly #indexController: ProjectIndexController;
+	readonly #showController: ProjectShowController;
+	readonly #storeController: ProjectStoreController;
+	readonly #unarchiveController: ProjectUnarchiveController;
 
 	static create(db: Database) {
 		return new ProjectModule(
-			new ProjectArchiveAction(db),
-			new ProjectIndexAction(db),
-			new ProjectShowAction(db),
-			new ProjectStoreAction(db),
-			new ProjectUnarchiveAction(db),
+			new ProjectArchiveController(db),
+			new ProjectIndexController(db),
+			new ProjectShowController(db),
+			new ProjectStoreController(db),
+			new ProjectUnarchiveController(db),
 		);
 	}
 
 	constructor(
-		archiveAction: ProjectArchiveAction,
-		indexAction: ProjectIndexAction,
-		showAction: ProjectShowAction,
-		storeAction: ProjectStoreAction,
-		unarchiveAction: ProjectUnarchiveAction,
+		archiveController: ProjectArchiveController,
+		indexController: ProjectIndexController,
+		showController: ProjectShowController,
+		storeController: ProjectStoreController,
+		unarchiveController: ProjectUnarchiveController,
 	) {
-		this.#archiveAction = archiveAction;
-		this.#indexAction = indexAction;
-		this.#showAction = showAction;
-		this.#storeAction = storeAction;
-		this.#unarchiveAction = unarchiveAction;
+		this.#archiveController = archiveController;
+		this.#indexController = indexController;
+		this.#showController = showController;
+		this.#storeController = storeController;
+		this.#unarchiveController = unarchiveController;
 	}
 
 	mount(app: Application) {
-		app.get("/projects", (ctx) => this.#indexAction.handle(ctx));
-		app.post("/projects", (ctx) => this.#storeAction.handle(ctx));
-		app.get("/projects/:id", (ctx) => this.#showAction.handle(ctx));
-		app.post("/projects/:id/archive", (ctx) => this.#archiveAction.handle(ctx));
+		app.get("/projects", (ctx) => this.#indexController.handle(ctx));
+		app.post("/projects", (ctx) => this.#storeController.handle(ctx));
+		app.get("/projects/:id", (ctx) => this.#showController.handle(ctx));
+		app.post("/projects/:id/archive", (ctx) =>
+			this.#archiveController.handle(ctx),
+		);
 		app.post("/projects/:id/unarchive", (ctx) =>
-			this.#unarchiveAction.handle(ctx),
+			this.#unarchiveController.handle(ctx),
 		);
 	}
 }

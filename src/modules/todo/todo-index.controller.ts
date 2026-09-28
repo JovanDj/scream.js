@@ -1,9 +1,9 @@
 import type { Database } from "@scream.js/database/db.js";
-import { IndexAction, type IndexInput } from "../index.action.js";
+import { IndexController, type IndexInput } from "../index.controller.js";
 import type { TodoIndexData, TodoIndexInput } from "./todo.schema.js";
 import { todoIndexDataSchema, todoIndexInputSchema } from "./todo.schema.js";
 
-export class TodosIndexAction extends IndexAction<
+export class TodosIndexController extends IndexController<
 	TodoIndexInput,
 	TodoIndexData
 > {

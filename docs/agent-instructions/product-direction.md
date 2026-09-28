@@ -42,7 +42,7 @@ Refactor only when real pressure appears:
 ## Current Priorities
 
 1. Keep the scope focused on SSR HTML CRUD.
-2. Design resource routing: action interfaces, `resource()` registration, and generated route names.
+2. Design resource routing: controller methods, `resource()` registration, and generated route names.
 3. Build route generation: `route(name, params)` with the route-generation rules.
 4. Add method spoofing: POST plus `_method`.
 5. Add CSRF middleware and expose `csrfToken` automatically to views.

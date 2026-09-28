@@ -1,9 +1,12 @@
 import type { Database } from "@scream.js/database/db.js";
-import { ShowAction } from "../show.action.js";
+import { ShowController } from "../show.controller.js";
 import type { TagShowData, TagShowInput } from "./tag.schema.js";
 import { tagShowDataSchema, tagShowInputSchema } from "./tag.schema.js";
 
-export class TagShowAction extends ShowAction<TagShowInput, TagShowData> {
+export class TagShowController extends ShowController<
+	TagShowInput,
+	TagShowData
+> {
 	protected inputSchema() {
 		return tagShowInputSchema;
 	}

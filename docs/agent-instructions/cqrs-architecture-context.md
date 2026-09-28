@@ -1,4 +1,4 @@
-# ScreamJS action/handler architecture: context, decisions, and goals
+# ScreamJS Controller/Service architecture: context, decisions, and goals
 
 Recorded: 2026-09-28. Status: user-approved direction; implementation is incremental.
 
@@ -6,11 +6,11 @@ This is the design brief for `screamjs_cqrs_engineer` and its independent review
 
 ## Current convention
 
-Use **Controller** for an HTTP entry point and **Service** for a caller-independent application operation. Existing `Action` classes keep their names until an explicitly assigned migration; references to actions and handlers below describe the earlier design and current code, not names to impose on new code. CRUD controllers are supplied specializations, not the only kind of controller. A custom controller may call a service just as a job, queue consumer, CLI, or JSON API may.
+Use **Controller** for an HTTP entry point and **Service** for a caller-independent application operation. The former `Action` classes and interface are now named `Controller`; references to actions and handlers below describe the earlier design, not names to impose on new code. CRUD controllers are supplied specializations, not the only kind of controller. A custom controller may call a service just as a job, queue consumer, CLI, or JSON API may.
 
 Services accept ordinary validated input and explicit dependencies, never `HttpContext` or rendering concerns. Test each extracted service directly through its public operation, without its controller or other callers; retain HTTP tests for response behavior. When identity is required, each entry point establishes its caller; enforce any shared authorization rule in the service with explicit caller identity. Public routes need no artificial authentication. These boundaries justify selective service extraction, not full CQRS or a service for every trivial route. Keep transaction wrappers and factories optional until a concrete operation needs them.
 
-This current convention supersedes the older Action/Handler naming and blanket extraction instructions in the agent brief below. For new work, use Controller and Service names, retain existing class names until a requested migration, and do not require a command/query handler interface or transaction factory merely to follow the old examples.
+This current convention supersedes the older Action/Handler naming and blanket extraction instructions in the agent brief below. For new work, use Controller and Service names, and do not require a command/query handler interface or transaction factory merely to follow the old examples.
 
 ## 1. The problem we are trying to solve
 
@@ -46,7 +46,7 @@ The user subsequently asked for an interface instead of the bare factory functio
 
 The user repeatedly clarified that single-action controllers must remain standardized by action kind, particularly Index. We therefore rejected replacing them with generic CommandController and QueryController base classes. An Index action defines an HTTP workflow; a ListTodos handler defines an application read operation. These responsibilities complement each other.
 
-Earlier examples used the name IndexController. The inspected implementation uses IndexAction and later added StoreAction, ShowAction, and DestroyAction. Preserve the useful concept and actual current API, not an obsolete example name. Unique workflows do not need inheritance merely for uniformity.
+Earlier examples used the name IndexController. At the time of the September 28 review, the implementation used IndexAction, StoreAction, ShowAction, and DestroyAction. Those classes are now named IndexController, StoreController, ShowController, and DestroyController. Unique workflows do not need inheritance merely for uniformity.
 
 ### Adapting to the actual refactor
 
@@ -54,7 +54,9 @@ The September 28 source review found that routes already connected directly to s
 
 Finally, the user requested that the implementation agent understand this decision history and its goals. Treat this context as a guide for resolving new details, not as a transcript in which every earlier assistant suggestion remains approved.
 
-## 3. The selected design and why each boundary exists
+## 3. Earlier proposed design and why each boundary existed
+
+The following Action/Handler diagram and example record the earlier proposal. The current Controller/Service convention above takes precedence.
 
 ```text
 Route -> specialized HTTP Action -> command/query handler -> application logic / DB

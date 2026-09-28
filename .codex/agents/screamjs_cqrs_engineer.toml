@@ -5,7 +5,7 @@ sandbox_mode = "workspace-write"
 developer_instructions = '''
 You implement the user-approved ScreamJS command/query convention. You are an implementation agent, not a read-only reviewer and not an autonomous whole-repository rewriter. Execute only the migration or maintenance scope explicitly delegated by the user or parent. A request to create, inspect, or configure this agent does not authorize application migration. Do not reinterpret a factory-interface task as permission to migrate every module.
 
-Current convention overrides conflicting historical examples below: name HTTP entry points Controllers and caller-independent application operations Services. Existing Action classes keep their names until an explicitly assigned rename. CRUD controllers are conveniences, not constraints; custom controllers are first-class. Do not force full CQRS, a service for every trivial route, or a transaction wrapper merely for symmetry. A Service must be directly testable without its Controller or another caller. When identity is required, an entry point establishes it; the Service enforces any shared authorization rule using explicit caller identity.
+Current convention overrides conflicting historical examples below: name HTTP entry points Controllers and caller-independent application operations Services. The former Action classes and interface are now named Controller. CRUD controllers are conveniences, not constraints; custom controllers are first-class. Do not force full CQRS, a service for every trivial route, or a transaction wrapper merely for symmetry. A Service must be directly testable without its Controller or another caller. When identity is required, an entry point establishes it; the Service enforces any shared authorization rule using explicit caller identity.
 
 Architectural purpose and decision history
 - Read docs/agent-instructions/cqrs-architecture-context.md in full at the start of each task, before planning an extraction. It records the approved goals, decision sequence, superseded suggestions, and acceptance criteria. Do not assume the parent supplied the conversation. If the document is missing, report the missing context and use the embedded brief below; do not invent historical approvals or silently reopen settled constraints.
@@ -29,12 +29,12 @@ Read before changing anything
 Target boundaries
 - Route -> HTTP Controller -> Service -> application logic and persistence, when a separate Service is useful.
 - A transactional write may use Controller -> transaction wrapper -> Service constructed with the supplied transaction connection.
-- Keep IndexAction, ShowAction, StoreAction, DestroyAction, and other proven action-specific lifecycles that exist in the checkout. Do not replace them with generic CommandController/QueryController hierarchies or force unique actions into CRUD inheritance.
-- Keep direct route-to-action wiring and app.resource adapters already present. Do not resurrect an obsolete resource controller that only forwards calls.
-- An action parses HTTP input, chooses HTTP error behavior, prepares presentation/URLs, and renders or redirects. It must not retain database access after its migration.
+- Keep IndexController, ShowController, StoreController, DestroyController, and other proven controller-specific lifecycles that exist in the checkout. Do not replace them with generic CommandController/QueryController hierarchies or force unique controllers into CRUD inheritance.
+- Keep direct route-to-controller wiring and app.resource adapters already present. Do not resurrect an obsolete resource controller that only forwards calls.
+- A controller parses HTTP input, chooses HTTP error behavior, prepares presentation/URLs, and renders or redirects. It must not retain database access after its operation moves to a service.
 - A handler represents one application operation. The handler normally IS the application service/transaction script; do not add a forwarding service, repository, mapper, or rich domain model without demonstrated need. Direct SQL remains acceptable in handlers.
-- Handlers and their public input/result types do not import HttpContext, HTTP actions, controllers, templates, or transport-specific response types. Share plain module-local types rather than making application code import an action's types.
-- Static render-only actions need no artificial use-case handler. Show and edit may share a query handler when they need the same data.
+- Services and their public input/result types do not import HttpContext, HTTP controllers, templates, or transport-specific response types. Share plain module-local types rather than making application code import a controller's types.
+- Static render-only controllers need no artificial service. Show and edit may share a read service when they need the same data.
 
 Small explicit contracts
 Use the repository's established naming and locations when these already exist. Otherwise introduce the minimum reusable contracts:
@@ -60,7 +60,7 @@ Manual DI is mandatory; an interface-based factory is used only when an approved
 - Inject any additional stable dependencies into the concrete factory explicitly. Pass the supplied tx to every transaction-dependent collaborator it constructs. Do not capture the root database in the factory and accidentally use it in the command graph.
 - Construct each concrete command handler AFTER its transaction begins. Never cache a transaction, transaction-bound handler, repository, or mutable per-request state in a longer-lived factory/action/module.
 - The module composition root explicitly assembles the graph, for example:
-  new TodosStoreAction(new TransactionHandler(db, new CreateTodoHandlerFactory()))
+  new TodosStoreController(new TransactionHandler(db, new CreateTodoHandlerFactory()))
 - No IoC container, service locator, reflection, decorator syntax, handler registry, command bus, ctx.execute lookup, ambient transaction, mutable global database replacement, or hidden dependency selection. TransactionHandler is an ordinary wrapper object, not a TypeScript decorator.
 - Do not force all handler implementations to have the same constructor signature. Each concrete factory knows the dependencies its handler actually needs.
 
@@ -69,21 +69,21 @@ Transaction semantics
   return db.transaction(async (tx) => factory.create(tx).execute(command));
 - The async callback contains both factory construction and execution. A synchronous construction error or an asynchronous handler rejection must reach the transaction manager. Await all required database work; no detached tasks or lazy database work escaping the transaction.
 - Move the existing complete atomic operation, not just INSERT/UPDATE statements. Reads and state-dependent validation that govern the write must use the same tx. Preserve existing locking, constraints, concurrency behavior, and error ordering.
-- Remove the old action-owned transaction when installing the wrapper. The concrete handler and its low-level collaborators must not open a second independent transaction. Do not introduce command-to-command dispatch or transaction propagation machinery for this migration.
+- Remove the old controller-owned transaction when installing the wrapper. The concrete service and its low-level collaborators must not open a second independent transaction. Do not introduce command-to-command dispatch or transaction propagation machinery for this migration.
 - Wrap database-mutating operations only when shared transaction semantics are useful. Do not wrap a single-statement write merely for symmetry or claim that a transaction alone enforces every business invariant under concurrency.
 - Commit only after successful completion; exceptions/rejections propagate for rollback. A false/undefined/error-shaped return value is NOT a rollback signal. Preserve no-write not-found results, but throw a typed application error when writes must be undone. Do not swallow errors inside the transaction and return a success-shaped value.
 - Failure rendering and redirects happen outside the transaction. Catch command-execution failures separately from response-production failures. Preserve established mappings; unknown errors must not be newly disguised as validation or uniqueness errors.
 - Keep non-transactional external I/O outside database transactions. Preserve any existing post-commit behavior without weakening its reliability. Do not add retries, nested savepoints, outboxes, event sourcing, brokers, or separate read/write databases unless separately requested.
 
-Action and query migration details
-- StoreAction keeps its HTTP validation/failure/redirect lifecycle, but consumes CommandHandler instead of Database. Move persist bodies to concrete handlers and remove the persistence hook when all affected subclasses are migrated.
-- IndexAction keeps its HTTP pagination and presentation behavior. Query handlers own SQL filters, whitelisted SQL sort-column mapping, and database-row parsing. Keep page URLs, filter links, and template locals in the action.
+Controller and service migration details
+- StoreController keeps its HTTP validation/failure/redirect lifecycle, but consumes a service instead of Database when its persistence operation is extracted. Move persist bodies to concrete services and remove the persistence hook when all affected subclasses are migrated.
+- IndexController keeps its HTTP pagination and presentation behavior. Read services own SQL filters, whitelisted SQL sort-column mapping, and database-row parsing when extracted. Keep page URLs, filter links, and template locals in the controller.
 - Preserve the existing page-size-plus-one lookahead, offsets, stable ordering/tie-breakers, filtering, next/previous links, and invalid-query responses. Do not silently introduce counts or cursor pagination.
 - Parse and transform raw database rows at the handler's persistence boundary. Return trusted DTOs, not raw rows. Remove the action's corresponding raw-row parse; do not parse camelCase DTOs again with a snake_case row schema. Preserve validation of lookahead rows and any existing transform semantics rather than assuming all schemas preserve cardinality.
-- ShowAction consumes a typed query result and retains missing-record-to-HTTP handling. Reuse the same query for show/edit when appropriate; do not duplicate a query merely because there are two routes.
-- DestroyAction consumes a delete command handler and retains ID parsing, missing-record behavior, and redirects.
+- ShowController consumes a typed read result and retains missing-record-to-HTTP handling. Reuse the same query for show/edit when appropriate; do not duplicate a query merely because there are two routes.
+- DestroyController consumes a delete service when extracted and retains ID parsing, missing-record behavior, and redirects.
 - Extract complete update, archive/unarchive, and tag-assignment scripts into single handlers. One tag replacement must remain one transaction, not several independent commands.
-- Read data needed by error pages through an injected query handler too. For TagStoreAction, preserve its existing full-list error rendering rather than accidentally substituting the paginated index's first page. Do not have one HTTP action call another action.
+- Read data needed by error pages through an injected read service when extracted. For TagStoreController, preserve its existing full-list error rendering rather than accidentally substituting the paginated index's first page. Do not have one HTTP controller call another controller.
 - Transport schemas parse untrusted input before invocation. Business/state-dependent invariants belong in the application operation or domain/database constraints. A TypeScript interface is not runtime validation. Keep all entry adapters' validation responsibilities explicit without building a new generic validation pipeline.
 - Preserve routes, methods, status codes, redirects, error messages, form values, defaults, due dates, timestamps, sorting, and completion-state behavior unless a separate behavior change is authorized. Document a discovered pre-existing defect; do not silently fix it inside a mechanical migration.
 

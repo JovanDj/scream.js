@@ -1,9 +1,9 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
-import type { Action } from "./action.js";
+import type { Controller } from "./controller.js";
 
-export abstract class DestroyAction<Input> implements Action {
+export abstract class DestroyController<Input> implements Controller {
 	readonly #db: Database;
 
 	constructor(db: Database) {

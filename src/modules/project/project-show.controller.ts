@@ -1,12 +1,12 @@
 import type { Database } from "@scream.js/database/db.js";
-import { ShowAction } from "../show.action.js";
+import { ShowController } from "../show.controller.js";
 import type { ProjectShowData, ProjectShowInput } from "./project.schema.js";
 import {
 	projectShowDataSchema,
 	projectShowInputSchema,
 } from "./project.schema.js";
 
-export class ProjectShowAction extends ShowAction<
+export class ProjectShowController extends ShowController<
 	ProjectShowInput,
 	ProjectShowData
 > {

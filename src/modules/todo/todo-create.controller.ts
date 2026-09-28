@@ -1,7 +1,7 @@
 import type { HttpContext } from "@scream.js/http/http-context.js";
-import type { Action } from "../action.js";
+import type { Controller } from "../controller.js";
 
-export class TodosCreateAction implements Action {
+export class TodosCreateController implements Controller {
 	async handle(ctx: HttpContext) {
 		return ctx.render("create", {
 			errors: { dueAt: "", title: "" },

@@ -1,10 +1,13 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
-import { StoreAction, type StoreFailure } from "../store.action.js";
+import { StoreController, type StoreFailure } from "../store.controller.js";
 import { type TodoStoreInput, todoStoreInputSchema } from "./todo.schema.js";
 
-export class TodosStoreAction extends StoreAction<TodoStoreInput, number> {
+export class TodosStoreController extends StoreController<
+	TodoStoreInput,
+	number
+> {
 	protected inputSchema() {
 		return todoStoreInputSchema;
 	}

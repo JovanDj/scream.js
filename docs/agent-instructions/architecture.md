@@ -98,18 +98,18 @@ Prefer explicit local helpers over creating new service or mapper classes.
 
 Do not add general-purpose controller base classes.
 
-A narrow action-specific base class is allowed only when the same lifecycle already exists across multiple CRUD controllers. For example, repeated index actions may share one index-action abstraction without forcing show, store, update, or non-CRUD actions into the same workflow.
+A narrow controller-specific base class is allowed only when the same lifecycle already exists across multiple CRUD controllers. For example, repeated index controllers may share one IndexController abstraction without forcing show, store, update, or non-CRUD controllers into the same workflow.
 
-Existing classes use the `Action` suffix; new HTTP-facing classes use `Controller` when their names are chosen or explicitly migrated. Do not rename working classes solely to satisfy the convention.
+HTTP-facing classes and the shared interface use the `Controller` suffix.
 
 Rules:
 
 * the base class owns lifecycle ordering and stable shared mechanics only
-* unmigrated concrete actions own domain validation, queries, row schemas, presentation, URLs, and templates; once a service is extracted, it owns the operation and persistence parsing while the controller retains HTTP validation and presentation
+* concrete controllers without services own domain validation, queries, row schemas, presentation, URLs, and templates; once a service is extracted, it owns the operation and persistence parsing while the controller retains HTTP validation and presentation
 * protected members exist only as deliberate extension points required by the lifecycle
 * unrelated and unique controllers remain concrete until repetition is demonstrated
 * non-CRUD controllers do not inherit CRUD workflows merely for consistency
-* each existing action must remain understandable as one HTTP controller workflow
+* each controller must remain understandable as one HTTP workflow
 
 Judge the abstraction by its concrete subclasses. If they become harder to read or require indirection to explain their data, simplify or remove the abstraction.
 

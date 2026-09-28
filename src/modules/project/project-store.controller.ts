@@ -2,13 +2,16 @@ import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { schema } from "@scream.js/validator/schema.js";
 import type { z } from "zod/v4";
-import { StoreAction, type StoreFailure } from "../store.action.js";
+import { StoreController, type StoreFailure } from "../store.controller.js";
 import {
 	type ProjectStoreInput,
 	projectStoreInputSchema,
 } from "./project.schema.js";
 
-export class ProjectStoreAction extends StoreAction<ProjectStoreInput, number> {
+export class ProjectStoreController extends StoreController<
+	ProjectStoreInput,
+	number
+> {
 	protected inputSchema() {
 		return projectStoreInputSchema;
 	}

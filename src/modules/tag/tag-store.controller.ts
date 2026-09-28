@@ -1,14 +1,14 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
-import { StoreAction, type StoreFailure } from "../store.action.js";
+import { StoreController, type StoreFailure } from "../store.controller.js";
 import {
 	type TagStoreInput,
 	tagIndexDataSchema,
 	tagStoreInputSchema,
 } from "./tag.schema.js";
 
-export class TagStoreAction extends StoreAction<TagStoreInput, void> {
+export class TagStoreController extends StoreController<TagStoreInput, void> {
 	readonly #db: Database;
 
 	constructor(db: Database) {

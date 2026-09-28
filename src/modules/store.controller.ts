@@ -1,7 +1,7 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
-import type { Action } from "./action.js";
+import type { Controller } from "./controller.js";
 
 export type StoreFailure<Input> = {
 	readonly ctx: HttpContext;
@@ -9,7 +9,7 @@ export type StoreFailure<Input> = {
 	readonly input: Input;
 };
 
-export abstract class StoreAction<Input, Result> implements Action {
+export abstract class StoreController<Input, Result> implements Controller {
 	readonly #db: Database;
 
 	constructor(db: Database) {
