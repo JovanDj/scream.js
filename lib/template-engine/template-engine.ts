@@ -21,11 +21,8 @@ export class ScreamTemplateEngine {
 	readonly #renderer: TemplateRenderer;
 
 	static create(fileLoader: FileLoader = new SystemFileLoader()) {
-		const tokenizer = new Tokenizer();
-		const parser = new Parser();
-
 		return new ScreamTemplateEngine(
-			new TemplateCompiler(fileLoader, tokenizer, parser),
+			new TemplateCompiler(fileLoader, new Tokenizer(), new Parser()),
 			new TemplateRenderer(new Evaluator(), new Generator()),
 		);
 	}
