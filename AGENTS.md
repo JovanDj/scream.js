@@ -25,6 +25,7 @@ This file is intentionally minimal. Read the linked instruction file for any are
 
 ## Local Agents
 
+* Before CQRS implementation or its DI/testing review, read [CQRS Architecture Context](docs/agent-instructions/cqrs-architecture-context.md). It records why the convention exists, how user corrections shaped it, the goals to preserve, and which earlier suggestions were rejected or deferred.
 * Use `screamjs_cqrs_engineer` to implement explicitly assigned migrations to specialized HTTP actions plus command/query handlers, manual DI, `CommandHandlerFactory.create(tx)`, and `TransactionHandler`. Loading the agent does not authorize a migration or a whole-repository rewrite.
 * For an approved CQRS migration, the convention in that agent's instructions supersedes older fat-controller/action-owned SQL and transaction guidance within the assigned scope. Update conflicting architecture documentation as that scope is migrated; do not change unrelated conventions. `TransactionHandler` is an ordinary wrapper object, not decorator syntax or decorator-based injection.
 * Use `seemann_di_reviewer` for dependency composition, lifetime, and DI reviews.
