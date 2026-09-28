@@ -1,49 +1,12 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { schema } from "@scream.js/validator/schema.js";
-import type { TagIndexAction } from "./tag-index.action.js";
 
 export class TagController {
 	readonly #db: Database;
-	readonly #indexAction: TagIndexAction;
 
-	constructor(db: Database, indexAction: TagIndexAction) {
+	constructor(db: Database) {
 		this.#db = db;
-		this.#indexAction = indexAction;
-	}
-
-	async store(ctx: HttpContext) {
-		const parsed = schema
-			.strictObject({
-				name: schema
-					.string()
-					.default("")
-					.transform((value) => value.trim())
-					.refine((value) => value.length > 0, { message: "Required" }),
-			})
-			.safeParse(ctx.body());
-		if (!parsed.success) {
-			return this.#indexAction.renderErrors(
-				ctx,
-				this.#tagErrors(parsed.error.issues),
-			);
-		}
-
-		try {
-			await this.#db.transaction(async (tx) => {
-				const now = new Date().toISOString();
-				await tx("tags").insert({
-					created_at: now,
-					name: parsed.data.name,
-					updated_at: now,
-				});
-			});
-			return ctx.redirect("/tags");
-		} catch {
-			return this.#indexAction.renderErrors(ctx, {
-				name: "Tag name must be unique",
-			});
-		}
 	}
 
 	async destroy(ctx: HttpContext) {
@@ -132,18 +95,6 @@ export class TagController {
 		}
 
 		return ctx.redirect(`/todos/${todoId}/edit`);
-	}
-
-	#tagErrors(issues: readonly { message: string; path: PropertyKey[] }[]) {
-		const errors = { name: "" };
-
-		for (const issue of issues) {
-			if (issue.path.join(".") === "name") {
-				errors.name ||= issue.message;
-			}
-		}
-
-		return errors;
 	}
 
 	#uniqueTagIds(tagIds: readonly number[]) {

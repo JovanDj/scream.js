@@ -53,3 +53,13 @@ export const projectShowDataSchema = schema
 
 export type ProjectShowInput = z.infer<typeof projectShowInputSchema>;
 export type ProjectShowData = z.infer<typeof projectShowDataSchema>;
+
+export const projectStoreInputSchema = schema.strictObject({
+	name: schema
+		.string()
+		.default("")
+		.transform((value) => value.trim())
+		.refine((value) => value.length > 0, { message: "Required" }),
+});
+
+export type ProjectStoreInput = z.infer<typeof projectStoreInputSchema>;

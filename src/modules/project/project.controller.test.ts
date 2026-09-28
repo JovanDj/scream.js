@@ -302,21 +302,85 @@ describe("project controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /projects shows validation errors for a missing name", async (t: TestContext) => {
-		const { cleanup, port } = await setupServer();
+	it("POST /projects trims input before persistence", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
 		try {
+			const before = await db("projects").orderBy("id").select("name");
+
+			const response = await fetch(`http://localhost:${port}/projects`, {
+				body: new URLSearchParams({ name: "  Trimmed store fixture  " }),
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const after = await db("projects").orderBy("id").select("name");
+
+			t.assert.deepStrictEqual<number>(response.status, 302);
+			t.assert.deepStrictEqual(after, [
+				...before,
+				{ name: "Trimmed store fixture" },
+			]);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /projects rolls back a failing insert and preserves its error response", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			const before = await db("projects").orderBy("id").select("*");
+			await db.raw(
+				"CREATE TRIGGER fail_store AFTER INSERT ON projects BEGIN SELECT RAISE(FAIL, 'store fixture'); END;",
+			);
+
+			const response = await fetch(`http://localhost:${port}/projects`, {
+				body: new URLSearchParams({ name: "Rejected store fixture" }),
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const html = await response.text();
+			const after = await db("projects").orderBy("id").select("*");
+
+			t.assert.deepStrictEqual<number>(response.status, 500);
+			t.assert.deepStrictEqual<string | null>(
+				response.headers.get("Location"),
+				null,
+			);
+			t.assert.deepStrictEqual(after, before);
+			t.assert.doesNotMatch(html, /Project name must be unique/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /projects shows validation errors for a missing name", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			await insertProject(db, "Existing validation sentinel");
+			const before = await db("projects").orderBy("id").select("*");
+
 			const response = await fetch(`http://localhost:${port}/projects`, {
 				body: "name=",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
 				},
 				method: "POST",
+				redirect: "manual",
 				signal: t.signal,
 			});
 			const html = await response.text();
+			const after = await db("projects").orderBy("id").select("*");
 
 			t.assert.deepStrictEqual(response.status, 200);
 			t.assert.match(html, /Required/);
+			t.assert.deepStrictEqual(after, before);
+			t.assert.deepStrictEqual<string | null>(
+				response.headers.get("Location"),
+				null,
+			);
 		} finally {
 			await cleanup();
 		}
@@ -325,6 +389,8 @@ describe("project controller", { concurrency: true }, () => {
 	it("POST /projects redirects to the created project", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
 		try {
+			await insertProject(db, "Unrelated creation sentinel", "archived");
+
 			const response = await fetch(`http://localhost:${port}/projects`, {
 				body: "name=Created+Project",
 				headers: {
@@ -334,17 +400,30 @@ describe("project controller", { concurrency: true }, () => {
 				redirect: "manual",
 				signal: t.signal,
 			});
-			const showResponse = await fetch(`http://localhost:${port}/projects/1`, {
+			const created = await db("projects")
+				.where({ name: "Created Project" })
+				.first("id");
+			const location = response.headers.get("Location");
+			const showResponse = await fetch(`http://localhost:${port}${location}`, {
 				signal: t.signal,
 			});
 			const html = await showResponse.text();
-			const rows = await db("projects").select("name");
+			const rows = await db("projects")
+				.join("project_statuses", "projects.status_id", "project_statuses.id")
+				.where("projects.name", "Created Project")
+				.select("projects.name", "project_statuses.code as statusCode");
 
-			t.assert.deepStrictEqual(rows, [{ name: "Created Project" }]);
+			t.assert.deepStrictEqual(rows, [
+				{ name: "Created Project", statusCode: "active" },
+			]);
 			t.assert.deepStrictEqual(response.status, 302);
-			t.assert.deepStrictEqual(response.headers.get("Location"), "/projects/1");
+			t.assert.deepStrictEqual<string | null>(
+				location,
+				`/projects/${created.id}`,
+			);
 			t.assert.deepStrictEqual<number>(showResponse.status, 200);
 			t.assert.match(html, /Created Project/);
+			t.assert.doesNotMatch(html, /Unrelated creation sentinel/);
 		} finally {
 			await cleanup();
 		}
@@ -366,6 +445,34 @@ describe("project controller", { concurrency: true }, () => {
 
 			t.assert.deepStrictEqual(response.status, 200);
 			t.assert.match(html, /Project name must be unique/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /projects does not report a missing active status as a duplicate name", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			await db("project_statuses").where({ code: "active" }).delete();
+			const before = await db("projects").orderBy("id").select("*");
+
+			const response = await fetch(`http://localhost:${port}/projects`, {
+				body: new URLSearchParams({ name: "Unique Project" }),
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const html = await response.text();
+			const after = await db("projects").orderBy("id").select("*");
+
+			t.assert.deepStrictEqual(after, before);
+			t.assert.deepStrictEqual<number>(response.status, 500);
+			t.assert.deepStrictEqual<string | null>(
+				response.headers.get("Location"),
+				null,
+			);
+			t.assert.doesNotMatch(html, /Project name must be unique/);
 		} finally {
 			await cleanup();
 		}

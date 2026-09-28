@@ -58,3 +58,33 @@ export const todoShowDataSchema = schema
 
 export type TodoShowInput = z.infer<typeof todoShowInputSchema>;
 export type TodoShowData = z.infer<typeof todoShowDataSchema>;
+
+export const todoStoreInputSchema = schema
+	.object({
+		dueAt: schema.preprocess(
+			(value) => (typeof value === "string" ? value.trim() : ""),
+			schema.string(),
+		),
+		title: schema.preprocess(
+			(value) => (typeof value === "string" ? value.trim() : ""),
+			schema.string(),
+		),
+	})
+	.superRefine((input, ctx) => {
+		if (input.title.length === 0) {
+			ctx.addIssue({ code: "custom", message: "Required", path: ["title"] });
+			return;
+		}
+		if (
+			input.dueAt.length > 0 &&
+			!schema.iso.date().safeParse(input.dueAt).success
+		) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Invalid date",
+				path: ["dueAt"],
+			});
+		}
+	});
+
+export type TodoStoreInput = z.infer<typeof todoStoreInputSchema>;

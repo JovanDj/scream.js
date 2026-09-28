@@ -1,9 +1,14 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
-import type { Writable } from "@scream.js/http/resource.js";
+import type {
+	Create,
+	Destroy,
+	Edit,
+	Update,
+} from "@scream.js/http/resource.js";
 import { schema } from "@scream.js/validator/schema.js";
 
-export class TodosController implements Writable {
+export class TodosController implements Create, Destroy, Edit, Update {
 	readonly #db: Database;
 
 	constructor(db: Database) {
@@ -16,54 +21,6 @@ export class TodosController implements Writable {
 			fields: this.#todoFields({}),
 			pageTitle: "New Todo",
 		});
-	}
-
-	async store(ctx: HttpContext) {
-		const body = ctx.body() as { dueAt?: unknown; title?: unknown };
-		const dueAt = typeof body.dueAt === "string" ? body.dueAt.trim() : "";
-		const title = typeof body.title === "string" ? body.title.trim() : "";
-
-		if (title.length < 1) {
-			return ctx.render("create", {
-				errors: { dueAt: "", title: "Required" },
-				fields: this.#todoFields({}),
-				pageTitle: "New Todo",
-			});
-		}
-
-		if (!this.#isValidDueDate(dueAt)) {
-			return ctx.render("create", {
-				errors: { dueAt: "Invalid date", title: "" },
-				fields: this.#todoFields({}),
-				pageTitle: "New Todo",
-			});
-		}
-		const result = await this.#db.transaction(async (tx) => {
-			const priority = await tx("todo_priorities")
-				.where({ code: "medium" })
-				.first("id");
-			const status = await tx("todo_statuses")
-				.where({ code: "open" })
-				.first("id");
-
-			const now = new Date().toISOString();
-			const [row] = await tx("todos")
-				.insert({
-					completed_at: null,
-					created_at: now,
-					description: "",
-					due_at: dueAt.length > 0 ? dueAt : null,
-					priority_id: priority.id,
-					status_id: status.id,
-					title,
-					updated_at: now,
-				})
-				.returning(["id"]);
-
-			return row;
-		});
-
-		return ctx.redirect(`/todos/${result.id}`);
 	}
 
 	async edit(ctx: HttpContext) {

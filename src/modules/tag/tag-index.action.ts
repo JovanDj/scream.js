@@ -1,5 +1,4 @@
 import type { Database } from "@scream.js/database/db.js";
-import type { HttpContext } from "@scream.js/http/http-context.js";
 import { IndexAction, type IndexInput } from "../index.action.js";
 import type { TagIndexData, TagIndexInput } from "./tag.schema.js";
 import { tagIndexDataSchema, tagIndexInputSchema } from "./tag.schema.js";
@@ -35,18 +34,6 @@ export class TagIndexAction extends IndexAction<TagIndexInput, TagIndexData> {
 
 	protected template() {
 		return "tag-index";
-	}
-
-	async renderErrors(ctx: HttpContext, errors: { name: string }) {
-		const input = this.inputSchema().parse({});
-		const rows = await this.#query(input, this.database());
-		const tags = this.dataSchema().parse(rows);
-
-		return ctx.render(this.template(), {
-			...this.present(tags, input),
-			errors,
-			pagination: { nextUrl: "", previousUrl: "" },
-		});
 	}
 
 	#sortColumn(sort: TagIndexInput["sort"]) {

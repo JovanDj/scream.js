@@ -28,3 +28,13 @@ export const tagShowDataSchema = schema.object({
 
 export type TagShowInput = z.infer<typeof tagShowInputSchema>;
 export type TagShowData = z.infer<typeof tagShowDataSchema>;
+
+export const tagStoreInputSchema = schema.strictObject({
+	name: schema
+		.string()
+		.default("")
+		.transform((value) => value.trim())
+		.refine((value) => value.length > 0, { message: "Required" }),
+});
+
+export type TagStoreInput = z.infer<typeof tagStoreInputSchema>;

@@ -9,54 +9,6 @@ export class ProjectController {
 		this.#db = db;
 	}
 
-	async store(ctx: HttpContext) {
-		const parsed = schema
-			.strictObject({
-				name: schema
-					.string()
-					.default("")
-					.transform((value) => value.trim())
-					.refine((value) => value.length > 0, { message: "Required" }),
-			})
-			.safeParse(ctx.body());
-		if (!parsed.success) {
-			return ctx.render("project-create", {
-				errors: this.#projectErrors(parsed.error.issues),
-				fields: { name: "" },
-				pageTitle: "Create Project",
-			});
-		}
-
-		try {
-			const result = await this.#db.transaction(async (tx) => {
-				const projectStatusRow = await tx("project_statuses")
-					.where({ code: "active" })
-					.first("id");
-				const projectStatus = schema
-					.object({ id: schema.coerce.number().positive() })
-					.parse(projectStatusRow);
-				const now = new Date().toISOString();
-				const [row] = await tx("projects")
-					.insert({
-						created_at: now,
-						name: parsed.data.name,
-						status_id: projectStatus.id,
-						updated_at: now,
-					})
-					.returning(["id"]);
-
-				return row.id;
-			});
-			return ctx.redirect(`/projects/${result}`);
-		} catch {
-			return ctx.render("project-create", {
-				errors: { name: "Project name must be unique" },
-				fields: { name: parsed.data.name },
-				pageTitle: "Create Project",
-			});
-		}
-	}
-
 	async archive(ctx: HttpContext) {
 		const parsedProjectId = schema.coerce
 			.number()
@@ -133,17 +85,5 @@ export class ProjectController {
 		}
 
 		return ctx.redirect(`/projects/${result.id}`);
-	}
-
-	#projectErrors(issues: readonly { message: string; path: PropertyKey[] }[]) {
-		const errors = { name: "" };
-
-		for (const issue of issues) {
-			if (issue.path.join(".") === "name") {
-				errors.name ||= issue.message;
-			}
-		}
-
-		return errors;
 	}
 }

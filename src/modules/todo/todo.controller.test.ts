@@ -578,6 +578,60 @@ describe("todo controller", { concurrency: true }, () => {
 		}
 	});
 
+	it("POST /todos trims input before persistence", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			const before = await db("todos").orderBy("id").select("title");
+
+			const response = await fetch(`http://localhost:${port}/todos`, {
+				body: new URLSearchParams({ title: "  Trimmed store fixture  " }),
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const after = await db("todos").orderBy("id").select("title");
+
+			t.assert.deepStrictEqual<number>(response.status, 302);
+			t.assert.deepStrictEqual(after, [
+				...before,
+				{ title: "Trimmed store fixture" },
+			]);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos rolls back a failing insert and preserves its error response", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			const before = await db("todos").orderBy("id").select("*");
+			await db.raw(
+				"CREATE TRIGGER fail_store AFTER INSERT ON todos BEGIN SELECT RAISE(FAIL, 'store fixture'); END;",
+			);
+
+			const response = await fetch(`http://localhost:${port}/todos`, {
+				body: new URLSearchParams({ title: "Rejected store fixture" }),
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const html = await response.text();
+			const after = await db("todos").orderBy("id").select("*");
+
+			t.assert.deepStrictEqual<number>(response.status, 500);
+			t.assert.deepStrictEqual<string | null>(
+				response.headers.get("Location"),
+				null,
+			);
+			t.assert.deepStrictEqual(after, before);
+			t.assert.match(html, /Error|store fixture/);
+		} finally {
+			await cleanup();
+		}
+	});
+
 	it("POST /todos with missing title shows errors", async (t: TestContext) => {
 		t.plan(1);
 		const { port, cleanup } = await setupServer();
@@ -598,9 +652,33 @@ describe("todo controller", { concurrency: true }, () => {
 		}
 	});
 
+	it("POST /todos reports title errors before date errors without writing", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			const before = await db("todos").orderBy("id").select("*");
+
+			const response = await fetch(`http://localhost:${port}/todos`, {
+				body: new URLSearchParams({ dueAt: "2026-02-30", title: "  " }),
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const html = await response.text();
+			const after = await db("todos").orderBy("id").select("*");
+
+			t.assert.deepStrictEqual<number>(response.status, 200);
+			t.assert.match(html, /Required/);
+			t.assert.doesNotMatch(html, /Invalid date/);
+			t.assert.deepStrictEqual(after, before);
+		} finally {
+			await cleanup();
+		}
+	});
+
 	it("POST /todos with a valid title redirects and persists the todo", async (t: TestContext) => {
-		t.plan(4);
-		const { port, cleanup } = await setupServer();
+		t.plan(5);
+		const { port, cleanup, db } = await setupServer();
 		try {
 			const { id, location } = await createTodo({
 				port,
@@ -612,7 +690,31 @@ describe("todo controller", { concurrency: true }, () => {
 				signal: t.signal,
 			});
 			const html = await res.text();
+			const rows = await db("todos")
+				.join("todo_priorities", "todos.priority_id", "todo_priorities.id")
+				.join("todo_statuses", "todos.status_id", "todo_statuses.id")
+				.where("todos.id", id)
+				.select(
+					"todos.title",
+					"todos.description",
+					"todos.due_at",
+					"todos.completed_at",
+					"todos.project_id",
+					"todo_priorities.code as priorityCode",
+					"todo_statuses.code as statusCode",
+				);
 
+			t.assert.deepStrictEqual(rows, [
+				{
+					completed_at: null,
+					description: "",
+					due_at: null,
+					priorityCode: "medium",
+					project_id: null,
+					statusCode: "open",
+					title: "PersistedTitle",
+				},
+			]);
 			t.assert.deepStrictEqual(location, `/todos/${id}`);
 			t.assert.deepStrictEqual<number>(res.status, 200);
 			t.assert.match(html, /PersistedTitle/);

@@ -4,11 +4,13 @@ import type { HttpModule } from "@scream.js/http/module.js";
 import { TodosController } from "./todo.controller.js";
 import { TodosIndexAction } from "./todo-index.action.js";
 import { TodosShowAction } from "./todo-show.action.js";
+import { TodosStoreAction } from "./todo-store.action.js";
 
 export class TodoModule implements HttpModule {
 	readonly #todosController: TodosController;
 	readonly #indexAction: TodosIndexAction;
 	readonly #showAction: TodosShowAction;
+	readonly #storeAction: TodosStoreAction;
 
 	static create(db: Database) {
 		const todosController = new TodosController(db);
@@ -17,6 +19,7 @@ export class TodoModule implements HttpModule {
 			todosController,
 			new TodosIndexAction(db),
 			new TodosShowAction(db),
+			new TodosStoreAction(db),
 		);
 	}
 
@@ -24,10 +27,12 @@ export class TodoModule implements HttpModule {
 		todosController: TodosController,
 		indexAction: TodosIndexAction,
 		showAction: TodosShowAction,
+		storeAction: TodosStoreAction,
 	) {
 		this.#todosController = todosController;
 		this.#indexAction = indexAction;
 		this.#showAction = showAction;
+		this.#storeAction = storeAction;
 	}
 
 	mount(app: Application) {
@@ -37,7 +42,7 @@ export class TodoModule implements HttpModule {
 			edit: (ctx) => this.#todosController.edit(ctx),
 			index: (ctx) => this.#indexAction.handle(ctx),
 			show: (ctx) => this.#showAction.handle(ctx),
-			store: (ctx) => this.#todosController.store(ctx),
+			store: (ctx) => this.#storeAction.handle(ctx),
 			update: (ctx) => this.#todosController.update(ctx),
 		});
 	}

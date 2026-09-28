@@ -274,21 +274,119 @@ describe("tag controller", { concurrency: true }, () => {
 		}
 	});
 
-	it("POST /tags shows validation errors for a missing name", async (t: TestContext) => {
-		const { cleanup, port } = await setupServer();
+	it("POST /tags trims input before persistence", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
 		try {
+			const before = await db("tags").orderBy("id").select("name");
+
+			const response = await fetch(`http://localhost:${port}/tags`, {
+				body: new URLSearchParams({ name: "  Trimmed store fixture  " }),
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const after = await db("tags").orderBy("id").select("name");
+
+			t.assert.deepStrictEqual<number>(response.status, 302);
+			t.assert.deepStrictEqual(after, [
+				...before,
+				{ name: "Trimmed store fixture" },
+			]);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /tags rolls back a failing insert and preserves its error response", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			const before = await db("tags").orderBy("id").select("*");
+			await db.raw(
+				"CREATE TRIGGER fail_store AFTER INSERT ON tags BEGIN SELECT RAISE(FAIL, 'store fixture'); END;",
+			);
+
+			const response = await fetch(`http://localhost:${port}/tags`, {
+				body: new URLSearchParams({ name: "Rejected store fixture" }),
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const html = await response.text();
+			const after = await db("tags").orderBy("id").select("*");
+
+			t.assert.deepStrictEqual<number>(response.status, 200);
+			t.assert.deepStrictEqual<string | null>(
+				response.headers.get("Location"),
+				null,
+			);
+			t.assert.deepStrictEqual(after, before);
+			t.assert.match(html, /Tag name must be unique/);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /tags shows validation errors for a missing name", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			const names = [];
+			for (let index = 11; index >= 1; index--) {
+				const name = `Error Tag ${String(index).padStart(2, "0")}`;
+				await insertTag(db, name);
+				names.unshift(name);
+			}
+			const before = await db("tags").orderBy("id").select("*");
+
 			const response = await fetch(`http://localhost:${port}/tags`, {
 				body: "name=",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
 				},
 				method: "POST",
+				redirect: "manual",
 				signal: t.signal,
 			});
 			const html = await response.text();
+			const document = load(html);
+			const after = await db("tags").orderBy("id").select("*");
 
 			t.assert.deepStrictEqual(response.status, 200);
 			t.assert.match(html, /Required/);
+			t.assert.deepStrictEqual(after, before);
+			t.assert.deepStrictEqual<string | null>(
+				response.headers.get("Location"),
+				null,
+			);
+			t.assert.deepStrictEqual<string[]>(
+				document("a")
+					.filter((_, link) =>
+						/^\/tags\/\d+$/.test(document(link).attr("href") ?? ""),
+					)
+					.toArray()
+					.map((link) => document(link).text()),
+				names,
+			);
+			t.assert.deepStrictEqual<string | undefined>(
+				document("a")
+					.filter((_, link) => document(link).text() === "Newest")
+					.attr("href"),
+				"/tags?sort=created&direction=desc",
+			);
+			t.assert.deepStrictEqual<string | undefined>(
+				document("a")
+					.filter((_, link) => document(link).text() === "Name")
+					.attr("href"),
+				"/tags?direction=desc",
+			);
+			t.assert.deepStrictEqual<number>(
+				document("a").filter((_, link) => {
+					const text = document(link).text().trim();
+					return text === "Next" || text === "Previous";
+				}).length,
+				0,
+			);
 		} finally {
 			await cleanup();
 		}
