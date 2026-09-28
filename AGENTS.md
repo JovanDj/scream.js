@@ -23,12 +23,14 @@ This file is intentionally minimal. Read the linked instruction file for any are
 * Make public behavior testable with supplied dependencies; prefer observable black-box behavior over brittle structure and interaction tests.
 * Preserve existing user changes in the worktree. Do not revert unrelated edits.
 
-## Local Review Agents
+## Local Agents
 
+* Use `screamjs_cqrs_engineer` to implement explicitly assigned migrations to specialized HTTP actions plus command/query handlers, manual DI, `CommandHandlerFactory.create(tx)`, and `TransactionHandler`. Loading the agent does not authorize a migration or a whole-repository rewrite.
+* For an approved CQRS migration, the convention in that agent's instructions supersedes older fat-controller/action-owned SQL and transaction guidance within the assigned scope. Update conflicting architecture documentation as that scope is migrated; do not change unrelated conventions. `TransactionHandler` is an ordinary wrapper object, not decorator syntax or decorator-based injection.
 * Use `seemann_di_reviewer` for dependency composition, lifetime, and DI reviews.
 * Use `khorikov_testing_reviewer` for public-behavior testability and test-quality reviews.
 * For architecture reviews or changes to dependency boundaries/shared action workflows, ask both agents to review the affected scope before completion. Do not request whole-repository audits for routine changes.
-* Agents live in `.codex/agents/` and are read-only. Evaluate findings against project conventions and reproduce suspected defects before changing production code.
+* Agent definitions live in `.codex/agents/`. The two reviewers are read-only; `screamjs_cqrs_engineer` may edit only its explicitly assigned implementation scope. The parent coordinates independent reviews and reports unavailable reviewers as pending. Evaluate findings against project conventions and reproduce suspected defects before changing production code.
 
 ## Detailed Instructions
 
