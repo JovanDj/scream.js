@@ -27,6 +27,7 @@ This file is intentionally minimal. Read the linked instruction file for any are
 
 * Use `seemann_di_reviewer` for dependency composition, lifetime, and DI reviews.
 * Use `khorikov_testing_reviewer` for public-behavior testability and test-quality reviews.
+* Use `fowler_enterprise_patterns_reviewer` when deciding whether an existing enterprise pattern fits or a different pattern is justified by current code.
 * For architecture reviews or changes to dependency boundaries/shared action workflows, ask both agents to review the affected scope before completion. Do not request whole-repository audits for routine changes.
 * Agents live in `.codex/agents/` and are read-only. Evaluate findings against project conventions and reproduce suspected defects before changing production code.
 
