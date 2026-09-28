@@ -27,11 +27,11 @@ Start with readable concrete code. Observe actual repetition and change pressure
 
 Default to:
 
-* fat controller
+* a readable concrete controller
 * direct SQL
 * HTTP-boundary black-box tests
 
-Do not introduce service layers, repositories, mappers, or domain models before they are justified by real complexity.
+Do not introduce repositories, mappers, or domain models before they are justified by real complexity. Introduce a service when an operation must be callable outside HTTP or when its rules warrant an independent boundary; do not require one for a render-only or otherwise trivial controller.
 
 ## Module Seams
 
@@ -60,12 +60,23 @@ There is no requirement to keep controller, service, mapper, repository, and dom
 Even in prototype mode, keep responsibilities conceptually clear:
 
 * Controller = handles HTTP input and output
+* Service = a caller-independent application operation when one is needed
 * Model = non-UI logic and data access, even if still simple
 * View = rendering and presentation only
 
 A rich domain model is not required for MVC. In prototype mode, the model may simply be transaction script logic, direct SQL, or simple query helpers.
 
 Views must not contain business logic. Model code must not depend on HTTP or templates.
+
+## Controllers and Services
+
+CRUD controllers provide familiar HTTP workflows, but applications may define custom controllers for other operations. Neither CRUD nor a separate service is mandatory for every route.
+
+A service represents a use case, not a broad collection of unrelated methods. Its public operation accepts ordinary validated input and explicitly supplied dependencies, without `HttpContext`, routes, templates, or redirects. A job, queue consumer, CLI, or JSON API may call the same service without constructing an HTTP controller. Keep construction visible through manual DI.
+
+When an operation requires identity, each entry point establishes its caller. Authorization for a shared operation belongs at the service boundary so a non-HTTP caller cannot bypass it; pass the needed caller identity explicitly. Public routes need no artificial authentication. Add policy machinery only when an actual rule requires it.
+
+Services must be directly testable through their public operations without invoking any controller. For database-backed services, assert results and persisted state against an isolated database rather than mocking internal SQL calls.
 
 ## Controllers and DB Access
 
@@ -83,20 +94,22 @@ Views must not contain business logic. Model code must not depend on HTTP or tem
 
 Prefer explicit local helpers over creating new service or mapper classes.
 
-## Action Workflow Abstractions
+## Controller Workflow Abstractions
 
 Do not add general-purpose controller base classes.
 
 A narrow action-specific base class is allowed only when the same lifecycle already exists across multiple CRUD controllers. For example, repeated index actions may share one index-action abstraction without forcing show, store, update, or non-CRUD actions into the same workflow.
 
+Existing classes use the `Action` suffix; new HTTP-facing classes use `Controller` when their names are chosen or explicitly migrated. Do not rename working classes solely to satisfy the convention.
+
 Rules:
 
 * the base class owns lifecycle ordering and stable shared mechanics only
-* concrete actions own domain validation, queries, row schemas, presentation, URLs, and templates
+* unmigrated concrete actions own domain validation, queries, row schemas, presentation, URLs, and templates; once a service is extracted, it owns the operation and persistence parsing while the controller retains HTTP validation and presentation
 * protected members exist only as deliberate extension points required by the lifecycle
-* unrelated and unique actions remain concrete until repetition is demonstrated
+* unrelated and unique controllers remain concrete until repetition is demonstrated
 * non-CRUD controllers do not inherit CRUD workflows merely for consistency
-* each action must remain independently movable into a one-action controller later
+* each existing action must remain understandable as one HTTP controller workflow
 
 Judge the abstraction by its concrete subclasses. If they become harder to read or require indirection to explain their data, simplify or remove the abstraction.
 
@@ -173,7 +186,7 @@ Consider refactoring when:
 * behavior changes are becoming risky
 * branching workflows become too hard to follow
 
-Services are not a default module pattern. Extract a service only when it makes the next change easier now. If the service only forwards calls, hides simple SQL, or exists because a controller crossed a numeric threshold, inline it.
+Services are not mandatory for every controller. Extract one when the operation needs a non-HTTP caller, shared authorization, or growing business rules; direct testability follows from that boundary. If it only forwards calls or exists because a controller crossed a numeric threshold, inline it.
 
 ## Naming
 
