@@ -1,49 +1,62 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
-import { TodosController } from "./todo.controller.js";
+import { TodosCreateAction } from "./todo-create.action.js";
+import { TodosDestroyAction } from "./todo-destroy.action.js";
+import { TodosEditAction } from "./todo-edit.action.js";
 import { TodosIndexAction } from "./todo-index.action.js";
 import { TodosShowAction } from "./todo-show.action.js";
 import { TodosStoreAction } from "./todo-store.action.js";
+import { TodosUpdateAction } from "./todo-update.action.js";
 
 export class TodoModule implements HttpModule {
-	readonly #todosController: TodosController;
+	readonly #createAction: TodosCreateAction;
+	readonly #destroyAction: TodosDestroyAction;
+	readonly #editAction: TodosEditAction;
 	readonly #indexAction: TodosIndexAction;
 	readonly #showAction: TodosShowAction;
 	readonly #storeAction: TodosStoreAction;
+	readonly #updateAction: TodosUpdateAction;
 
 	static create(db: Database) {
-		const todosController = new TodosController(db);
-
 		return new TodoModule(
-			todosController,
+			new TodosCreateAction(),
+			new TodosDestroyAction(db),
+			new TodosEditAction(db),
 			new TodosIndexAction(db),
 			new TodosShowAction(db),
 			new TodosStoreAction(db),
+			new TodosUpdateAction(db),
 		);
 	}
 
 	constructor(
-		todosController: TodosController,
+		createAction: TodosCreateAction,
+		destroyAction: TodosDestroyAction,
+		editAction: TodosEditAction,
 		indexAction: TodosIndexAction,
 		showAction: TodosShowAction,
 		storeAction: TodosStoreAction,
+		updateAction: TodosUpdateAction,
 	) {
-		this.#todosController = todosController;
+		this.#createAction = createAction;
+		this.#destroyAction = destroyAction;
+		this.#editAction = editAction;
 		this.#indexAction = indexAction;
 		this.#showAction = showAction;
 		this.#storeAction = storeAction;
+		this.#updateAction = updateAction;
 	}
 
 	mount(app: Application) {
 		app.resource("/todos", {
-			create: (ctx) => this.#todosController.create(ctx),
-			destroy: (ctx) => this.#todosController.destroy(ctx),
-			edit: (ctx) => this.#todosController.edit(ctx),
+			create: (ctx) => this.#createAction.handle(ctx),
+			destroy: (ctx) => this.#destroyAction.handle(ctx),
+			edit: (ctx) => this.#editAction.handle(ctx),
 			index: (ctx) => this.#indexAction.handle(ctx),
 			show: (ctx) => this.#showAction.handle(ctx),
 			store: (ctx) => this.#storeAction.handle(ctx),
-			update: (ctx) => this.#todosController.update(ctx),
+			update: (ctx) => this.#updateAction.handle(ctx),
 		});
 	}
 }

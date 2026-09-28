@@ -88,3 +88,25 @@ export const todoStoreInputSchema = schema
 	});
 
 export type TodoStoreInput = z.infer<typeof todoStoreInputSchema>;
+
+export const todoUpdateInputSchema = schema.object({
+	dueAt: schema
+		.string()
+		.default("")
+		.transform((value) => value.trim())
+		.refine(
+			(value) =>
+				value.length === 0 || schema.iso.date().safeParse(value).success,
+			{
+				message: "Invalid date",
+			},
+		),
+	statusCode: schema.enum(["open", "completed"]).default("open"),
+	title: schema
+		.string()
+		.default("")
+		.transform((value) => value.trim())
+		.refine((value) => value.length > 0, { message: "Required" }),
+});
+
+export type TodoUpdateInput = z.infer<typeof todoUpdateInputSchema>;

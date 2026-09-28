@@ -508,8 +508,14 @@ describe("tag controller", { concurrency: true }, () => {
 		const { cleanup, db, port } = await setupServer();
 		try {
 			const todo = await insertTodo(db, "Todo");
+			const oldTag = await insertTag(db, "old");
 			const tag = await insertTag(db, "alpha");
 			const otherTag = await insertTag(db, "beta");
+			await db("todo_tags").insert({
+				created_at: new Date().toISOString(),
+				tag_id: oldTag.id,
+				todo_id: todo.id,
+			});
 
 			const response = await fetch(
 				`http://localhost:${port}/todos/${todo.id}/tags`,
@@ -540,6 +546,82 @@ describe("tag controller", { concurrency: true }, () => {
 				response.headers.get("Location"),
 				`/todos/${todo.id}/edit`,
 			);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id/tags preserves existing assignments when a tag id is missing", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			const todo = await insertTodo(db, "Todo");
+			const oldTag = await insertTag(db, "old");
+			const newTag = await insertTag(db, "new");
+			await db("todo_tags").insert({
+				created_at: new Date().toISOString(),
+				tag_id: oldTag.id,
+				todo_id: todo.id,
+			});
+
+			const response = await fetch(
+				`http://localhost:${port}/todos/${todo.id}/tags`,
+				{
+					body: new URLSearchParams([
+						["tagIds", String(newTag.id)],
+						["tagIds", "999999"],
+					]),
+					headers: { "Content-Type": "application/x-www-form-urlencoded" },
+					method: "POST",
+					redirect: "manual",
+					signal: t.signal,
+				},
+			);
+			const assigned = await db("todo_tags")
+				.where({ todo_id: todo.id })
+				.orderBy("tag_id")
+				.select("tag_id");
+
+			t.assert.deepStrictEqual<number>(response.status, 404);
+			t.assert.deepStrictEqual(assigned, [{ tag_id: oldTag.id }]);
+		} finally {
+			await cleanup();
+		}
+	});
+
+	it("POST /todos/:id/tags restores existing assignments when insertion fails", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			const todo = await insertTodo(db, "Todo");
+			const oldTag = await insertTag(db, "old");
+			const newTag = await insertTag(db, "new");
+			await db("todo_tags").insert({
+				created_at: new Date().toISOString(),
+				tag_id: oldTag.id,
+				todo_id: todo.id,
+			});
+			const before = await db("todo_tags")
+				.where({ todo_id: todo.id })
+				.select("*");
+			await db.raw(
+				"CREATE TRIGGER fail_assign AFTER INSERT ON todo_tags BEGIN SELECT RAISE(FAIL, 'assignment fixture'); END;",
+			);
+
+			const response = await fetch(
+				`http://localhost:${port}/todos/${todo.id}/tags`,
+				{
+					body: new URLSearchParams({ tagIds: String(newTag.id) }),
+					headers: { "Content-Type": "application/x-www-form-urlencoded" },
+					method: "POST",
+					redirect: "manual",
+					signal: t.signal,
+				},
+			);
+			const after = await db("todo_tags")
+				.where({ todo_id: todo.id })
+				.select("*");
+
+			t.assert.deepStrictEqual<number>(response.status, 500);
+			t.assert.deepStrictEqual(after, before);
 		} finally {
 			await cleanup();
 		}

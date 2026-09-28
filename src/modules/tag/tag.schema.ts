@@ -38,3 +38,19 @@ export const tagStoreInputSchema = schema.strictObject({
 });
 
 export type TagStoreInput = z.infer<typeof tagStoreInputSchema>;
+
+export const tagAssignmentTodoSchema = schema.object({
+	id: schema.coerce.number().int().positive(),
+});
+
+export const tagAssignmentInputSchema = schema.strictObject({
+	tagIds: schema.preprocess((value) => {
+		if (!value) {
+			return [];
+		}
+		if (Array.isArray(value)) {
+			return value;
+		}
+		return [value];
+	}, schema.array(schema.coerce.number().int().positive()).default([])),
+});

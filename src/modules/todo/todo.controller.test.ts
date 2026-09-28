@@ -1006,6 +1006,37 @@ describe("todo controller", { concurrency: true }, () => {
 		}
 	});
 
+	it("GET /todos/:id/edit selects the completed status for a completed todo", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		try {
+			const { id } = await createTodo({
+				port,
+				signal: t.signal,
+				title: "Completed edit fixture",
+			});
+			const status = await db("todo_statuses")
+				.where({ code: "completed" })
+				.first("id");
+			await db("todos").where({ id }).update({ status_id: status.id });
+
+			const response = await fetch(
+				`http://localhost:${port}/todos/${id}/edit`,
+				{
+					signal: t.signal,
+				},
+			);
+			const html = await response.text();
+
+			t.assert.deepStrictEqual<number>(response.status, 200);
+			t.assert.match(
+				html,
+				/<option value="completed" selected>Completed<\/option>/,
+			);
+		} finally {
+			await cleanup();
+		}
+	});
+
 	it("GET /todos/:id/edit returns 404 for an invalid id", async (t: TestContext) => {
 		t.plan(1);
 		const { port, cleanup } = await setupServer();
@@ -1141,8 +1172,8 @@ describe("todo controller", { concurrency: true }, () => {
 	});
 
 	it("POST /todos/:id with _method=PATCH clears completed state", async (t: TestContext) => {
-		t.plan(5);
-		const { port, cleanup } = await setupServer();
+		t.plan(8);
+		const { port, cleanup, db } = await setupServer();
 		try {
 			const { id } = await createTodo({
 				port,
@@ -1167,8 +1198,32 @@ describe("todo controller", { concurrency: true }, () => {
 				signal: t.signal,
 			});
 			const completedHtml = await completedRes.text();
+			const completedRow = await db("todos")
+				.where({ id })
+				.first("completed_at");
 			t.assert.deepStrictEqual<number>(completedRes.status, 200);
 			t.assert.match(completedHtml, /\bcompleted\b/);
+			t.assert.ok(completedRow.completed_at);
+			const originalCompletion = "2020-01-02T03:04:05.000Z";
+			await db("todos")
+				.where({ id })
+				.update({ completed_at: originalCompletion });
+
+			await fetch(`http://localhost:${port}/todos/${id}`, {
+				body: new URLSearchParams({
+					_method: "PATCH",
+					statusCode: "completed",
+					title: "Lifecycle fixture",
+				}),
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			});
+			const completedAgain = await db("todos")
+				.where({ id })
+				.first("completed_at");
+			t.assert.deepStrictEqual(completedAgain.completed_at, originalCompletion);
 
 			const reopenRes = await fetch(`http://localhost:${port}/todos/${id}`, {
 				body: new URLSearchParams({
@@ -1187,10 +1242,12 @@ describe("todo controller", { concurrency: true }, () => {
 				signal: t.signal,
 			});
 			const html = await showRes.text();
+			const reopenedRow = await db("todos").where({ id }).first("completed_at");
 
 			t.assert.deepStrictEqual<number>(reopenRes.status, 302);
 			t.assert.deepStrictEqual<number>(showRes.status, 200);
 			t.assert.match(html, /\bopen\b/);
+			t.assert.deepStrictEqual(reopenedRow.completed_at, null);
 		} finally {
 			await cleanup();
 		}

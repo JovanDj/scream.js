@@ -1,58 +1,28 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
-import { schema } from "@scream.js/validator/schema.js";
+import type { Action } from "../action.js";
+import {
+	tagAssignmentInputSchema,
+	tagAssignmentTodoSchema,
+} from "./tag.schema.js";
 
-export class TagController {
+export class TagAssignAction implements Action {
 	readonly #db: Database;
 
 	constructor(db: Database) {
 		this.#db = db;
 	}
 
-	async destroy(ctx: HttpContext) {
-		const parsedTagId = schema.coerce
-			.number()
-			.int()
-			.positive()
-			.safeParse(ctx.param("id"));
-		if (!parsedTagId.success) {
-			return ctx.notFound();
-		}
-		const tagId = parsedTagId.data;
-
-		const deleted = (await this.#db("tags").where({ id: tagId }).del()) > 0;
-		if (!deleted) {
-			return ctx.notFound();
-		}
-
-		return ctx.redirect("/tags");
-	}
-
-	async assignToTodo(ctx: HttpContext) {
-		const parsedTodoId = schema.coerce
-			.number()
-			.int()
-			.positive()
-			.safeParse(ctx.param("id"));
-
+	async handle(ctx: HttpContext) {
+		const parsedTodoId = tagAssignmentTodoSchema.safeParse({
+			id: ctx.param("id"),
+		});
 		if (!parsedTodoId.success) {
 			return ctx.notFound();
 		}
-		const todoId = parsedTodoId.data;
+		const todoId = parsedTodoId.data.id;
 
-		const parsed = schema
-			.strictObject({
-				tagIds: schema.preprocess((value) => {
-					if (!value) {
-						return [];
-					}
-					if (Array.isArray(value)) {
-						return value;
-					}
-					return [value];
-				}, schema.array(schema.coerce.number().int().positive()).default([])),
-			})
-			.safeParse(ctx.body());
+		const parsed = tagAssignmentInputSchema.safeParse(ctx.body());
 		if (!parsed.success) {
 			return ctx.redirect(`/todos/${todoId}/edit`);
 		}
