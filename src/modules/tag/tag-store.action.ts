@@ -46,7 +46,16 @@ export class TagStoreAction extends StoreAction<TagStoreInput, void> {
 		return this.#renderErrors(ctx, errors);
 	}
 
-	protected persistenceFailed({ ctx }: StoreFailure<TagStoreInput>) {
+	protected persistenceFailed({ ctx, error }: StoreFailure<TagStoreInput>) {
+		if (
+			!(error instanceof Error) ||
+			!("code" in error) ||
+			error.code !== "SQLITE_CONSTRAINT_UNIQUE" ||
+			!error.message.endsWith("UNIQUE constraint failed: tags.name")
+		) {
+			throw error;
+		}
+
 		return this.#renderErrors(ctx, {
 			name: "Tag name must be unique",
 		});

@@ -316,13 +316,13 @@ describe("tag controller", { concurrency: true }, () => {
 			const html = await response.text();
 			const after = await db("tags").orderBy("id").select("*");
 
-			t.assert.deepStrictEqual<number>(response.status, 200);
+			t.assert.deepStrictEqual<number>(response.status, 500);
 			t.assert.deepStrictEqual<string | null>(
 				response.headers.get("Location"),
 				null,
 			);
 			t.assert.deepStrictEqual(after, before);
-			t.assert.match(html, /Tag name must be unique/);
+			t.assert.doesNotMatch(html, /Tag name must be unique/);
 		} finally {
 			await cleanup();
 		}
