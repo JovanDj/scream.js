@@ -7,6 +7,7 @@ import { HttpServer } from "@scream.js/http/server.js";
 import { load } from "cheerio";
 import { PagesModule } from "../pages/index.js";
 import { TagModule } from "./index.js";
+import { ListTagsService } from "./list-tags.service.js";
 import { TagIndexController } from "./tag-index.controller.js";
 
 describe("tag controller", { concurrency: true }, () => {
@@ -256,7 +257,7 @@ describe("tag controller", { concurrency: true }, () => {
 				name: Buffer.from("invalid"),
 				updated_at: now,
 			});
-			const controller = new TagIndexController(db);
+			const controller = new TagIndexController(new ListTagsService(db));
 			const ctx: HttpContext = {
 				body: () => ({}),
 				notFound: () => {},
@@ -675,6 +676,12 @@ describe("tag controller", { concurrency: true }, () => {
 		const { cleanup, db, port } = await setupServer();
 		try {
 			const todo = await insertTodo(db, "Todo");
+			const tag = await insertTag(db, "existing");
+			await db("todo_tags").insert({
+				created_at: new Date().toISOString(),
+				tag_id: tag.id,
+				todo_id: todo.id,
+			});
 			const response = await fetch(
 				`http://localhost:${port}/todos/${todo.id}/tags`,
 				{
@@ -693,6 +700,10 @@ describe("tag controller", { concurrency: true }, () => {
 				response.headers.get("Location"),
 				`/todos/${todo.id}/edit`,
 			);
+			const links = await db("todo_tags")
+				.where({ todo_id: todo.id })
+				.select("tag_id");
+			t.assert.deepStrictEqual(links, [{ tag_id: tag.id }]);
 		} finally {
 			await cleanup();
 		}

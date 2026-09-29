@@ -1,16 +1,17 @@
-import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
+import type { CommandHandler } from "../command-handler.js";
 import type { Controller } from "../controller.js";
+import type { ReplaceTodoTags } from "./replace-todo-tags.service.js";
 import {
 	tagAssignmentInputSchema,
 	tagAssignmentTodoSchema,
 } from "./tag.schema.js";
 
 export class TagAssignController implements Controller {
-	readonly #db: Database;
+	readonly #replaceTodoTags: CommandHandler<ReplaceTodoTags, boolean>;
 
-	constructor(db: Database) {
-		this.#db = db;
+	constructor(replaceTodoTags: CommandHandler<ReplaceTodoTags, boolean>) {
+		this.#replaceTodoTags = replaceTodoTags;
 	}
 
 	async handle(ctx: HttpContext) {
@@ -27,37 +28,9 @@ export class TagAssignController implements Controller {
 			return ctx.redirect(`/todos/${todoId}/edit`);
 		}
 
-		const replaced = await this.#db.transaction(async (tx) => {
-			const tagIds = this.#uniqueTagIds(parsed.data.tagIds);
-			const todo = await tx("todos").where({ id: todoId }).first("id");
-			if (!todo) {
-				return false;
-			}
-
-			if (tagIds.length > 0) {
-				const matchedTags = await tx("tags").whereIn("id", tagIds).select("id");
-				const matchedTagIds = matchedTags.map((row) => row.id);
-				if (matchedTagIds.length !== tagIds.length) {
-					return false;
-				}
-			}
-
-			await tx("todo_tags").where({ todo_id: todoId }).del();
-			if (tagIds.length > 0) {
-				await tx("todo_tags").insert(
-					tagIds.map((tagId) => ({
-						created_at: new Date().toISOString(),
-						tag_id: tagId,
-						todo_id: todoId,
-					})),
-				);
-			}
-
-			const affectedRows = await tx("todos").where({ id: todoId }).update({
-				updated_at: new Date().toISOString(),
-			});
-
-			return affectedRows > 0;
+		const replaced = await this.#replaceTodoTags.execute({
+			tagIds: parsed.data.tagIds,
+			todoId,
 		});
 
 		if (!replaced) {
@@ -65,9 +38,5 @@ export class TagAssignController implements Controller {
 		}
 
 		return ctx.redirect(`/todos/${todoId}/edit`);
-	}
-
-	#uniqueTagIds(tagIds: readonly number[]) {
-		return tagIds.filter((tagId, index) => tagIds.indexOf(tagId) === index);
 	}
 }

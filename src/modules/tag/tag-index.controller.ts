@@ -1,7 +1,6 @@
-import type { Database } from "@scream.js/database/db.js";
-import { IndexController, type IndexInput } from "../index.controller.js";
+import { IndexController } from "../index.controller.js";
 import type { TagIndexData, TagIndexInput } from "./tag.schema.js";
-import { tagIndexDataSchema, tagIndexInputSchema } from "./tag.schema.js";
+import { tagIndexInputSchema } from "./tag.schema.js";
 
 export class TagIndexController extends IndexController<
 	TagIndexInput,
@@ -9,14 +8,6 @@ export class TagIndexController extends IndexController<
 > {
 	protected inputSchema() {
 		return tagIndexInputSchema;
-	}
-
-	protected async load(input: IndexInput<TagIndexInput>, db: Database) {
-		return this.#query(input, db).limit(input.limit).offset(input.offset);
-	}
-
-	protected dataSchema() {
-		return tagIndexDataSchema;
 	}
 
 	protected pageUrl(input: TagIndexInput, page: number) {
@@ -37,15 +28,6 @@ export class TagIndexController extends IndexController<
 
 	protected template() {
 		return "tag-index";
-	}
-
-	#sortColumn(sort: TagIndexInput["sort"]) {
-		switch (sort) {
-			case "created":
-				return "tags.id";
-			case "name":
-				return "tags.name";
-		}
 	}
 
 	#sortUrl(
@@ -89,21 +71,5 @@ export class TagIndexController extends IndexController<
 
 		const query = params.toString();
 		return query.length > 0 ? `/tags?${query}` : "/tags";
-	}
-
-	#query(input: TagIndexInput, db: Database) {
-		const query = db("tags").select(
-			"tags.id",
-			"tags.name",
-			"tags.created_at",
-			"tags.updated_at",
-		);
-
-		query.orderBy(this.#sortColumn(input.sort), input.direction);
-		if (input.sort !== "created") {
-			query.orderBy("tags.id", "desc");
-		}
-
-		return query;
 	}
 }

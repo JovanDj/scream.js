@@ -1,13 +1,12 @@
-import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
 import type { Controller } from "./controller.js";
 
 export abstract class ShowController<Input, Data> implements Controller {
-	readonly #db: Database;
+	readonly #service: { execute(input: Input): Promise<Data | undefined> };
 
-	constructor(db: Database) {
-		this.#db = db;
+	constructor(service: { execute(input: Input): Promise<Data | undefined> }) {
+		this.#service = service;
 	}
 
 	async handle(ctx: HttpContext) {
@@ -16,19 +15,16 @@ export abstract class ShowController<Input, Data> implements Controller {
 			return ctx.notFound();
 		}
 
-		const row = await this.load(parsedInput.data, this.#db);
-		if (row === undefined || row === null) {
+		const data = await this.#service.execute(parsedInput.data);
+		if (data === undefined) {
 			return ctx.notFound();
 		}
-		const data = this.dataSchema().parse(row);
 		const locals = this.present(data);
 
 		return ctx.render(this.template(), locals);
 	}
 
 	protected abstract inputSchema(): z.ZodType<Input>;
-	protected abstract load(input: Input, db: Database): Promise<unknown>;
-	protected abstract dataSchema(): z.ZodType<Data>;
 	protected abstract present(data: Data): Record<PropertyKey, unknown>;
 	protected abstract template(): string;
 }

@@ -1,32 +1,23 @@
-import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
+import type { CommandHandler } from "../command-handler.js";
 import { StoreController, type StoreFailure } from "../store.controller.js";
-import {
-	type TagStoreInput,
-	tagIndexDataSchema,
-	tagStoreInputSchema,
-} from "./tag.schema.js";
+import type { ListAllTagsService } from "./list-all-tags.service.js";
+import { type TagStoreInput, tagStoreInputSchema } from "./tag.schema.js";
 
 export class TagStoreController extends StoreController<TagStoreInput, void> {
-	readonly #db: Database;
+	readonly #listAllTags: ListAllTagsService;
 
-	constructor(db: Database) {
-		super(db);
-		this.#db = db;
+	constructor(
+		service: CommandHandler<TagStoreInput>,
+		listAllTags: ListAllTagsService,
+	) {
+		super(service);
+		this.#listAllTags = listAllTags;
 	}
 
 	protected inputSchema() {
 		return tagStoreInputSchema;
-	}
-
-	protected async persist(input: TagStoreInput, db: Database) {
-		const now = new Date().toISOString();
-		await db("tags").insert({
-			created_at: now,
-			name: input.name,
-			updated_at: now,
-		});
 	}
 
 	protected redirectUrl() {
@@ -62,11 +53,7 @@ export class TagStoreController extends StoreController<TagStoreInput, void> {
 	}
 
 	async #renderErrors(ctx: HttpContext, errors: { name: string }) {
-		const rows = await this.#db("tags")
-			.select("tags.id", "tags.name", "tags.created_at", "tags.updated_at")
-			.orderBy("tags.name", "asc")
-			.orderBy("tags.id", "desc");
-		const tags = tagIndexDataSchema.parse(rows);
+		const tags = await this.#listAllTags.execute();
 
 		return ctx.render("tag-index", {
 			errors,

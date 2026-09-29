@@ -1,6 +1,13 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
+import { TransactionHandler } from "../transaction-handler.js";
+import { CreateTagServiceFactory } from "./create-tag.service.js";
+import { DeleteTagService } from "./delete-tag.service.js";
+import { GetTagService } from "./get-tag.service.js";
+import { ListAllTagsService } from "./list-all-tags.service.js";
+import { ListTagsService } from "./list-tags.service.js";
+import { ReplaceTodoTagsServiceFactory } from "./replace-todo-tags.service.js";
 import { TagAssignController } from "./tag-assign.controller.js";
 import { TagDestroyController } from "./tag-destroy.controller.js";
 import { TagIndexController } from "./tag-index.controller.js";
@@ -16,11 +23,16 @@ export class TagModule implements HttpModule {
 
 	static create(db: Database) {
 		return new TagModule(
-			new TagAssignController(db),
-			new TagDestroyController(db),
-			new TagIndexController(db),
-			new TagShowController(db),
-			new TagStoreController(db),
+			new TagAssignController(
+				new TransactionHandler(db, new ReplaceTodoTagsServiceFactory()),
+			),
+			new TagDestroyController(new DeleteTagService(db)),
+			new TagIndexController(new ListTagsService(db)),
+			new TagShowController(new GetTagService(db)),
+			new TagStoreController(
+				new TransactionHandler(db, new CreateTagServiceFactory()),
+				new ListAllTagsService(db),
+			),
 		);
 	}
 

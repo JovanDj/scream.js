@@ -1,11 +1,17 @@
 import type { Database } from "@scream.js/database/db.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
+import { TransactionHandler } from "../transaction-handler.js";
+import { ArchiveProjectServiceFactory } from "./archive-project.service.js";
+import { CreateProjectServiceFactory } from "./create-project.service.js";
+import { GetProjectService } from "./get-project.service.js";
+import { ListProjectsService } from "./list-projects.service.js";
 import { ProjectArchiveController } from "./project-archive.controller.js";
 import { ProjectIndexController } from "./project-index.controller.js";
 import { ProjectShowController } from "./project-show.controller.js";
 import { ProjectStoreController } from "./project-store.controller.js";
 import { ProjectUnarchiveController } from "./project-unarchive.controller.js";
+import { UnarchiveProjectServiceFactory } from "./unarchive-project.service.js";
 
 export class ProjectModule implements HttpModule {
 	readonly #archiveController: ProjectArchiveController;
@@ -16,11 +22,17 @@ export class ProjectModule implements HttpModule {
 
 	static create(db: Database) {
 		return new ProjectModule(
-			new ProjectArchiveController(db),
-			new ProjectIndexController(db),
-			new ProjectShowController(db),
-			new ProjectStoreController(db),
-			new ProjectUnarchiveController(db),
+			new ProjectArchiveController(
+				new TransactionHandler(db, new ArchiveProjectServiceFactory()),
+			),
+			new ProjectIndexController(new ListProjectsService(db)),
+			new ProjectShowController(new GetProjectService(db)),
+			new ProjectStoreController(
+				new TransactionHandler(db, new CreateProjectServiceFactory()),
+			),
+			new ProjectUnarchiveController(
+				new TransactionHandler(db, new UnarchiveProjectServiceFactory()),
+			),
 		);
 	}
 

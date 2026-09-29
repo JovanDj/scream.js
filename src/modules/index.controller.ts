@@ -1,4 +1,3 @@
-import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
 import type { Controller } from "./controller.js";
@@ -10,13 +9,13 @@ export type IndexInput<Input> = Input & {
 
 export abstract class IndexController<
 	Input extends { readonly page: number },
-	Data,
+	Data extends unknown[],
 > implements Controller
 {
-	readonly #db: Database;
+	readonly #service: { execute(input: IndexInput<Input>): Promise<Data> };
 
-	constructor(db: Database) {
-		this.#db = db;
+	constructor(service: { execute(input: IndexInput<Input>): Promise<Data> }) {
+		this.#service = service;
 	}
 
 	async handle(ctx: HttpContext) {
@@ -31,10 +30,8 @@ export abstract class IndexController<
 			limit: pageSize + 1,
 			offset: (parsedInput.data.page - 1) * pageSize,
 		};
-		const rows = await this.load(input, this.#db);
-		const dataSchema = this.dataSchema();
-		dataSchema.parse(rows);
-		const data = dataSchema.parse(rows.slice(0, pageSize));
+		const rows = await this.#service.execute(input);
+		const data = rows.slice(0, pageSize);
 		const locals = this.present(data, input);
 
 		return ctx.render(this.template(), {
@@ -48,17 +45,9 @@ export abstract class IndexController<
 	}
 
 	protected abstract inputSchema(): z.ZodType<Input>;
-	protected database() {
-		return this.#db;
-	}
-	protected abstract load(
-		input: IndexInput<Input>,
-		db: Database,
-	): Promise<readonly unknown[]>;
-	protected abstract dataSchema(): z.ZodType<Data>;
 	protected abstract pageUrl(input: Input, page: number): string;
 	protected abstract present(
-		data: Data,
+		data: Data[number][],
 		input: Input,
 	): Record<PropertyKey, unknown>;
 	protected abstract template(): string;

@@ -1,18 +1,19 @@
-import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
+import type { CommandHandler } from "../command-handler.js";
 import type { Controller } from "../controller.js";
 import {
 	type TodoUpdateInput,
 	todoShowInputSchema,
 	todoUpdateInputSchema,
 } from "./todo.schema.js";
+import type { UpdateTodo } from "./update-todo.service.js";
 
 export class TodosUpdateController implements Controller {
-	readonly #db: Database;
+	readonly #service: CommandHandler<UpdateTodo, { id: number } | undefined>;
 
-	constructor(db: Database) {
-		this.#db = db;
+	constructor(service: CommandHandler<UpdateTodo, { id: number } | undefined>) {
+		this.#service = service;
 	}
 
 	async handle(ctx: HttpContext) {
@@ -40,40 +41,7 @@ export class TodosUpdateController implements Controller {
 			});
 		}
 
-		const result = await this.#db.transaction(async (tx) => {
-			const currentRow = await tx("todos")
-				.where({ "todos.id": todoId })
-				.select("todos.completed_at")
-				.first();
-			if (!currentRow) {
-				return undefined;
-			}
-
-			const priority = await tx("todo_priorities")
-				.where({ code: "medium" })
-				.first("id");
-			const status = await tx("todo_statuses")
-				.where({ code: parsed.data.statusCode })
-				.first("id");
-			const now = new Date().toISOString();
-			const completedAt =
-				parsed.data.statusCode === "completed"
-					? (currentRow.completed_at ?? now)
-					: null;
-
-			await tx("todos")
-				.where({ id: todoId })
-				.update({
-					completed_at: completedAt,
-					due_at: parsed.data.dueAt.length > 0 ? parsed.data.dueAt : null,
-					priority_id: priority.id,
-					status_id: status.id,
-					title: parsed.data.title,
-					updated_at: now,
-				});
-
-			return { id: todoId };
-		});
+		const result = await this.#service.execute({ ...parsed.data, id: todoId });
 		if (!result) {
 			return ctx.notFound();
 		}

@@ -1,14 +1,16 @@
-import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
-import { schema } from "@scream.js/validator/schema.js";
+import type { CommandHandler } from "../command-handler.js";
 import type { Controller } from "../controller.js";
-import { projectShowInputSchema } from "./project.schema.js";
+import {
+	type ProjectShowInput,
+	projectShowInputSchema,
+} from "./project.schema.js";
 
 export class ProjectArchiveController implements Controller {
-	readonly #db: Database;
+	readonly #service: CommandHandler<ProjectShowInput, boolean>;
 
-	constructor(db: Database) {
-		this.#db = db;
+	constructor(service: CommandHandler<ProjectShowInput, boolean>) {
+		this.#service = service;
 	}
 
 	async handle(ctx: HttpContext) {
@@ -18,24 +20,7 @@ export class ProjectArchiveController implements Controller {
 		}
 
 		const id = parsed.data.id;
-		const result = await this.#db.transaction(async (tx) => {
-			const existing = await tx("projects").where({ id }).first("id");
-			if (!existing) {
-				return false;
-			}
-
-			const statusRow = await tx("project_statuses")
-				.where({ code: "archived" })
-				.first("id");
-			const status = schema
-				.object({ id: schema.coerce.number().positive() })
-				.parse(statusRow);
-			await tx("projects").where({ id }).update({
-				status_id: status.id,
-				updated_at: new Date().toISOString(),
-			});
-			return true;
-		});
+		const result = await this.#service.execute(parsed.data);
 		if (!result) {
 			return ctx.notFound();
 		}

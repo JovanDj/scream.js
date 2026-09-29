@@ -1,7 +1,6 @@
-import type { Database } from "@scream.js/database/db.js";
-import { IndexController, type IndexInput } from "../index.controller.js";
+import { IndexController } from "../index.controller.js";
 import type { TodoIndexData, TodoIndexInput } from "./todo.schema.js";
-import { todoIndexDataSchema, todoIndexInputSchema } from "./todo.schema.js";
+import { todoIndexInputSchema } from "./todo.schema.js";
 
 export class TodosIndexController extends IndexController<
 	TodoIndexInput,
@@ -9,41 +8,6 @@ export class TodosIndexController extends IndexController<
 > {
 	protected inputSchema() {
 		return todoIndexInputSchema;
-	}
-
-	protected async load(input: IndexInput<TodoIndexInput>, db: Database) {
-		const query = db("todos")
-			.join("todo_statuses", "todos.status_id", "todo_statuses.id")
-			.select(
-				"todos.id",
-				"todos.title",
-				db.ref("todo_statuses.code").as("status_code"),
-			);
-
-		if (input.search.length > 0) {
-			query.andWhereLike("todos.title", `%${input.search}%`);
-		}
-		if (input.status === "open") {
-			query.where({ "todo_statuses.code": "open" });
-		}
-		if (input.status === "completed") {
-			query.where({ "todo_statuses.code": "completed" });
-		}
-		if (input.status === "dueToday") {
-			query.where({ "todo_statuses.code": "open" });
-			query.whereRaw("date(todos.due_at) = date('now', 'localtime')");
-		}
-
-		query.orderBy(this.#sortColumn(input.sort), input.direction);
-		if (input.sort !== "created") {
-			query.orderBy("todos.id", "desc");
-		}
-
-		return query.limit(input.limit).offset(input.offset);
-	}
-
-	protected dataSchema() {
-		return todoIndexDataSchema;
 	}
 
 	protected pageUrl(input: TodoIndexInput, page: number) {
@@ -74,17 +38,6 @@ export class TodosIndexController extends IndexController<
 
 	protected template() {
 		return "index";
-	}
-
-	#sortColumn(sort: TodoIndexInput["sort"]) {
-		switch (sort) {
-			case "created":
-				return "todos.id";
-			case "status":
-				return "todo_statuses.code";
-			case "title":
-				return "todos.title";
-		}
 	}
 
 	#sortUrl(

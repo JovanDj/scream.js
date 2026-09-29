@@ -1,10 +1,6 @@
-import type { Database } from "@scream.js/database/db.js";
-import { IndexController, type IndexInput } from "../index.controller.js";
+import { IndexController } from "../index.controller.js";
 import type { ProjectIndexData, ProjectIndexInput } from "./project.schema.js";
-import {
-	projectIndexDataSchema,
-	projectIndexInputSchema,
-} from "./project.schema.js";
+import { projectIndexInputSchema } from "./project.schema.js";
 
 export class ProjectIndexController extends IndexController<
 	ProjectIndexInput,
@@ -12,34 +8,6 @@ export class ProjectIndexController extends IndexController<
 > {
 	protected inputSchema() {
 		return projectIndexInputSchema;
-	}
-
-	protected async load(input: IndexInput<ProjectIndexInput>, db: Database) {
-		const query = db("projects")
-			.join("project_statuses", "projects.status_id", "project_statuses.id")
-			.select(
-				"projects.id",
-				"projects.name",
-				db.ref("project_statuses.code").as("status_code"),
-			);
-
-		if (input.search.length > 0) {
-			query.andWhereLike("projects.name", `%${input.search}%`);
-		}
-		if (input.status !== "all") {
-			query.where({ "project_statuses.code": input.status });
-		}
-
-		query.orderBy(this.#sortColumn(input.sort), input.direction);
-		if (input.sort !== "created") {
-			query.orderBy("projects.id", "desc");
-		}
-
-		return query.limit(input.limit).offset(input.offset);
-	}
-
-	protected dataSchema() {
-		return projectIndexDataSchema;
 	}
 
 	protected pageUrl(input: ProjectIndexInput, page: number) {
@@ -69,17 +37,6 @@ export class ProjectIndexController extends IndexController<
 
 	protected template() {
 		return "project-index";
-	}
-
-	#sortColumn(sort: ProjectIndexInput["sort"]) {
-		switch (sort) {
-			case "created":
-				return "projects.id";
-			case "name":
-				return "projects.name";
-			case "status":
-				return "project_statuses.code";
-		}
 	}
 
 	#sortUrl(

@@ -31,7 +31,7 @@ Default to:
 * direct SQL
 * HTTP-boundary black-box tests
 
-Do not introduce repositories, mappers, or domain models before they are justified by real complexity. Introduce a service when an operation must be callable outside HTTP or when its rules warrant an independent boundary; do not require one for a render-only or otherwise trivial controller.
+Do not introduce repositories, mappers, or domain models before they are justified by real complexity. In the current application, database-backed controllers delegate to Services so operations are callable and testable without HTTP; render-only controllers need no Service.
 
 ## Module Seams
 
@@ -70,7 +70,7 @@ Views must not contain business logic. Model code must not depend on HTTP or tem
 
 ## Controllers and Services
 
-CRUD controllers provide familiar HTTP workflows, but applications may define custom controllers for other operations. Neither CRUD nor a separate service is mandatory for every route.
+CRUD controllers provide familiar HTTP workflows, but applications may define custom controllers for other operations. Render-only routes need no separate Service.
 
 A service represents a use case, not a broad collection of unrelated methods. Its public operation accepts ordinary validated input and explicitly supplied dependencies, without `HttpContext`, routes, templates, or redirects. A job, queue consumer, CLI, or JSON API may call the same service without constructing an HTTP controller. Keep construction visible through manual DI.
 
@@ -80,19 +80,11 @@ Services must be directly testable through their public operations without invok
 
 ## Controllers and DB Access
 
-* Controllers may take `db` directly.
-* Controllers may perform queries, writes, and transactions directly when that is the simplest option.
-* Controllers may contain business logic if extracting it would only create ceremony.
-* In prototype mode, business logic kept in a controller must remain independent of HTTP concerns.
-* Controller-owned business logic must stay extractable without being rewritten.
-* Do not mix HTTP branching with business rules.
-* When controller-owned business logic becomes reusable or complex, it must move out of the controller.
-* Keep controller methods structured: parse and validate input, execute use-case logic, persist changes with SQL, then produce the response.
-* Keep the flow linear and readable.
-* If a controller method gets too long, extract a local private helper before introducing a new layer.
+* Current application controllers parse and validate HTTP input, call an injected Service for database work, then render or redirect.
+* Services own database reads, writes, transactions, and raw-row validation. They do not receive `HttpContext`.
+* Keep controller methods linear and readable; retain HTTP error behavior and presentation in the controller.
+* Render-only controllers do not need a Service.
 * `HttpContext` must not expose database access.
-
-Prefer explicit local helpers over creating new service or mapper classes.
 
 ## Controller Workflow Abstractions
 
@@ -105,7 +97,7 @@ HTTP-facing classes and the shared interface use the `Controller` suffix.
 Rules:
 
 * the base class owns lifecycle ordering and stable shared mechanics only
-* concrete controllers without services own domain validation, queries, row schemas, presentation, URLs, and templates; once a service is extracted, it owns the operation and persistence parsing while the controller retains HTTP validation and presentation
+* concrete controllers retain HTTP validation, presentation, URLs, and templates; Services own database operations and persistence parsing
 * protected members exist only as deliberate extension points required by the lifecycle
 * unrelated and unique controllers remain concrete until repetition is demonstrated
 * non-CRUD controllers do not inherit CRUD workflows merely for consistency
@@ -116,7 +108,7 @@ Judge the abstraction by its concrete subclasses. If they become harder to read 
 ## Transactions and Side Effects
 
 * No ambient DB globals inside modules. Pass `db` explicitly.
-* If a transaction is needed, start it in the place that currently owns the behavior, including a controller.
+* If a transaction is needed, start it in the Service or its explicitly composed transaction wrapper.
 * Inside a transaction, consistently use `tx`.
 * Keep the whole use case atomic.
 * Commit only when all required writes succeed.
@@ -186,7 +178,7 @@ Consider refactoring when:
 * behavior changes are becoming risky
 * branching workflows become too hard to follow
 
-Services are not mandatory for every controller. Extract one when the operation needs a non-HTTP caller, shared authorization, or growing business rules; direct testability follows from that boundary. If it only forwards calls or exists because a controller crossed a numeric threshold, inline it.
+Services are not mandatory for render-only controllers. In the current application, even simple database operations have a Service so they are directly callable and testable without HTTP. Do not add further forwarding layers beneath them without a concrete need.
 
 ## Naming
 

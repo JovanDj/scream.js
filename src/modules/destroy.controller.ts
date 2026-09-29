@@ -1,13 +1,13 @@
-import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
+import type { CommandHandler } from "./command-handler.js";
 import type { Controller } from "./controller.js";
 
 export abstract class DestroyController<Input> implements Controller {
-	readonly #db: Database;
+	readonly #service: CommandHandler<Input, boolean>;
 
-	constructor(db: Database) {
-		this.#db = db;
+	constructor(service: CommandHandler<Input, boolean>) {
+		this.#service = service;
 	}
 
 	async handle(ctx: HttpContext) {
@@ -16,7 +16,7 @@ export abstract class DestroyController<Input> implements Controller {
 			return ctx.notFound();
 		}
 
-		const deleted = await this.remove(parsed.data, this.#db);
+		const deleted = await this.#service.execute(parsed.data);
 		if (!deleted) {
 			return ctx.notFound();
 		}
@@ -25,6 +25,5 @@ export abstract class DestroyController<Input> implements Controller {
 	}
 
 	protected abstract inputSchema(): z.ZodType<Input>;
-	protected abstract remove(input: Input, db: Database): Promise<boolean>;
 	protected abstract redirectUrl(): string;
 }

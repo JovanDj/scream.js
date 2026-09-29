@@ -1,6 +1,4 @@
-import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
-import { schema } from "@scream.js/validator/schema.js";
 import type { z } from "zod/v4";
 import { StoreController, type StoreFailure } from "../store.controller.js";
 import {
@@ -14,25 +12,6 @@ export class ProjectStoreController extends StoreController<
 > {
 	protected inputSchema() {
 		return projectStoreInputSchema;
-	}
-
-	protected async persist(input: ProjectStoreInput, db: Database) {
-		const projectStatusRow = await db("project_statuses")
-			.where({ code: "active" })
-			.first("id");
-		const projectStatus = schema
-			.object({ id: schema.coerce.number().positive() })
-			.parse(projectStatusRow);
-		const now = new Date().toISOString();
-		const [row] = await db("projects")
-			.insert({
-				created_at: now,
-				name: input.name,
-				status_id: projectStatus.id,
-				updated_at: now,
-			})
-			.returning(["id"]);
-		return row.id;
 	}
 
 	protected redirectUrl(id: number) {

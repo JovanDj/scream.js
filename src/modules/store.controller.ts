@@ -1,6 +1,6 @@
-import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
+import type { CommandHandler } from "./command-handler.js";
 import type { Controller } from "./controller.js";
 
 export type StoreFailure<Input> = {
@@ -10,10 +10,10 @@ export type StoreFailure<Input> = {
 };
 
 export abstract class StoreController<Input, Result> implements Controller {
-	readonly #db: Database;
+	readonly #service: CommandHandler<Input, Result>;
 
-	constructor(db: Database) {
-		this.#db = db;
+	constructor(service: CommandHandler<Input, Result>) {
+		this.#service = service;
 	}
 
 	async handle(ctx: HttpContext) {
@@ -23,9 +23,7 @@ export abstract class StoreController<Input, Result> implements Controller {
 		}
 
 		try {
-			const result = await this.#db.transaction((tx) =>
-				this.persist(parsed.data, tx),
-			);
+			const result = await this.#service.execute(parsed.data);
 			return ctx.redirect(this.redirectUrl(result));
 		} catch (error) {
 			return this.persistenceFailed({ ctx, error, input: parsed.data });
@@ -33,7 +31,6 @@ export abstract class StoreController<Input, Result> implements Controller {
 	}
 
 	protected abstract inputSchema(): z.ZodType<Input>;
-	protected abstract persist(input: Input, db: Database): Promise<Result>;
 	protected abstract redirectUrl(result: Result): string;
 	protected abstract validationFailed(
 		ctx: HttpContext,

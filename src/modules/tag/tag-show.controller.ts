@@ -1,7 +1,6 @@
-import type { Database } from "@scream.js/database/db.js";
 import { ShowController } from "../show.controller.js";
 import type { TagShowData, TagShowInput } from "./tag.schema.js";
-import { tagShowDataSchema, tagShowInputSchema } from "./tag.schema.js";
+import { tagShowInputSchema } from "./tag.schema.js";
 
 export class TagShowController extends ShowController<
 	TagShowInput,
@@ -9,14 +8,6 @@ export class TagShowController extends ShowController<
 > {
 	protected inputSchema() {
 		return tagShowInputSchema;
-	}
-
-	protected async load(input: TagShowInput, db: Database) {
-		return db("tags").where({ id: input.id }).select("id", "name").first();
-	}
-
-	protected dataSchema() {
-		return tagShowDataSchema;
 	}
 
 	protected present(tag: TagShowData) {

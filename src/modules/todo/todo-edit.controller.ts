@@ -1,13 +1,13 @@
-import type { Database } from "@scream.js/database/db.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { Controller } from "../controller.js";
-import { todoShowDataSchema, todoShowInputSchema } from "./todo.schema.js";
+import type { GetTodoService } from "./get-todo.service.js";
+import { todoShowInputSchema } from "./todo.schema.js";
 
 export class TodosEditController implements Controller {
-	readonly #db: Database;
+	readonly #getTodo: GetTodoService;
 
-	constructor(db: Database) {
-		this.#db = db;
+	constructor(getTodo: GetTodoService) {
+		this.#getTodo = getTodo;
 	}
 
 	async handle(ctx: HttpContext) {
@@ -16,20 +16,10 @@ export class TodosEditController implements Controller {
 			return ctx.notFound();
 		}
 
-		const row = await this.#db("todos")
-			.join("todo_statuses", "todos.status_id", "todo_statuses.id")
-			.where({ "todos.id": parsed.data.id })
-			.select(
-				"todos.due_at",
-				"todos.id",
-				"todos.title",
-				this.#db.ref("todo_statuses.code").as("status_code"),
-			)
-			.first();
-		if (!row) {
+		const todo = await this.#getTodo.execute(parsed.data);
+		if (!todo) {
 			return ctx.notFound();
 		}
-		const todo = todoShowDataSchema.parse(row);
 
 		return ctx.render("edit", {
 			action: `/todos/${todo.id}`,
