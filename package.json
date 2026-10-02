@@ -19,6 +19,7 @@
 		"express": "^5.2.1",
 		"helmet": "^8.1.0",
 		"http-proxy-middleware": "^3.0.5",
+		"knex": "^3.1.0",
 		"koa": "^3.1.1",
 		"koa-body": "^6.0.1",
 		"koa-override": "^4.0.0",
@@ -56,7 +57,6 @@
 		"cz-conventional-changelog": "^3.0.1",
 		"esbuild-register": "^3.6.0",
 		"husky": "^9.1.7",
-		"knex": "^3.1.0",
 		"lint-staged": "^16.2.7",
 		"npm-run-all": "^4.1.5",
 		"playwright": "^1.44.1",
@@ -74,8 +74,12 @@
 	"engines": {
 		"node": "^24"
 	},
+	"exports": {
+		"./cli": "./dist/lib/cli/index.js",
+		"./dist/lib/*": "./dist/lib/*"
+	},
 	"files": [
-		"/dist"
+		"/dist/lib"
 	],
 	"husky": {
 		"hooks": {
@@ -99,16 +103,16 @@
 		"check": "run-p typecheck lint:fix test",
 		"db:migrate": "npm run scream -- db:migrate",
 		"db:reset": "npm run scream -- db:reset --force",
-		"db:seed": "knex seed:run --knexfile lib/database/knexfile.ts",
+		"db:seed": "npm run scream -- db:seed",
 		"dev": "run-p start vite",
 		"lint": "biome check",
 		"lint:fix": "biome check --write",
 		"prepare": "husky",
-		"scream": "tsx lib/cli/index.ts",
+		"scream": "tsx app-cli.ts",
 		"start": "tsx --watch server.ts",
 		"test": "cross-env NODE_ENV=test run-p test:integration test:e2e",
 		"test:e2e": "cross-env NODE_ENV=e2e playwright test",
-		"test:integration": "cross-env NODE_ENV=integration tsx --test",
+		"test:integration": "cross-env NODE_ENV=integration tsx --test \"lib/**/*.test.ts\" \"src/**/*.test.ts\" \"*.test.ts\"",
 		"typecheck": "tsc --noEmit",
 		"vite": "vite"
 	},

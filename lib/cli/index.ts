@@ -1,9 +1,15 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { createDB, type Database } from "@scream.js/database/db.js";
+import type { Database } from "@scream.js/database/db.js";
 import { Command } from "commander";
 
-export const createProgram = ({ db }: { db: Database }) => {
+export const createProgram = ({
+	db,
+	output = console.log,
+	resetPolicy = "blocked",
+}: {
+	db: Database;
+	output?: (line: string) => void;
+	resetPolicy?: "blocked" | "require-force" | "allow";
+}) => {
 	const program = new Command();
 
 	program.name("scream");
@@ -29,29 +35,37 @@ export const createProgram = ({ db }: { db: Database }) => {
 		.description("Show applied and pending migrations")
 		.alias("status")
 		.action(async () => {
-			return db.migrate.list();
+			const [completed, pending] = await db.migrate.list();
+			for (const migration of completed) {
+				output(`up ${migration.name}`);
+			}
+			for (const migration of pending) {
+				output(`pending ${migration.file}`);
+			}
+			if (completed.length === 0 && pending.length === 0) {
+				output("No migrations found.");
+			}
+		});
+
+	program
+		.command("db:seed")
+		.description("Run application seeds")
+		.action(async () => {
+			await db.seed.run();
 		});
 
 	program
 		.command("db:reset")
 		.description("Drop and recreate schema, then run all migrations")
 		.alias("reset")
-		.option("--force", "Force reset outside of test/e2e environments")
+		.option("--force", "Confirm reset when required by the application")
 		.action(async (opts: { force?: boolean }) => {
-			const env = process.env["NODE_ENV"] ?? "development";
-
-			if (env === "production") {
-				console.error("Refusing to reset database in production.");
-				return process.exit(1);
+			if (resetPolicy === "blocked") {
+				throw new Error("Refusing to reset database.");
 			}
 
-			const isSafeEnv = env === "test" || env === "e2e";
-
-			if (!opts?.force && !isSafeEnv) {
-				console.error(
-					"Reset blocked. Use --force to proceed outside of test/e2e environments.",
-				);
-				return process.exit(1);
+			if (resetPolicy === "require-force" && !opts.force) {
+				throw new Error("Reset blocked. Use --force to proceed.");
 			}
 
 			await db.migrate.rollback(undefined, true);
@@ -69,17 +83,3 @@ export const createProgram = ({ db }: { db: Database }) => {
 
 	return program;
 };
-
-const isExecutedDirectly = () => {
-	return fileURLToPath(import.meta.url) === path.resolve(process.argv[1] ?? "");
-};
-
-if (isExecutedDirectly()) {
-	const db = createDB();
-
-	try {
-		await createProgram({ db }).parseAsync(process.argv);
-	} finally {
-		await db.destroy();
-	}
-}
