@@ -17,12 +17,10 @@ describe("createDB", { concurrency: false }, () => {
 		process.env["NODE_ENV"] = "integration";
 		const db = createDB();
 
-		try {
-			const row = await db.raw("select 1 as value");
+		t.after(() => db.destroy());
 
-			t.assert.deepStrictEqual(row[0].value, 1);
-		} finally {
-			await db.destroy();
-		}
+		const row = await db.raw("select 1 as value");
+
+		t.assert.deepStrictEqual(row[0].value, 1);
 	});
 });

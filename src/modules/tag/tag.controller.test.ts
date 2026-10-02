@@ -72,678 +72,628 @@ describe("tag controller", { concurrency: true }, () => {
 
 	it("GET /tags/:id shows an escaped tag name and links back to tags", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			await insertTag(db, "Unrelated show sentinel");
-			const name = "<script>alert(1)</script> & tag";
-			const tag = await insertTag(db, name);
+		t.after(() => cleanup());
 
-			const response = await fetch(`http://localhost:${port}/tags/${tag.id}`, {
-				signal: t.signal,
-			});
-			const html = await response.text();
-			const document = load(html);
+		await insertTag(db, "Unrelated show sentinel");
+		const name = "<script>alert(1)</script> & tag";
+		const tag = await insertTag(db, name);
 
-			t.assert.deepStrictEqual<number>(response.status, 200);
-			t.assert.deepStrictEqual<string>(document("h1").text(), name);
-			t.assert.doesNotMatch(html, /Unrelated show sentinel/);
-			t.assert.deepStrictEqual<number>(
-				document("script").filter((_, node) =>
-					document(node).text().includes("alert(1)"),
-				).length,
-				0,
-			);
-			t.assert.deepStrictEqual<string | undefined>(
-				document('a[href="/tags"]')
-					.filter((_, node) => document(node).text().trim() === "Back to Tags")
-					.attr("href"),
-				"/tags",
-			);
-		} finally {
-			await cleanup();
-		}
+		const response = await fetch(`http://localhost:${port}/tags/${tag.id}`, {
+			signal: t.signal,
+		});
+		const html = await response.text();
+		const document = load(html);
+
+		t.assert.deepStrictEqual<number>(response.status, 200);
+		t.assert.deepStrictEqual<string>(document("h1").text(), name);
+		t.assert.doesNotMatch(html, /Unrelated show sentinel/);
+		t.assert.deepStrictEqual<number>(
+			document("script").filter((_, node) =>
+				document(node).text().includes("alert(1)"),
+			).length,
+			0,
+		);
+		t.assert.deepStrictEqual<string | undefined>(
+			document('a[href="/tags"]')
+				.filter((_, node) => document(node).text().trim() === "Back to Tags")
+				.attr("href"),
+			"/tags",
+		);
 	});
 
 	for (const id of ["invalid", "0", "999999"]) {
 		it(`GET /tags/${id} returns 404`, async (t: TestContext) => {
 			const { cleanup, db, port } = await setupServer();
-			try {
-				await insertTag(db, "Unrelated show sentinel");
+			t.after(() => cleanup());
 
-				const response = await fetch(`http://localhost:${port}/tags/${id}`, {
-					signal: t.signal,
-				});
+			await insertTag(db, "Unrelated show sentinel");
 
-				t.assert.deepStrictEqual<number>(response.status, 404);
-			} finally {
-				await cleanup();
-			}
+			const response = await fetch(`http://localhost:${port}/tags/${id}`, {
+				signal: t.signal,
+			});
+
+			t.assert.deepStrictEqual<number>(response.status, 404);
 		});
 	}
 
 	it("GET /tags lists tags", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			const tag = await insertTag(db, "alpha");
-			const response = await fetch(`http://localhost:${port}/tags`, {
-				signal: t.signal,
-			});
-			const html = await response.text();
-			const document = load(html);
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(response.status, 200);
-			t.assert.match(html, /Tags/);
-			t.assert.match(html, /alpha/);
-			t.assert.deepStrictEqual<string>(
-				document(`a[href="/tags/${tag.id}"]`).text(),
-				"alpha",
-			);
-		} finally {
-			await cleanup();
-		}
+		const tag = await insertTag(db, "alpha");
+		const response = await fetch(`http://localhost:${port}/tags`, {
+			signal: t.signal,
+		});
+		const html = await response.text();
+		const document = load(html);
+
+		t.assert.deepStrictEqual(response.status, 200);
+		t.assert.match(html, /Tags/);
+		t.assert.match(html, /alpha/);
+		t.assert.deepStrictEqual<string>(
+			document(`a[href="/tags/${tag.id}"]`).text(),
+			"alpha",
+		);
 	});
 
 	it("GET /tags sorts and paginates tags while preserving query state", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			for (const index of [6, 2, 9, 1, 11, 4, 8, 3, 10, 5, 7]) {
-				await insertTag(db, `Paged Tag ${String(index).padStart(2, "0")}`);
-			}
+		t.after(() => cleanup());
 
-			const firstResponse = await fetch(
-				`http://localhost:${port}/tags?sort=name&direction=desc`,
-				{ signal: t.signal },
-			);
-			const firstPage = await firstResponse.text();
-			const secondResponse = await fetch(
-				`http://localhost:${port}/tags?sort=name&direction=desc&page=2`,
-				{ signal: t.signal },
-			);
-			const secondPage = await secondResponse.text();
-			const firstDocument = load(firstPage);
-			const secondDocument = load(secondPage);
-			const next = firstDocument("a").filter(
-				(_, link) => firstDocument(link).text().trim() === "Next",
-			);
-			const previous = secondDocument("a").filter(
-				(_, link) => secondDocument(link).text().trim() === "Previous",
-			);
-			const firstPrevious = firstDocument("a").filter(
-				(_, link) => firstDocument(link).text().trim() === "Previous",
-			);
-			const lastNext = secondDocument("a").filter(
-				(_, link) => secondDocument(link).text().trim() === "Next",
-			);
-			const nextUrl = new URL(
-				next.attr("href") ?? "",
-				`http://localhost:${port}`,
-			);
-			const previousUrl = new URL(
-				previous.attr("href") ?? "",
-				`http://localhost:${port}`,
-			);
-
-			t.assert.deepStrictEqual(firstResponse.status, 200);
-			const firstNames = Array.from(
-				firstPage.matchAll(/Paged Tag \d{2}/g),
-				(match) => match[0],
-			);
-			const secondNames = Array.from(
-				secondPage.matchAll(/Paged Tag \d{2}/g),
-				(match) => match[0],
-			);
-			t.assert.deepStrictEqual<string[]>(firstNames, [
-				"Paged Tag 11",
-				"Paged Tag 10",
-				"Paged Tag 09",
-				"Paged Tag 08",
-				"Paged Tag 07",
-				"Paged Tag 06",
-				"Paged Tag 05",
-				"Paged Tag 04",
-				"Paged Tag 03",
-				"Paged Tag 02",
-			]);
-			t.assert.deepStrictEqual<number>(next.length, 1);
-			t.assert.deepStrictEqual<string>(nextUrl.pathname, "/tags");
-			t.assert.deepStrictEqual<[string, string][]>(
-				Array.from(nextUrl.searchParams).sort(),
-				[
-					["direction", "desc"],
-					["page", "2"],
-				],
-			);
-			t.assert.deepStrictEqual<number>(firstPrevious.length, 0);
-			t.assert.deepStrictEqual(secondResponse.status, 200);
-			t.assert.deepStrictEqual<string[]>(secondNames, ["Paged Tag 01"]);
-			t.assert.deepStrictEqual<number>(previous.length, 1);
-			t.assert.deepStrictEqual<string>(previousUrl.pathname, "/tags");
-			t.assert.deepStrictEqual<[string, string][]>(
-				Array.from(previousUrl.searchParams).sort(),
-				[["direction", "desc"]],
-			);
-			t.assert.deepStrictEqual<number>(lastNext.length, 0);
-		} finally {
-			await cleanup();
+		for (const index of [6, 2, 9, 1, 11, 4, 8, 3, 10, 5, 7]) {
+			await insertTag(db, `Paged Tag ${String(index).padStart(2, "0")}`);
 		}
+
+		const firstResponse = await fetch(
+			`http://localhost:${port}/tags?sort=name&direction=desc`,
+			{ signal: t.signal },
+		);
+		const firstPage = await firstResponse.text();
+		const secondResponse = await fetch(
+			`http://localhost:${port}/tags?sort=name&direction=desc&page=2`,
+			{ signal: t.signal },
+		);
+		const secondPage = await secondResponse.text();
+		const firstDocument = load(firstPage);
+		const secondDocument = load(secondPage);
+		const next = firstDocument("a").filter(
+			(_, link) => firstDocument(link).text().trim() === "Next",
+		);
+		const previous = secondDocument("a").filter(
+			(_, link) => secondDocument(link).text().trim() === "Previous",
+		);
+		const firstPrevious = firstDocument("a").filter(
+			(_, link) => firstDocument(link).text().trim() === "Previous",
+		);
+		const lastNext = secondDocument("a").filter(
+			(_, link) => secondDocument(link).text().trim() === "Next",
+		);
+		const nextUrl = new URL(
+			next.attr("href") ?? "",
+			`http://localhost:${port}`,
+		);
+		const previousUrl = new URL(
+			previous.attr("href") ?? "",
+			`http://localhost:${port}`,
+		);
+
+		t.assert.deepStrictEqual(firstResponse.status, 200);
+		const firstNames = Array.from(
+			firstPage.matchAll(/Paged Tag \d{2}/g),
+			(match) => match[0],
+		);
+		const secondNames = Array.from(
+			secondPage.matchAll(/Paged Tag \d{2}/g),
+			(match) => match[0],
+		);
+		t.assert.deepStrictEqual<string[]>(firstNames, [
+			"Paged Tag 11",
+			"Paged Tag 10",
+			"Paged Tag 09",
+			"Paged Tag 08",
+			"Paged Tag 07",
+			"Paged Tag 06",
+			"Paged Tag 05",
+			"Paged Tag 04",
+			"Paged Tag 03",
+			"Paged Tag 02",
+		]);
+		t.assert.deepStrictEqual<number>(next.length, 1);
+		t.assert.deepStrictEqual<string>(nextUrl.pathname, "/tags");
+		t.assert.deepStrictEqual<[string, string][]>(
+			Array.from(nextUrl.searchParams).sort(),
+			[
+				["direction", "desc"],
+				["page", "2"],
+			],
+		);
+		t.assert.deepStrictEqual<number>(firstPrevious.length, 0);
+		t.assert.deepStrictEqual(secondResponse.status, 200);
+		t.assert.deepStrictEqual<string[]>(secondNames, ["Paged Tag 01"]);
+		t.assert.deepStrictEqual<number>(previous.length, 1);
+		t.assert.deepStrictEqual<string>(previousUrl.pathname, "/tags");
+		t.assert.deepStrictEqual<[string, string][]>(
+			Array.from(previousUrl.searchParams).sort(),
+			[["direction", "desc"]],
+		);
+		t.assert.deepStrictEqual<number>(lastNext.length, 0);
 	});
 
 	it("GET /tags rejects invalid pagination and sorting", async (t: TestContext) => {
 		const { cleanup, port } = await setupServer();
-		try {
-			const invalidPage = await fetch(`http://localhost:${port}/tags?page=0`, {
-				signal: t.signal,
-			});
-			const invalidSort = await fetch(
-				`http://localhost:${port}/tags?sort=unknown`,
-				{ signal: t.signal },
-			);
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(invalidPage.status, 404);
-			t.assert.deepStrictEqual(invalidSort.status, 404);
-		} finally {
-			await cleanup();
-		}
+		const invalidPage = await fetch(`http://localhost:${port}/tags?page=0`, {
+			signal: t.signal,
+		});
+		const invalidSort = await fetch(
+			`http://localhost:${port}/tags?sort=unknown`,
+			{ signal: t.signal },
+		);
+
+		t.assert.deepStrictEqual(invalidPage.status, 404);
+		t.assert.deepStrictEqual(invalidSort.status, 404);
 	});
 
 	it("GET /tags validates the pagination lookahead row", async (t: TestContext) => {
 		const { cleanup, db } = await databaseTestFixture.setup({});
-		try {
-			for (let index = 1; index <= 10; index++) {
-				await insertTag(db, `Valid Tag ${String(index).padStart(2, "0")}`);
-			}
-			const now = new Date().toISOString();
-			await db("tags").insert({
-				created_at: now,
-				name: Buffer.from("invalid"),
-				updated_at: now,
-			});
-			const controller = new TagIndexController(new ListTagsService(db));
-			const ctx: HttpContext = {
-				body: () => ({}),
-				notFound: () => {},
-				param: () => undefined,
-				query: () => ({}),
-				redirect: () => {},
-				render: async () => {},
-			};
+		t.after(() => cleanup());
 
-			const act = () => controller.handle(ctx);
-
-			await t.assert.rejects(act, /expected string, received Buffer/);
-		} finally {
-			await cleanup();
+		for (let index = 1; index <= 10; index++) {
+			await insertTag(db, `Valid Tag ${String(index).padStart(2, "0")}`);
 		}
+		const now = new Date().toISOString();
+		await db("tags").insert({
+			created_at: now,
+			name: Buffer.from("invalid"),
+			updated_at: now,
+		});
+		const controller = new TagIndexController(new ListTagsService(db));
+		const ctx: HttpContext = {
+			body: () => ({}),
+			notFound: () => {},
+			param: () => undefined,
+			query: () => ({}),
+			redirect: () => {},
+			render: async () => {},
+		};
+
+		const act = () => controller.handle(ctx);
+
+		await t.assert.rejects(act, /expected string, received Buffer/);
 	});
 
 	it("POST /tags trims input before persistence", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			const before = await db("tags").orderBy("id").select("name");
+		t.after(() => cleanup());
 
-			const response = await fetch(`http://localhost:${port}/tags`, {
-				body: new URLSearchParams({ name: "  Trimmed store fixture  " }),
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
-				method: "POST",
-				redirect: "manual",
-				signal: t.signal,
-			});
-			const after = await db("tags").orderBy("id").select("name");
+		const before = await db("tags").orderBy("id").select("name");
 
-			t.assert.deepStrictEqual<number>(response.status, 302);
-			t.assert.deepStrictEqual(after, [
-				...before,
-				{ name: "Trimmed store fixture" },
-			]);
-		} finally {
-			await cleanup();
-		}
+		const response = await fetch(`http://localhost:${port}/tags`, {
+			body: new URLSearchParams({ name: "  Trimmed store fixture  " }),
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			method: "POST",
+			redirect: "manual",
+			signal: t.signal,
+		});
+		const after = await db("tags").orderBy("id").select("name");
+
+		t.assert.deepStrictEqual<number>(response.status, 302);
+		t.assert.deepStrictEqual(after, [
+			...before,
+			{ name: "Trimmed store fixture" },
+		]);
 	});
 
 	it("POST /tags rolls back a failing insert and preserves its error response", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			const before = await db("tags").orderBy("id").select("*");
-			await db.raw(
-				"CREATE TRIGGER fail_store AFTER INSERT ON tags BEGIN SELECT RAISE(FAIL, 'store fixture'); END;",
-			);
+		t.after(() => cleanup());
 
-			const response = await fetch(`http://localhost:${port}/tags`, {
-				body: new URLSearchParams({ name: "Rejected store fixture" }),
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
-				method: "POST",
-				redirect: "manual",
-				signal: t.signal,
-			});
-			const html = await response.text();
-			const after = await db("tags").orderBy("id").select("*");
+		const before = await db("tags").orderBy("id").select("*");
+		await db.raw(
+			"CREATE TRIGGER fail_store AFTER INSERT ON tags BEGIN SELECT RAISE(FAIL, 'store fixture'); END;",
+		);
 
-			t.assert.deepStrictEqual<number>(response.status, 500);
-			t.assert.deepStrictEqual<string | null>(
-				response.headers.get("Location"),
-				null,
-			);
-			t.assert.deepStrictEqual(after, before);
-			t.assert.doesNotMatch(html, /Tag name must be unique/);
-		} finally {
-			await cleanup();
-		}
+		const response = await fetch(`http://localhost:${port}/tags`, {
+			body: new URLSearchParams({ name: "Rejected store fixture" }),
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			method: "POST",
+			redirect: "manual",
+			signal: t.signal,
+		});
+		const html = await response.text();
+		const after = await db("tags").orderBy("id").select("*");
+
+		t.assert.deepStrictEqual<number>(response.status, 500);
+		t.assert.deepStrictEqual<string | null>(
+			response.headers.get("Location"),
+			null,
+		);
+		t.assert.deepStrictEqual(after, before);
+		t.assert.doesNotMatch(html, /Tag name must be unique/);
 	});
 
 	it("POST /tags shows validation errors for a missing name", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			const names = [];
-			for (let index = 11; index >= 1; index--) {
-				const name = `Error Tag ${String(index).padStart(2, "0")}`;
-				await insertTag(db, name);
-				names.unshift(name);
-			}
-			const before = await db("tags").orderBy("id").select("*");
+		t.after(() => cleanup());
 
-			const response = await fetch(`http://localhost:${port}/tags`, {
-				body: "name=",
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
-				},
-				method: "POST",
-				redirect: "manual",
-				signal: t.signal,
-			});
-			const html = await response.text();
-			const document = load(html);
-			const after = await db("tags").orderBy("id").select("*");
-
-			t.assert.deepStrictEqual(response.status, 200);
-			t.assert.match(html, /Required/);
-			t.assert.deepStrictEqual(after, before);
-			t.assert.deepStrictEqual<string | null>(
-				response.headers.get("Location"),
-				null,
-			);
-			t.assert.deepStrictEqual<string[]>(
-				document("a")
-					.filter((_, link) =>
-						/^\/tags\/\d+$/.test(document(link).attr("href") ?? ""),
-					)
-					.toArray()
-					.map((link) => document(link).text()),
-				names,
-			);
-			t.assert.deepStrictEqual<string | undefined>(
-				document("a")
-					.filter((_, link) => document(link).text() === "Newest")
-					.attr("href"),
-				"/tags?sort=created&direction=desc",
-			);
-			t.assert.deepStrictEqual<string | undefined>(
-				document("a")
-					.filter((_, link) => document(link).text() === "Name")
-					.attr("href"),
-				"/tags?direction=desc",
-			);
-			t.assert.deepStrictEqual<number>(
-				document("a").filter((_, link) => {
-					const text = document(link).text().trim();
-					return text === "Next" || text === "Previous";
-				}).length,
-				0,
-			);
-		} finally {
-			await cleanup();
+		const names = [];
+		for (let index = 11; index >= 1; index--) {
+			const name = `Error Tag ${String(index).padStart(2, "0")}`;
+			await insertTag(db, name);
+			names.unshift(name);
 		}
+		const before = await db("tags").orderBy("id").select("*");
+
+		const response = await fetch(`http://localhost:${port}/tags`, {
+			body: "name=",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			method: "POST",
+			redirect: "manual",
+			signal: t.signal,
+		});
+		const html = await response.text();
+		const document = load(html);
+		const after = await db("tags").orderBy("id").select("*");
+
+		t.assert.deepStrictEqual(response.status, 200);
+		t.assert.match(html, /Required/);
+		t.assert.deepStrictEqual(after, before);
+		t.assert.deepStrictEqual<string | null>(
+			response.headers.get("Location"),
+			null,
+		);
+		t.assert.deepStrictEqual<string[]>(
+			document("a")
+				.filter((_, link) =>
+					/^\/tags\/\d+$/.test(document(link).attr("href") ?? ""),
+				)
+				.toArray()
+				.map((link) => document(link).text()),
+			names,
+		);
+		t.assert.deepStrictEqual<string | undefined>(
+			document("a")
+				.filter((_, link) => document(link).text() === "Newest")
+				.attr("href"),
+			"/tags?sort=created&direction=desc",
+		);
+		t.assert.deepStrictEqual<string | undefined>(
+			document("a")
+				.filter((_, link) => document(link).text() === "Name")
+				.attr("href"),
+			"/tags?direction=desc",
+		);
+		t.assert.deepStrictEqual<number>(
+			document("a").filter((_, link) => {
+				const text = document(link).text().trim();
+				return text === "Next" || text === "Previous";
+			}).length,
+			0,
+		);
 	});
 
 	it("POST /tags redirects after creating a tag", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			const response = await fetch(`http://localhost:${port}/tags`, {
-				body: "name=alpha",
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
-				},
-				method: "POST",
-				redirect: "manual",
-				signal: t.signal,
-			});
-			const indexResponse = await fetch(`http://localhost:${port}/tags`, {
-				signal: t.signal,
-			});
-			const html = await indexResponse.text();
-			const rows = await db("tags").select("name");
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(rows, [{ name: "alpha" }]);
-			t.assert.deepStrictEqual(response.status, 302);
-			t.assert.deepStrictEqual(response.headers.get("Location"), "/tags");
-			t.assert.deepStrictEqual<number>(indexResponse.status, 200);
-			t.assert.match(html, /alpha/);
-		} finally {
-			await cleanup();
-		}
+		const response = await fetch(`http://localhost:${port}/tags`, {
+			body: "name=alpha",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			method: "POST",
+			redirect: "manual",
+			signal: t.signal,
+		});
+		const indexResponse = await fetch(`http://localhost:${port}/tags`, {
+			signal: t.signal,
+		});
+		const html = await indexResponse.text();
+		const rows = await db("tags").select("name");
+
+		t.assert.deepStrictEqual(rows, [{ name: "alpha" }]);
+		t.assert.deepStrictEqual(response.status, 302);
+		t.assert.deepStrictEqual(response.headers.get("Location"), "/tags");
+		t.assert.deepStrictEqual<number>(indexResponse.status, 200);
+		t.assert.match(html, /alpha/);
 	});
 
 	it("POST /tags renders the index when the name is duplicated", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			await insertTag(db, "alpha");
-			const response = await fetch(`http://localhost:${port}/tags`, {
-				body: "name=alpha",
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
-				},
-				method: "POST",
-				signal: t.signal,
-			});
-			const html = await response.text();
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(response.status, 200);
-			t.assert.match(html, /Tag name must be unique/);
-			t.assert.match(html, /alpha/);
-		} finally {
-			await cleanup();
-		}
+		await insertTag(db, "alpha");
+		const response = await fetch(`http://localhost:${port}/tags`, {
+			body: "name=alpha",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			method: "POST",
+			signal: t.signal,
+		});
+		const html = await response.text();
+
+		t.assert.deepStrictEqual(response.status, 200);
+		t.assert.match(html, /Tag name must be unique/);
+		t.assert.match(html, /alpha/);
 	});
 
 	it("POST /tags/:id with _method=DELETE returns 404 for a missing tag", async (t: TestContext) => {
 		const { cleanup, port } = await setupServer();
-		try {
-			const response = await fetch(`http://localhost:${port}/tags/99999`, {
-				body: "_method=DELETE",
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
-				},
-				method: "POST",
-				signal: t.signal,
-			});
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(response.status, 404);
-		} finally {
-			await cleanup();
-		}
+		const response = await fetch(`http://localhost:${port}/tags/99999`, {
+			body: "_method=DELETE",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			method: "POST",
+			signal: t.signal,
+		});
+
+		t.assert.deepStrictEqual(response.status, 404);
 	});
 
 	it("POST /tags/:id with _method=DELETE returns 404 for an invalid tag id", async (t: TestContext) => {
 		const { cleanup, port } = await setupServer();
-		try {
-			const response = await fetch(
-				`http://localhost:${port}/tags/not-a-number`,
-				{
-					body: "_method=DELETE",
-					headers: {
-						"Content-Type": "application/x-www-form-urlencoded",
-					},
-					method: "POST",
-					signal: t.signal,
-				},
-			);
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(response.status, 404);
-		} finally {
-			await cleanup();
-		}
+		const response = await fetch(`http://localhost:${port}/tags/not-a-number`, {
+			body: "_method=DELETE",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			method: "POST",
+			signal: t.signal,
+		});
+
+		t.assert.deepStrictEqual(response.status, 404);
 	});
 
 	it("POST /tags/:id with _method=DELETE redirects after deleting a tag", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			const tag = await insertTag(db, "remove-me");
-			const response = await fetch(`http://localhost:${port}/tags/${tag.id}`, {
-				body: "_method=DELETE",
+		t.after(() => cleanup());
+
+		const tag = await insertTag(db, "remove-me");
+		const response = await fetch(`http://localhost:${port}/tags/${tag.id}`, {
+			body: "_method=DELETE",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			method: "POST",
+			redirect: "manual",
+			signal: t.signal,
+		});
+		const deleted = await db("tags").where({ id: tag.id }).first("id");
+
+		t.assert.deepStrictEqual(response.status, 302);
+		t.assert.deepStrictEqual(response.headers.get("Location"), "/tags");
+		t.assert.deepStrictEqual(deleted, undefined);
+	});
+
+	it("POST /todos/:id/tags redirects to edit when assigning tags succeeds", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		t.after(() => cleanup());
+
+		const todo = await insertTodo(db, "Todo");
+		const oldTag = await insertTag(db, "old");
+		const tag = await insertTag(db, "alpha");
+		const otherTag = await insertTag(db, "beta");
+		await db("todo_tags").insert({
+			created_at: new Date().toISOString(),
+			tag_id: oldTag.id,
+			todo_id: todo.id,
+		});
+
+		const response = await fetch(
+			`http://localhost:${port}/todos/${todo.id}/tags`,
+			{
+				body: new URLSearchParams([
+					["tagIds", String(tag.id)],
+					["tagIds", String(otherTag.id)],
+				]),
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
 				},
 				method: "POST",
 				redirect: "manual",
 				signal: t.signal,
-			});
-			const deleted = await db("tags").where({ id: tag.id }).first("id");
+			},
+		);
+		const assigned = await db("todo_tags")
+			.where({ todo_id: todo.id })
+			.orderBy("tag_id")
+			.select("tag_id");
 
-			t.assert.deepStrictEqual(response.status, 302);
-			t.assert.deepStrictEqual(response.headers.get("Location"), "/tags");
-			t.assert.deepStrictEqual(deleted, undefined);
-		} finally {
-			await cleanup();
-		}
-	});
-
-	it("POST /todos/:id/tags redirects to edit when assigning tags succeeds", async (t: TestContext) => {
-		const { cleanup, db, port } = await setupServer();
-		try {
-			const todo = await insertTodo(db, "Todo");
-			const oldTag = await insertTag(db, "old");
-			const tag = await insertTag(db, "alpha");
-			const otherTag = await insertTag(db, "beta");
-			await db("todo_tags").insert({
-				created_at: new Date().toISOString(),
-				tag_id: oldTag.id,
-				todo_id: todo.id,
-			});
-
-			const response = await fetch(
-				`http://localhost:${port}/todos/${todo.id}/tags`,
-				{
-					body: new URLSearchParams([
-						["tagIds", String(tag.id)],
-						["tagIds", String(otherTag.id)],
-					]),
-					headers: {
-						"Content-Type": "application/x-www-form-urlencoded",
-					},
-					method: "POST",
-					redirect: "manual",
-					signal: t.signal,
-				},
-			);
-			const assigned = await db("todo_tags")
-				.where({ todo_id: todo.id })
-				.orderBy("tag_id")
-				.select("tag_id");
-
-			t.assert.deepStrictEqual(response.status, 302);
-			t.assert.deepStrictEqual(assigned, [
-				{ tag_id: tag.id },
-				{ tag_id: otherTag.id },
-			]);
-			t.assert.deepStrictEqual(
-				response.headers.get("Location"),
-				`/todos/${todo.id}/edit`,
-			);
-		} finally {
-			await cleanup();
-		}
+		t.assert.deepStrictEqual(response.status, 302);
+		t.assert.deepStrictEqual(assigned, [
+			{ tag_id: tag.id },
+			{ tag_id: otherTag.id },
+		]);
+		t.assert.deepStrictEqual(
+			response.headers.get("Location"),
+			`/todos/${todo.id}/edit`,
+		);
 	});
 
 	it("POST /todos/:id/tags preserves existing assignments when a tag id is missing", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			const todo = await insertTodo(db, "Todo");
-			const oldTag = await insertTag(db, "old");
-			const newTag = await insertTag(db, "new");
-			await db("todo_tags").insert({
-				created_at: new Date().toISOString(),
-				tag_id: oldTag.id,
-				todo_id: todo.id,
-			});
+		t.after(() => cleanup());
 
-			const response = await fetch(
-				`http://localhost:${port}/todos/${todo.id}/tags`,
-				{
-					body: new URLSearchParams([
-						["tagIds", String(newTag.id)],
-						["tagIds", "999999"],
-					]),
-					headers: { "Content-Type": "application/x-www-form-urlencoded" },
-					method: "POST",
-					redirect: "manual",
-					signal: t.signal,
-				},
-			);
-			const assigned = await db("todo_tags")
-				.where({ todo_id: todo.id })
-				.orderBy("tag_id")
-				.select("tag_id");
+		const todo = await insertTodo(db, "Todo");
+		const oldTag = await insertTag(db, "old");
+		const newTag = await insertTag(db, "new");
+		await db("todo_tags").insert({
+			created_at: new Date().toISOString(),
+			tag_id: oldTag.id,
+			todo_id: todo.id,
+		});
 
-			t.assert.deepStrictEqual<number>(response.status, 404);
-			t.assert.deepStrictEqual(assigned, [{ tag_id: oldTag.id }]);
-		} finally {
-			await cleanup();
-		}
+		const response = await fetch(
+			`http://localhost:${port}/todos/${todo.id}/tags`,
+			{
+				body: new URLSearchParams([
+					["tagIds", String(newTag.id)],
+					["tagIds", "999999"],
+				]),
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			},
+		);
+		const assigned = await db("todo_tags")
+			.where({ todo_id: todo.id })
+			.orderBy("tag_id")
+			.select("tag_id");
+
+		t.assert.deepStrictEqual<number>(response.status, 404);
+		t.assert.deepStrictEqual(assigned, [{ tag_id: oldTag.id }]);
 	});
 
 	it("POST /todos/:id/tags restores existing assignments when insertion fails", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			const todo = await insertTodo(db, "Todo");
-			const oldTag = await insertTag(db, "old");
-			const newTag = await insertTag(db, "new");
-			await db("todo_tags").insert({
-				created_at: new Date().toISOString(),
-				tag_id: oldTag.id,
-				todo_id: todo.id,
-			});
-			const before = await db("todo_tags")
-				.where({ todo_id: todo.id })
-				.select("*");
-			await db.raw(
-				"CREATE TRIGGER fail_assign AFTER INSERT ON todo_tags BEGIN SELECT RAISE(FAIL, 'assignment fixture'); END;",
-			);
+		t.after(() => cleanup());
 
-			const response = await fetch(
-				`http://localhost:${port}/todos/${todo.id}/tags`,
-				{
-					body: new URLSearchParams({ tagIds: String(newTag.id) }),
-					headers: { "Content-Type": "application/x-www-form-urlencoded" },
-					method: "POST",
-					redirect: "manual",
-					signal: t.signal,
-				},
-			);
-			const after = await db("todo_tags")
-				.where({ todo_id: todo.id })
-				.select("*");
+		const todo = await insertTodo(db, "Todo");
+		const oldTag = await insertTag(db, "old");
+		const newTag = await insertTag(db, "new");
+		await db("todo_tags").insert({
+			created_at: new Date().toISOString(),
+			tag_id: oldTag.id,
+			todo_id: todo.id,
+		});
+		const before = await db("todo_tags")
+			.where({ todo_id: todo.id })
+			.select("*");
+		await db.raw(
+			"CREATE TRIGGER fail_assign AFTER INSERT ON todo_tags BEGIN SELECT RAISE(FAIL, 'assignment fixture'); END;",
+		);
 
-			t.assert.deepStrictEqual<number>(response.status, 500);
-			t.assert.deepStrictEqual(after, before);
-		} finally {
-			await cleanup();
-		}
+		const response = await fetch(
+			`http://localhost:${port}/todos/${todo.id}/tags`,
+			{
+				body: new URLSearchParams({ tagIds: String(newTag.id) }),
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			},
+		);
+		const after = await db("todo_tags").where({ todo_id: todo.id }).select("*");
+
+		t.assert.deepStrictEqual<number>(response.status, 500);
+		t.assert.deepStrictEqual(after, before);
 	});
 
 	it("POST /todos/:id/tags returns 404 when the todo is missing", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			const tag = await insertTag(db, "alpha");
-			const response = await fetch(
-				`http://localhost:${port}/todos/99999/tags`,
-				{
-					body: `tagIds=${tag.id}`,
-					headers: {
-						"Content-Type": "application/x-www-form-urlencoded",
-					},
-					method: "POST",
-					signal: t.signal,
-				},
-			);
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(response.status, 404);
-		} finally {
-			await cleanup();
-		}
+		const tag = await insertTag(db, "alpha");
+		const response = await fetch(`http://localhost:${port}/todos/99999/tags`, {
+			body: `tagIds=${tag.id}`,
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			method: "POST",
+			signal: t.signal,
+		});
+
+		t.assert.deepStrictEqual(response.status, 404);
 	});
 
 	it("POST /todos/:id/tags returns 404 when the todo id is invalid", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			const tag = await insertTag(db, "alpha");
-			const response = await fetch(
-				`http://localhost:${port}/todos/not-a-number/tags`,
-				{
-					body: `tagIds=${tag.id}`,
-					headers: {
-						"Content-Type": "application/x-www-form-urlencoded",
-					},
-					method: "POST",
-					signal: t.signal,
-				},
-			);
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(response.status, 404);
-		} finally {
-			await cleanup();
-		}
+		const tag = await insertTag(db, "alpha");
+		const response = await fetch(
+			`http://localhost:${port}/todos/not-a-number/tags`,
+			{
+				body: `tagIds=${tag.id}`,
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				signal: t.signal,
+			},
+		);
+
+		t.assert.deepStrictEqual(response.status, 404);
 	});
 
 	it("POST /todos/:id/tags redirects back to edit when tag ids are invalid", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			const todo = await insertTodo(db, "Todo");
-			const tag = await insertTag(db, "existing");
-			await db("todo_tags").insert({
-				created_at: new Date().toISOString(),
-				tag_id: tag.id,
-				todo_id: todo.id,
-			});
-			const response = await fetch(
-				`http://localhost:${port}/todos/${todo.id}/tags`,
-				{
-					body: "tagIds=not-a-number",
-					headers: {
-						"Content-Type": "application/x-www-form-urlencoded",
-					},
-					method: "POST",
-					redirect: "manual",
-					signal: t.signal,
-				},
-			);
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(response.status, 302);
-			t.assert.deepStrictEqual(
-				response.headers.get("Location"),
-				`/todos/${todo.id}/edit`,
-			);
-			const links = await db("todo_tags")
-				.where({ todo_id: todo.id })
-				.select("tag_id");
-			t.assert.deepStrictEqual(links, [{ tag_id: tag.id }]);
-		} finally {
-			await cleanup();
-		}
+		const todo = await insertTodo(db, "Todo");
+		const tag = await insertTag(db, "existing");
+		await db("todo_tags").insert({
+			created_at: new Date().toISOString(),
+			tag_id: tag.id,
+			todo_id: todo.id,
+		});
+		const response = await fetch(
+			`http://localhost:${port}/todos/${todo.id}/tags`,
+			{
+				body: "tagIds=not-a-number",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			},
+		);
+
+		t.assert.deepStrictEqual(response.status, 302);
+		t.assert.deepStrictEqual(
+			response.headers.get("Location"),
+			`/todos/${todo.id}/edit`,
+		);
+		const links = await db("todo_tags")
+			.where({ todo_id: todo.id })
+			.select("tag_id");
+		t.assert.deepStrictEqual(links, [{ tag_id: tag.id }]);
 	});
 
 	it("POST /todos/:id/tags redirects after clearing all assigned tags", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
-		try {
-			const todo = await insertTodo(db, "Todo");
-			const tag = await insertTag(db, "alpha");
-			await db("todo_tags").insert({
-				created_at: new Date().toISOString(),
-				tag_id: tag.id,
-				todo_id: todo.id,
-			});
+		t.after(() => cleanup());
 
-			const response = await fetch(
-				`http://localhost:${port}/todos/${todo.id}/tags`,
-				{
-					body: "",
-					headers: {
-						"Content-Type": "application/x-www-form-urlencoded",
-					},
-					method: "POST",
-					redirect: "manual",
-					signal: t.signal,
+		const todo = await insertTodo(db, "Todo");
+		const tag = await insertTag(db, "alpha");
+		await db("todo_tags").insert({
+			created_at: new Date().toISOString(),
+			tag_id: tag.id,
+			todo_id: todo.id,
+		});
+
+		const response = await fetch(
+			`http://localhost:${port}/todos/${todo.id}/tags`,
+			{
+				body: "",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
 				},
-			);
-			const remaining = await db("todo_tags")
-				.where({ todo_id: todo.id })
-				.first("todo_id");
+				method: "POST",
+				redirect: "manual",
+				signal: t.signal,
+			},
+		);
+		const remaining = await db("todo_tags")
+			.where({ todo_id: todo.id })
+			.first("todo_id");
 
-			t.assert.deepStrictEqual(response.status, 302);
-			t.assert.deepStrictEqual(
-				response.headers.get("Location"),
-				`/todos/${todo.id}/edit`,
-			);
-			t.assert.deepStrictEqual(remaining, undefined);
-		} finally {
-			await cleanup();
-		}
+		t.assert.deepStrictEqual(response.status, 302);
+		t.assert.deepStrictEqual(
+			response.headers.get("Location"),
+			`/todos/${todo.id}/edit`,
+		);
+		t.assert.deepStrictEqual(remaining, undefined);
 	});
 });

@@ -5,16 +5,14 @@ import { CreateTagService } from "./create-tag.service.js";
 describe("CreateTagService", { concurrency: true }, () => {
 	it("persists a tag without an HTTP controller", async (t: TestContext) => {
 		const { cleanup, db } = await databaseTestFixture.setup();
-		try {
-			const service = new CreateTagService(db);
+		t.after(() => cleanup());
 
-			const result = await service.execute({ name: "Alpha" });
-			const tags = await db("tags").select("name");
+		const service = new CreateTagService(db);
 
-			t.assert.deepStrictEqual(result, undefined);
-			t.assert.deepStrictEqual(tags, [{ name: "Alpha" }]);
-		} finally {
-			await cleanup();
-		}
+		const result = await service.execute({ name: "Alpha" });
+		const tags = await db("tags").select("name");
+
+		t.assert.deepStrictEqual(result, undefined);
+		t.assert.deepStrictEqual(tags, [{ name: "Alpha" }]);
 	});
 });

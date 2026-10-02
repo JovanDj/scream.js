@@ -28,14 +28,11 @@ describe("HttpServer", { concurrency: true }, () => {
 					await httpServer.shutdown();
 				}
 			});
-			try {
-				const listenedPort = await listening.promise;
+			const listenedPort = await listening.promise;
 
-				t.assert.deepStrictEqual<number>(listenedPort, 0);
-				t.assert.ok(httpServer.port > 0);
-			} finally {
-				await httpServer.shutdown();
-			}
+			t.assert.deepStrictEqual<number>(listenedPort, 0);
+			t.assert.ok(httpServer.port > 0);
+			await httpServer.shutdown();
 
 			t.assert.deepStrictEqual(shutdownCalled, true);
 		},

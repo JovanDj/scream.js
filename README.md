@@ -93,6 +93,25 @@ Manual dependency injection is permanent.
 
 The composition root may assemble the app. The framework must not secretly assemble business objects.
 
+### CLI
+
+ScreamJS supplies database commands through `scream.js/cli`. Each application supplies its own database and owns its lifetime in a small CLI entry point:
+
+```ts
+import { createProgram } from "scream.js/cli";
+import knex from "knex";
+import databaseConfig from "./database.config.js";
+
+const db = knex(databaseConfig);
+try {
+	await createProgram({ db, resetPolicy: "require-force" }).parseAsync(process.argv);
+} finally {
+	await db.destroy();
+}
+```
+
+Run that entry point with the application's TypeScript runner. This repository uses `npm run scream -- db:migrate`; `db:status`, `db:rollback`, `db:reset`, `db:make`, and `db:seed` use the same entry point. Reset is blocked by default; an app may pass `"require-force"` or `"allow"` when appropriate for its database. The framework does not search for an app config file or choose its database.
+
 ### Persistence boundaries
 
 * Database rows are boundary data too.
@@ -341,11 +360,16 @@ Uses **Biome** for linting and formatting.
 ## Testing
 
 * Uses the Node.js test runner: `node --test`.
-* Test public behavior as black-box behavior.
+* All tests must be black-box BDD: exercise public boundaries and assert observable outcomes, not internal structure or calls.
+* Keep tests deterministic with immutable inputs and setup. Use fixed values and `const`, not reassigned behavior flags or invocation counters. Use separate immutable dependencies for different scenarios.
+* Database writes are observable behavior under test, not mutable test-control state. Keep databases isolated and clean up after each test.
+* Register resource cleanup with `t.after()` immediately after setup, not cleanup-only `try/finally` wrappers. Explicit close/shutdown calls belong in the test body only when testing that behavior.
 * Prefer a small number of integration-style tests over many brittle unit tests.
 * Prefer real dependencies.
 * Do not write unit tests for controller internals, temporary helper functions, or code likely to be refactored soon.
 * Test behavior, not structure.
+
+See [Testing Guidelines](docs/agent-instructions/testing.md) for the complete conventions.
 
 ## Current Implementation Priorities
 

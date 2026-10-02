@@ -6,32 +6,32 @@ describe("databaseTestFixture", { concurrency: true }, () => {
 		const fixtureA = await databaseTestFixture.setup({});
 		const fixtureB = await databaseTestFixture.setup({});
 
-		try {
-			const now = new Date().toISOString();
-			await fixtureA.db("todos").insert({
-				created_at: now,
-				description: "",
-				priority_id: 2,
-				status_id: 1,
-				title: "Only In A",
-				updated_at: now,
-			});
-
-			const foundInA = await fixtureA
-				.db("todos")
-				.where({ title: "Only In A" })
-				.first("title");
-			const foundInB = await fixtureB
-				.db("todos")
-				.where({ title: "Only In A" })
-				.first("title");
-
-			t.assert.deepStrictEqual(foundInA?.["title"], "Only In A");
-			t.assert.deepStrictEqual(foundInB, undefined);
-		} finally {
+		t.after(async () => {
 			await fixtureA.cleanup();
 			await fixtureB.cleanup();
-		}
+		});
+
+		const now = new Date().toISOString();
+		await fixtureA.db("todos").insert({
+			created_at: now,
+			description: "",
+			priority_id: 2,
+			status_id: 1,
+			title: "Only In A",
+			updated_at: now,
+		});
+
+		const foundInA = await fixtureA
+			.db("todos")
+			.where({ title: "Only In A" })
+			.first("title");
+		const foundInB = await fixtureB
+			.db("todos")
+			.where({ title: "Only In A" })
+			.first("title");
+
+		t.assert.deepStrictEqual(foundInA?.["title"], "Only In A");
+		t.assert.deepStrictEqual(foundInB, undefined);
 	});
 
 	it("runs seed and prepare hooks when requested", async (t: TestContext) => {
@@ -57,12 +57,10 @@ describe("databaseTestFixture", { concurrency: true }, () => {
 			seed: true,
 		});
 
-		try {
-			const prepared = await fixture.db("todos").where({ title: "Prepared" });
+		t.after(() => fixture.cleanup());
 
-			t.assert.deepStrictEqual(prepared.length, 1);
-		} finally {
-			await fixture.cleanup();
-		}
+		const prepared = await fixture.db("todos").where({ title: "Prepared" });
+
+		t.assert.deepStrictEqual(prepared.length, 1);
 	});
 });

@@ -28,29 +28,25 @@ describe("Database Read Queries", { concurrency: true }, () => {
 		t.plan(1);
 		const { db, cleanup } = await withDb();
 
-		try {
-			const user = await db.one((builder) =>
-				builder.select("*").from("users").where("id", "=", "1"),
-			);
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(user, { id: 1, name: "Alice" });
-		} finally {
-			await cleanup();
-		}
+		const user = await db.one((builder) =>
+			builder.select("*").from("users").where("id", "=", "1"),
+		);
+
+		t.assert.deepStrictEqual(user, { id: 1, name: "Alice" });
 	});
 
 	it("should return undefined if user does not exist", async (t: TestContext) => {
 		t.plan(1);
 		const { db, cleanup } = await withDb();
 
-		try {
-			const user = await db.one((builder) =>
-				builder.select("*").from("users").where("id", "=", "999"),
-			);
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(user, undefined);
-		} finally {
-			await cleanup();
-		}
+		const user = await db.one((builder) =>
+			builder.select("*").from("users").where("id", "=", "999"),
+		);
+
+		t.assert.deepStrictEqual(user, undefined);
 	});
 });

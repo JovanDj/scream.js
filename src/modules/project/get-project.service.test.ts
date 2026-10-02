@@ -6,60 +6,56 @@ import { GetProjectService } from "./get-project.service.js";
 describe("GetProjectService", { concurrency: true }, () => {
 	it("returns trusted project data and undefined for a missing id", async (t: TestContext) => {
 		const { cleanup, db } = await databaseTestFixture.setup();
-		try {
-			const status = await db("project_statuses")
-				.where({ code: "archived" })
-				.first("id");
-			const now = new Date().toISOString();
-			const [inserted] = await db("projects")
-				.insert({
-					created_at: now,
-					name: "Show Me",
-					status_id: status.id,
-					updated_at: now,
-				})
-				.returning("id");
-			const service = new GetProjectService(db);
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(await service.execute({ id: inserted.id }), {
-				id: inserted.id,
+		const status = await db("project_statuses")
+			.where({ code: "archived" })
+			.first("id");
+		const now = new Date().toISOString();
+		const [inserted] = await db("projects")
+			.insert({
+				created_at: now,
 				name: "Show Me",
-				statusCode: "archived",
-			});
-			t.assert.deepStrictEqual(
-				await service.execute({ id: inserted.id + 1 }),
-				undefined,
-			);
-		} finally {
-			await cleanup();
-		}
+				status_id: status.id,
+				updated_at: now,
+			})
+			.returning("id");
+		const service = new GetProjectService(db);
+
+		t.assert.deepStrictEqual(await service.execute({ id: inserted.id }), {
+			id: inserted.id,
+			name: "Show Me",
+			statusCode: "archived",
+		});
+		t.assert.deepStrictEqual(
+			await service.execute({ id: inserted.id + 1 }),
+			undefined,
+		);
 	});
 
 	it("rejects an invalid stored status", async (t: TestContext) => {
 		const { cleanup, db } = await databaseTestFixture.setup();
-		try {
-			const status = await db("project_statuses")
-				.where({ code: "active" })
-				.first("id");
-			const now = new Date().toISOString();
-			const [inserted] = await db("projects")
-				.insert({
-					created_at: now,
-					name: "Invalid status",
-					status_id: status.id,
-					updated_at: now,
-				})
-				.returning("id");
-			await db("project_statuses")
-				.where({ id: status.id })
-				.update({ code: "unexpected" });
+		t.after(() => cleanup());
 
-			const service = new GetProjectService(db);
-			const act = () => service.execute({ id: inserted.id });
+		const status = await db("project_statuses")
+			.where({ code: "active" })
+			.first("id");
+		const now = new Date().toISOString();
+		const [inserted] = await db("projects")
+			.insert({
+				created_at: now,
+				name: "Invalid status",
+				status_id: status.id,
+				updated_at: now,
+			})
+			.returning("id");
+		await db("project_statuses")
+			.where({ id: status.id })
+			.update({ code: "unexpected" });
 
-			await t.assert.rejects(act, ZodError);
-		} finally {
-			await cleanup();
-		}
+		const service = new GetProjectService(db);
+		const act = () => service.execute({ id: inserted.id });
+
+		await t.assert.rejects(act, ZodError);
 	});
 });

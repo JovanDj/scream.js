@@ -5,22 +5,20 @@ import { ListAllTagsService } from "./list-all-tags.service.js";
 describe("ListAllTagsService", { concurrency: true }, () => {
 	it("returns the complete validated tag list for form errors", async (t: TestContext) => {
 		const { cleanup, db } = await databaseTestFixture.setup();
-		try {
-			const now = new Date().toISOString();
-			await db("tags").insert([
-				{ created_at: now, name: "Zulu", updated_at: now },
-				{ created_at: now, name: "Alpha", updated_at: now },
-			]);
-			const service = new ListAllTagsService(db);
+		t.after(() => cleanup());
 
-			const result = await service.execute();
+		const now = new Date().toISOString();
+		await db("tags").insert([
+			{ created_at: now, name: "Zulu", updated_at: now },
+			{ created_at: now, name: "Alpha", updated_at: now },
+		]);
+		const service = new ListAllTagsService(db);
 
-			t.assert.deepStrictEqual(
-				result.map((tag) => tag.name),
-				["Alpha", "Zulu"],
-			);
-		} finally {
-			await cleanup();
-		}
+		const result = await service.execute();
+
+		t.assert.deepStrictEqual(
+			result.map((tag) => tag.name),
+			["Alpha", "Zulu"],
+		);
 	});
 });

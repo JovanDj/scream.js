@@ -29,63 +29,59 @@ describe("ReplaceTodoTagsService", () => {
 
 	it("replaces assignments once per tag and returns true", async (t: TestContext) => {
 		const { cleanup, db } = await databaseTestFixture.setup();
-		try {
-			const todoId = await insertTodo(db);
-			const oldTagId = await insertTag(db, "old");
-			const tagId = await insertTag(db, "new");
-			await db("todo_tags").insert({
-				created_at: new Date().toISOString(),
-				tag_id: oldTagId,
-				todo_id: todoId,
-			});
-			const oldTimestamp = "2000-01-01T00:00:00.000Z";
-			await db("todos")
-				.where({ id: todoId })
-				.update({ updated_at: oldTimestamp });
+		t.after(() => cleanup());
 
-			const replaced = await new ReplaceTodoTagsService(db).execute({
-				tagIds: [tagId, tagId],
-				todoId,
-			});
+		const todoId = await insertTodo(db);
+		const oldTagId = await insertTag(db, "old");
+		const tagId = await insertTag(db, "new");
+		await db("todo_tags").insert({
+			created_at: new Date().toISOString(),
+			tag_id: oldTagId,
+			todo_id: todoId,
+		});
+		const oldTimestamp = "2000-01-01T00:00:00.000Z";
+		await db("todos")
+			.where({ id: todoId })
+			.update({ updated_at: oldTimestamp });
 
-			t.assert.deepStrictEqual(replaced, true);
-			t.assert.deepStrictEqual(
-				await db("todo_tags").where({ todo_id: todoId }).select("tag_id"),
-				[{ tag_id: tagId }],
-			);
-			const todo = await db("todos").where({ id: todoId }).first("updated_at");
-			t.assert.ok(todo?.updated_at && todo.updated_at !== oldTimestamp);
-		} finally {
-			await cleanup();
-		}
+		const replaced = await new ReplaceTodoTagsService(db).execute({
+			tagIds: [tagId, tagId],
+			todoId,
+		});
+
+		t.assert.deepStrictEqual(replaced, true);
+		t.assert.deepStrictEqual(
+			await db("todo_tags").where({ todo_id: todoId }).select("tag_id"),
+			[{ tag_id: tagId }],
+		);
+		const todo = await db("todos").where({ id: todoId }).first("updated_at");
+		t.assert.ok(todo?.updated_at && todo.updated_at !== oldTimestamp);
 	});
 
 	it("returns false without changing assignments for a missing tag or todo", async (t: TestContext) => {
 		const { cleanup, db } = await databaseTestFixture.setup();
-		try {
-			const todoId = await insertTodo(db);
-			const oldTagId = await insertTag(db, "old");
-			await db("todo_tags").insert({
-				created_at: new Date().toISOString(),
-				tag_id: oldTagId,
-				todo_id: todoId,
-			});
-			const service = new ReplaceTodoTagsService(db);
+		t.after(() => cleanup());
 
-			t.assert.deepStrictEqual(
-				await service.execute({ tagIds: [999999], todoId }),
-				false,
-			);
-			t.assert.deepStrictEqual(
-				await service.execute({ tagIds: [oldTagId], todoId: 999999 }),
-				false,
-			);
-			t.assert.deepStrictEqual(
-				await db("todo_tags").where({ todo_id: todoId }).select("tag_id"),
-				[{ tag_id: oldTagId }],
-			);
-		} finally {
-			await cleanup();
-		}
+		const todoId = await insertTodo(db);
+		const oldTagId = await insertTag(db, "old");
+		await db("todo_tags").insert({
+			created_at: new Date().toISOString(),
+			tag_id: oldTagId,
+			todo_id: todoId,
+		});
+		const service = new ReplaceTodoTagsService(db);
+
+		t.assert.deepStrictEqual(
+			await service.execute({ tagIds: [999999], todoId }),
+			false,
+		);
+		t.assert.deepStrictEqual(
+			await service.execute({ tagIds: [oldTagId], todoId: 999999 }),
+			false,
+		);
+		t.assert.deepStrictEqual(
+			await db("todo_tags").where({ todo_id: todoId }).select("tag_id"),
+			[{ tag_id: oldTagId }],
+		);
 	});
 });

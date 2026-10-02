@@ -20,13 +20,17 @@ This file is intentionally minimal. Read the linked instruction file for any are
 * Do not add decorators, reflection, metadata scanning, dependency containers, service locators, or hidden object assembly.
 * Use manual dependency composition; dependencies must be visible in constructors.
 * Treat external input as raw until parsed into trusted values.
-* Make public behavior testable with supplied dependencies; prefer observable black-box behavior over brittle structure and interaction tests.
+* All tests must be black-box BDD: exercise public boundaries and assert observable behavior, not implementation details. See [Testing Guidelines](docs/agent-instructions/testing.md).
+* All tests must be deterministic with immutable inputs and setup. Use fixed values and `const`; never reassign flags or use invocation counters to change test-double behavior. Use separate immutable scenarios or dependencies instead.
+* Register test resource cleanup with `t.after()` immediately after setup; do not wrap test bodies in cleanup-only `try/finally`. Keep explicit close/shutdown calls only when their behavior is under test.
 * HTTP entry points are Controllers; caller-independent application operations are Services.
 * CRUD controllers are conveniences, not constraints. Custom controllers and services for non-HTTP callers are first-class.
 * Preserve existing user changes in the worktree. Do not revert unrelated edits.
 
 ## Local Agents
 
+* For every user question or request, consult an appropriate agent in addition to your own analysis. Use a relevant specialist when available, otherwise a general-purpose agent. Wait for and evaluate its answer before responding; do not routinely invoke all agents.
+* Delegation must stay within the user's scope and the agent's permissions. It does not authorize edits or broader work. If delegation is unavailable, say so instead of implying an agent reviewed the answer.
 * Use `seemann_di_reviewer` for dependency composition, lifetime, and DI reviews.
 * Use `khorikov_testing_reviewer` for public-behavior testability and test-quality reviews.
 * Use `fowler_enterprise_patterns_reviewer` when deciding whether an existing enterprise pattern fits or a different pattern is justified by current code.
