@@ -1,6 +1,6 @@
+import type { CommandHandler } from "@scream.js/database/command-handler.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
-import type { CommandHandler } from "./command-handler.js";
 import type { Controller } from "./controller.js";
 
 export type StoreFailure<Input> = {

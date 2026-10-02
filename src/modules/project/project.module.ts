@@ -1,7 +1,7 @@
 import type { Database } from "@scream.js/database/db.js";
+import { TransactionHandler } from "@scream.js/database/transaction-handler.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
-import { TransactionHandler } from "../transaction-handler.js";
 import { ArchiveProjectServiceFactory } from "./archive-project.service.js";
 import { CreateProjectServiceFactory } from "./create-project.service.js";
 import { GetProjectService } from "./get-project.service.js";

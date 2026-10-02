@@ -1,7 +1,7 @@
 import type { Database } from "@scream.js/database/db.js";
+import { TransactionHandler } from "@scream.js/database/transaction-handler.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
-import { TransactionHandler } from "../transaction-handler.js";
 import { CreateTagServiceFactory } from "./create-tag.service.js";
 import { DeleteTagService } from "./delete-tag.service.js";
 import { GetTagService } from "./get-tag.service.js";

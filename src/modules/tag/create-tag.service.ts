@@ -1,8 +1,8 @@
-import type { Database } from "@scream.js/database/db.js";
 import type {
 	CommandHandler,
 	CommandHandlerFactory,
-} from "../command-handler.js";
+} from "@scream.js/database/command-handler.js";
+import type { Database } from "@scream.js/database/db.js";
 import type { TagStoreInput } from "./tag.schema.js";
 
 export class CreateTagService implements CommandHandler<TagStoreInput> {

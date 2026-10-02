@@ -1,9 +1,9 @@
-import type { Database } from "@scream.js/database/db.js";
-import { schema } from "@scream.js/validator/schema.js";
 import type {
 	CommandHandler,
 	CommandHandlerFactory,
-} from "../command-handler.js";
+} from "@scream.js/database/command-handler.js";
+import type { Database } from "@scream.js/database/db.js";
+import { schema } from "@scream.js/validator/schema.js";
 import type { ProjectShowInput } from "./project.schema.js";
 
 export class ArchiveProjectService
