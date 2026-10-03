@@ -15,6 +15,7 @@ describe("Scream CLI", { concurrency: true }, () => {
 			"20260219100040_todos.ts",
 			"20260219100050_tags.ts",
 			"20260219100060_todo_tags.ts",
+			"20261003000000_project_notes.ts",
 		];
 		t.after(() => db.destroy());
 
@@ -80,7 +81,7 @@ describe("Scream CLI", { concurrency: true }, () => {
 		);
 		const [applied] = await db.migrate.list();
 		t.assert.deepStrictEqual(projects, [project]);
-		t.assert.deepStrictEqual(applied.length, 7);
+		t.assert.deepStrictEqual(applied.length, 8);
 	});
 
 	it("requires force when the application requests confirmation", async (t: TestContext) => {
@@ -135,6 +136,6 @@ describe("Scream CLI", { concurrency: true }, () => {
 
 		t.assert.deepStrictEqual(before, [{ name: "Allowed reset sentinel" }]);
 		t.assert.deepStrictEqual(after, []);
-		t.assert.deepStrictEqual([applied.length, pending.length], [7, 0]);
+		t.assert.deepStrictEqual([applied.length, pending.length], [8, 0]);
 	});
 });

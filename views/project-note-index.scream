@@ -1,0 +1,36 @@
+{% extends "layout.scream" %}
+
+{% block content %}
+<div class="container py-4 px-3 mx-auto">
+    <section class="page-shell">
+        <div class="page-head flex-wrap gap-2">
+            <h1 class="page-title">Project Notes</h1>
+            <a class="btn btn-primary" href="{{ createUrl }}">Add Note</a>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            {% if isFiltered %}<a href="/project-notes">All Notes</a>{% endif %}
+            <a href="{{ projectUrl }}">{% if isFiltered %}Back to Project{% else %}Projects{% endif %}</a>
+        </div>
+        {% if notes.length %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead><tr><th>Title</th><th>Project</th><th>Actions</th></tr></thead>
+                <tbody>
+                    {% for note in notes %}
+                    <tr>
+                        <td><a href="/project-notes/{{ note.id }}">{{ note.title }}</a></td>
+                        <td><a href="/projects/{{ note.projectId }}">{{ note.projectName }}</a></td>
+                        <td><a class="btn btn-sm btn-outline-primary" href="/project-notes/{{ note.id }}/edit">Edit</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}<p class="muted mb-0">No notes yet.</p>{% endif %}
+        <nav class="d-flex justify-content-between mt-3" aria-label="Project note pages">
+            {% if pagination.previousUrl %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination.previousUrl }}">Previous</a>{% else %}<span></span>{% endif %}
+            {% if pagination.nextUrl %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination.nextUrl }}">Next</a>{% endif %}
+        </nav>
+    </section>
+</div>
+{% endblock content %}

@@ -5,6 +5,10 @@
     <section class="page-shell">
         <h1 class="page-title mb-3">{{ project.name }}</h1>
         <p class="mb-3">Status: {{ project.statusCode }}</p>
+		<div class="d-flex flex-wrap gap-2">
+			<a class="btn btn-outline-primary" href="/project-notes?projectId={{ project.id }}">Notes</a>
+			<a class="btn btn-primary" href="/project-notes/create?projectId={{ project.id }}">Add Note</a>
+		</div>
     </section>
 </div>
 {% endblock content %}

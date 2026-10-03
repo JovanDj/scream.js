@@ -78,6 +78,11 @@ body.app-shell {
 	color: var(--app-muted);
 }
 
+.project-note-body {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
 .table {
 	margin-bottom: 0;
 }

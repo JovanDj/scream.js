@@ -46,6 +46,33 @@ describe("project controller", { concurrency: true }, () => {
 		return { cleanup, db, port: httpServer.port };
 	};
 
+	it("GET /projects/:id links to project notes and note creation", async (t: TestContext) => {
+		const { cleanup, db, port } = await setupServer();
+		t.after(() => cleanup());
+		await db("projects").insert({
+			created_at: "2026-01-01T00:00:00.000Z",
+			id: 410,
+			name: "Notes project",
+			status_id: db("project_statuses").where({ code: "active" }).select("id"),
+			updated_at: "2026-01-01T00:00:00.000Z",
+		});
+
+		const response = await fetch(`http://localhost:${port}/projects/410`, {
+			signal: t.signal,
+		});
+		const html = load(await response.text());
+
+		t.assert.deepStrictEqual<number>(response.status, 200);
+		t.assert.deepStrictEqual<string | undefined>(
+			html('a[href="/project-notes?projectId=410"]').attr("href"),
+			"/project-notes?projectId=410",
+		);
+		t.assert.deepStrictEqual<string | undefined>(
+			html('a[href="/project-notes/create?projectId=410"]').attr("href"),
+			"/project-notes/create?projectId=410",
+		);
+	});
+
 	it("GET /projects lists projects", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
 		t.after(() => cleanup());

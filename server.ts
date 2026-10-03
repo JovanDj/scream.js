@@ -7,6 +7,7 @@ import type { Logger } from "@scream.js/logger/logger.interface.js";
 import { createLogger } from "@scream.js/logger/logger-factory.js";
 import { PagesModule } from "./src/modules/pages/index.js";
 import { ProjectModule } from "./src/modules/project/index.js";
+import { ProjectNoteModule } from "./src/modules/project-note/index.js";
 import { TagModule } from "./src/modules/tag/index.js";
 import { TodoModule } from "./src/modules/todo/index.js";
 
@@ -17,6 +18,7 @@ const startServer = () => {
 	const modules: HttpModule[] = [
 		PagesModule.create(),
 		ProjectModule.create(db),
+		ProjectNoteModule.create(db),
 		TagModule.create(db),
 		TodoModule.create(db),
 	];
