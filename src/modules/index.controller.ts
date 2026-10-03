@@ -7,14 +7,18 @@ export type IndexInput<Input> = Input & {
 	readonly offset: number;
 };
 
+export interface IndexService<Input, Data> {
+	execute(input: IndexInput<Input>): Promise<Data>;
+}
+
 export abstract class IndexController<
 	Input extends { readonly page: number },
 	Data extends unknown[],
 > implements Controller
 {
-	readonly #service: { execute(input: IndexInput<Input>): Promise<Data> };
+	readonly #service: IndexService<Input, Data>;
 
-	constructor(service: { execute(input: IndexInput<Input>): Promise<Data> }) {
+	constructor(service: IndexService<Input, Data>) {
 		this.#service = service;
 	}
 
