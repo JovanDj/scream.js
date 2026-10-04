@@ -102,7 +102,7 @@ The deep-module goal is to hide useful implementation complexity behind an under
 
 This design deliberately accepts some extra named classes and wiring. In return it seeks independently understandable operations, explicit dependency/lifetime boundaries, reusable transaction behavior, and changes that do not force HTTP and persistence code to move together. The factory class is particularly justified by the late availability of tx and the user's explicit contract preference.
 
-Keep application modules flat and their public exports small. A command/query may form a module's public application API when another module needs it; that is not a mandate to export every handler or factory. Do not split Todo, Tag, and Project ownership or redesign their tables as a side effect of this migration.
+Keep application modules feature-first and their public exports small. Small modules stay flat; larger modules may group related controllers, services, and service tests by workflow. Shared readers, schemas, module composition, public exports, and aggregate HTTP tests stay at the feature root. A command/query may form a module's public application API when another module needs it; that is not a mandate to export every handler or factory. Do not split Todo, Tag, and Project ownership or redesign their tables as a side effect of this migration.
 
 The prototype-first/Gall's-law direction and this convention are compatible: repeated concrete action workflows came first; narrow shared lifecycles and a reusable transaction wrapper now address demonstrated needs. Preserve their purpose without designing every possible workflow in advance. A static template-rendering action needs no fabricated application operation.
 

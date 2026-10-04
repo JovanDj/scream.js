@@ -3,18 +3,18 @@ import { TransactionHandler } from "@scream.js/database/transaction-handler.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
 import { ListAllProjectsService } from "../project/index.js";
-import { CreateProjectNoteServiceFactory } from "./create-project-note.service.js";
-import { DeleteProjectNoteService } from "./delete-project-note.service.js";
+import { CreateProjectNoteServiceFactory } from "./create/create-project-note.service.js";
+import { ProjectNoteCreateController } from "./create/project-note-create.controller.js";
+import { ProjectNoteStoreController } from "./create/project-note-store.controller.js";
+import { DeleteProjectNoteService } from "./destroy/delete-project-note.service.js";
+import { ProjectNoteDestroyController } from "./destroy/project-note-destroy.controller.js";
 import { GetProjectNoteService } from "./get-project-note.service.js";
-import { ListProjectNotesService } from "./list-project-notes.service.js";
-import { ProjectNoteCreateController } from "./project-note-create.controller.js";
-import { ProjectNoteDestroyController } from "./project-note-destroy.controller.js";
-import { ProjectNoteEditController } from "./project-note-edit.controller.js";
-import { ProjectNoteIndexController } from "./project-note-index.controller.js";
+import { ListProjectNotesService } from "./list/list-project-notes.service.js";
+import { ProjectNoteIndexController } from "./list/project-note-index.controller.js";
 import { ProjectNoteShowController } from "./project-note-show.controller.js";
-import { ProjectNoteStoreController } from "./project-note-store.controller.js";
-import { ProjectNoteUpdateController } from "./project-note-update.controller.js";
-import { UpdateProjectNoteServiceFactory } from "./update-project-note.service.js";
+import { ProjectNoteEditController } from "./update/project-note-edit.controller.js";
+import { ProjectNoteUpdateController } from "./update/project-note-update.controller.js";
+import { UpdateProjectNoteServiceFactory } from "./update/update-project-note.service.js";
 
 export class ProjectNoteModule implements HttpModule {
 	readonly #createController: ProjectNoteCreateController;

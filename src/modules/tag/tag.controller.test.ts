@@ -7,8 +7,8 @@ import { HttpServer } from "@scream.js/http/server.js";
 import { load } from "cheerio";
 import { PagesModule } from "../pages/index.js";
 import { TagModule } from "./index.js";
-import { ListTagsService } from "./list-tags.service.js";
-import { TagIndexController } from "./tag-index.controller.js";
+import { ListTagsService } from "./list/list-tags.service.js";
+import { TagIndexController } from "./list/tag-index.controller.js";
 
 describe("tag controller", { concurrency: true }, () => {
 	const findIdByCode = async (

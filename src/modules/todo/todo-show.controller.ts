@@ -21,6 +21,6 @@ export class TodosShowController extends ShowController<
 	}
 
 	protected template() {
-		return "show";
+		return "todo/show";
 	}
 }

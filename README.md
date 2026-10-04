@@ -66,9 +66,45 @@ TypeScript is configured with maximum strictness in a single-source `tsconfig`. 
 * Introduce services, repositories, and extra files only when current complexity justifies them.
 * Do not add abstractions only because they are conventional.
 * Removing code is better than preserving unused abstractions. If a layer is no longer useful, remove it, inline it, or simplify it.
-* Keep modules flat by default. Split files only when readability or change cost clearly improves.
+* Keep small modules flat. Group larger modules by workflow so related controllers, services, and service tests are easy to find together.
 * Services are not a default module pattern. Treat them as a refactoring step when current complexity makes a controller-led module harder to change.
 * When a controller method grows past clear prototype scale, extract a transaction script service.
+
+### Application folders
+
+Application code stays feature-first under `src/modules/<feature>/`. Larger modules use workflow folders rather than application-wide controller and service folders:
+
+```text
+src/modules/project-note/
+  index.ts
+  project-note.module.ts
+  project-note.schema.ts
+  project-note.controller.test.ts
+  get-project-note.service.ts
+  get-project-note.service.test.ts
+  project-note-show.controller.ts
+  create/
+    project-note-create.controller.ts
+    project-note-store.controller.ts
+    create-project-note.service.ts
+    create-project-note.service.test.ts
+  update/
+    project-note-edit.controller.ts
+    project-note-update.controller.ts
+    update-project-note.service.ts
+    update-project-note.service.test.ts
+  list/
+  destroy/
+
+views/project-note/
+  index.scream
+  show.scream
+  form.scream
+```
+
+Create groups the form and submission workflow; update groups editing and submission. Custom operations such as project archiving and tag assignment have their own folders. Shared readers, module-wide schemas, explicit composition, public exports, and aggregate HTTP tests remain at the feature root. Service factories stay beside their services, and no extra barrels or runtime discovery are introduced.
+
+Framework abstractions remain in `lib/`. Pages stays flat, and shared layouts remain at the views root. Migrations, seeds, and browser resources retain their existing locations.
 
 ### Non-negotiable boundaries
 

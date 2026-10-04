@@ -2,18 +2,18 @@ import type { Database } from "@scream.js/database/db.js";
 import { TransactionHandler } from "@scream.js/database/transaction-handler.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
-import { CreateTodoServiceFactory } from "./create-todo.service.js";
-import { DeleteTodoService } from "./delete-todo.service.js";
+import { CreateTodoServiceFactory } from "./create/create-todo.service.js";
+import { TodosCreateController } from "./create/todo-create.controller.js";
+import { TodosStoreController } from "./create/todo-store.controller.js";
+import { DeleteTodoService } from "./destroy/delete-todo.service.js";
+import { TodosDestroyController } from "./destroy/todo-destroy.controller.js";
 import { GetTodoService } from "./get-todo.service.js";
-import { ListTodosService } from "./list-todos.service.js";
-import { TodosCreateController } from "./todo-create.controller.js";
-import { TodosDestroyController } from "./todo-destroy.controller.js";
-import { TodosEditController } from "./todo-edit.controller.js";
-import { TodosIndexController } from "./todo-index.controller.js";
+import { ListTodosService } from "./list/list-todos.service.js";
+import { TodosIndexController } from "./list/todo-index.controller.js";
 import { TodosShowController } from "./todo-show.controller.js";
-import { TodosStoreController } from "./todo-store.controller.js";
-import { TodosUpdateController } from "./todo-update.controller.js";
-import { UpdateTodoServiceFactory } from "./update-todo.service.js";
+import { TodosEditController } from "./update/todo-edit.controller.js";
+import { TodosUpdateController } from "./update/todo-update.controller.js";
+import { UpdateTodoServiceFactory } from "./update/update-todo.service.js";
 
 export class TodoModule implements HttpModule {
 	readonly #createController: TodosCreateController;

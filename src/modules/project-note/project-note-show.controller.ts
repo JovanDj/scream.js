@@ -18,6 +18,6 @@ export class ProjectNoteShowController extends ShowController<
 	}
 
 	protected template() {
-		return "project-note-show";
+		return "project-note/show";
 	}
 }

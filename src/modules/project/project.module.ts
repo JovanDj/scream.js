@@ -2,16 +2,16 @@ import type { Database } from "@scream.js/database/db.js";
 import { TransactionHandler } from "@scream.js/database/transaction-handler.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
-import { ArchiveProjectServiceFactory } from "./archive-project.service.js";
-import { CreateProjectServiceFactory } from "./create-project.service.js";
+import { ArchiveProjectServiceFactory } from "./archive/archive-project.service.js";
+import { ProjectArchiveController } from "./archive/project-archive.controller.js";
+import { CreateProjectServiceFactory } from "./create/create-project.service.js";
+import { ProjectStoreController } from "./create/project-store.controller.js";
 import { GetProjectService } from "./get-project.service.js";
-import { ListProjectsService } from "./list-projects.service.js";
-import { ProjectArchiveController } from "./project-archive.controller.js";
-import { ProjectIndexController } from "./project-index.controller.js";
+import { ListProjectsService } from "./list/list-projects.service.js";
+import { ProjectIndexController } from "./list/project-index.controller.js";
 import { ProjectShowController } from "./project-show.controller.js";
-import { ProjectStoreController } from "./project-store.controller.js";
-import { ProjectUnarchiveController } from "./project-unarchive.controller.js";
-import { UnarchiveProjectServiceFactory } from "./unarchive-project.service.js";
+import { ProjectUnarchiveController } from "./unarchive/project-unarchive.controller.js";
+import { UnarchiveProjectServiceFactory } from "./unarchive/unarchive-project.service.js";
 
 export class ProjectModule implements HttpModule {
 	readonly #archiveController: ProjectArchiveController;

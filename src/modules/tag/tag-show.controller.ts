@@ -15,6 +15,6 @@ export class TagShowController extends ShowController<
 	}
 
 	protected template() {
-		return "tag-show";
+		return "tag/show";
 	}
 }

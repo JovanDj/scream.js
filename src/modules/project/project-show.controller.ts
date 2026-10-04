@@ -15,6 +15,6 @@ export class ProjectShowController extends ShowController<
 	}
 
 	protected template() {
-		return "project-show";
+		return "project/show";
 	}
 }

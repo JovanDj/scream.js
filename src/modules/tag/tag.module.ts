@@ -2,17 +2,17 @@ import type { Database } from "@scream.js/database/db.js";
 import { TransactionHandler } from "@scream.js/database/transaction-handler.js";
 import type { Application } from "@scream.js/http/application.js";
 import type { HttpModule } from "@scream.js/http/module.js";
-import { CreateTagServiceFactory } from "./create-tag.service.js";
-import { DeleteTagService } from "./delete-tag.service.js";
+import { ReplaceTodoTagsServiceFactory } from "./assign/replace-todo-tags.service.js";
+import { TagAssignController } from "./assign/tag-assign.controller.js";
+import { CreateTagServiceFactory } from "./create/create-tag.service.js";
+import { TagStoreController } from "./create/tag-store.controller.js";
+import { DeleteTagService } from "./destroy/delete-tag.service.js";
+import { TagDestroyController } from "./destroy/tag-destroy.controller.js";
 import { GetTagService } from "./get-tag.service.js";
+import { ListTagsService } from "./list/list-tags.service.js";
+import { TagIndexController } from "./list/tag-index.controller.js";
 import { ListAllTagsService } from "./list-all-tags.service.js";
-import { ListTagsService } from "./list-tags.service.js";
-import { ReplaceTodoTagsServiceFactory } from "./replace-todo-tags.service.js";
-import { TagAssignController } from "./tag-assign.controller.js";
-import { TagDestroyController } from "./tag-destroy.controller.js";
-import { TagIndexController } from "./tag-index.controller.js";
 import { TagShowController } from "./tag-show.controller.js";
-import { TagStoreController } from "./tag-store.controller.js";
 
 export class TagModule implements HttpModule {
 	readonly #assignController: TagAssignController;

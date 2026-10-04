@@ -37,7 +37,9 @@ Do not introduce repositories, mappers, or domain models before they are justifi
 
 * Keep application code under `src/modules/<module>/`.
 * Keep reusable framework abstractions in `lib/`, not application modules. The shared HTTP controller contract belongs in `lib/http/controller.ts`; CRUD lifecycle bases belong in `lib/http/controllers/`.
-* No subfolders inside a module.
+* Keep small modules flat. In larger modules, group related controllers, services, and service tests by workflow (`create/`, `update/`, `list/`, `destroy/`, or a named custom operation).
+* Keep `index.ts`, module composition, module-wide schemas, shared readers, and aggregate HTTP tests at the module root. Do not duplicate a shared service to make workflow folders symmetrical.
+* Group application views under `views/<module>/` and use logical view names such as `project-note/form`. Shared layouts and small static page views may remain at the views root.
 * File names are descriptive, not mandatory architecture boundaries.
 * `index.ts` should expose the smallest useful module API.
 * `export *` is discouraged; prefer explicit exports.
