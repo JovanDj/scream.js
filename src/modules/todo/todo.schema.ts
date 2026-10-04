@@ -59,6 +59,14 @@ export const todoShowDataSchema = schema
 export type TodoShowInput = z.infer<typeof todoShowInputSchema>;
 export type TodoShowData = z.infer<typeof todoShowDataSchema>;
 
+export const todoCreateInputSchema = schema.object({});
+
+export type TodoCreateInput = z.infer<typeof todoCreateInputSchema>;
+export type TodoCreateData = Pick<
+	TodoShowData,
+	"dueAt" | "title" | "statusCode"
+>;
+
 export const todoStoreInputSchema = schema
 	.object({
 		dueAt: schema.preprocess(

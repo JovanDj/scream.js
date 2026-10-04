@@ -1,4 +1,4 @@
-import { ShowController } from "../show.controller.js";
+import { ShowController } from "@scream.js/http/controllers/show.controller.js";
 import type { TagShowData, TagShowInput } from "./tag.schema.js";
 import { tagShowInputSchema } from "./tag.schema.js";
 

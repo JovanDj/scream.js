@@ -1,4 +1,4 @@
-import { ShowController } from "../show.controller.js";
+import { ShowController } from "@scream.js/http/controllers/show.controller.js";
 import type { TodoShowData, TodoShowInput } from "./todo.schema.js";
 import { todoShowInputSchema } from "./todo.schema.js";
 

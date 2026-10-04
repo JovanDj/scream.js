@@ -1,4 +1,4 @@
-import { IndexController } from "../index.controller.js";
+import { IndexController } from "@scream.js/http/controllers/index.controller.js";
 import type { TodoIndexData, TodoIndexInput } from "./todo.schema.js";
 import { todoIndexInputSchema } from "./todo.schema.js";
 

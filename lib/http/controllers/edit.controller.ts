@@ -1,11 +1,12 @@
-import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
-import type { Controller } from "./controller.js";
+import type { CommandHandler } from "../../database/command-handler.js";
+import type { Controller } from "../controller.js";
+import type { HttpContext } from "../http-context.js";
 
-export abstract class ShowController<Input, Data> implements Controller {
-	readonly #service: { execute(input: Input): Promise<Data | undefined> };
+export abstract class EditController<Input, Data> implements Controller {
+	readonly #service: CommandHandler<Input, Data | undefined>;
 
-	constructor(service: { execute(input: Input): Promise<Data | undefined> }) {
+	constructor(service: CommandHandler<Input, Data | undefined>) {
 		this.#service = service;
 	}
 

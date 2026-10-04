@@ -1,10 +1,13 @@
 import type { CommandHandler } from "@scream.js/database/command-handler.js";
+import {
+	StoreController,
+	type StoreFailure,
+} from "@scream.js/http/controllers/store.controller.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
-import type { ListAllProjectsService } from "../project/index.js";
-import { StoreController, type StoreFailure } from "../store.controller.js";
 import { ProjectNotFoundError } from "./project-not-found.error.js";
 import {
+	type ProjectNoteCreateData,
 	type ProjectNoteStoreInput,
 	projectNoteFormFieldsSchema,
 	projectNoteStoreInputSchema,
@@ -14,11 +17,11 @@ export class ProjectNoteStoreController extends StoreController<
 	ProjectNoteStoreInput,
 	number
 > {
-	readonly #projects: ListAllProjectsService;
+	readonly #projects: CommandHandler<void, ProjectNoteCreateData["projects"]>;
 
 	constructor(
 		service: CommandHandler<ProjectNoteStoreInput, number>,
-		projects: ListAllProjectsService,
+		projects: CommandHandler<void, ProjectNoteCreateData["projects"]>,
 	) {
 		super(service);
 		this.#projects = projects;

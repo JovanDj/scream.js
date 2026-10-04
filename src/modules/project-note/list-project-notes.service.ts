@@ -1,5 +1,5 @@
 import type { Database } from "@scream.js/database/db.js";
-import type { IndexInput } from "../index.controller.js";
+import type { IndexInput } from "@scream.js/http/controllers/index.controller.js";
 import {
 	type ProjectNoteIndexInput,
 	projectNoteIndexDataSchema,

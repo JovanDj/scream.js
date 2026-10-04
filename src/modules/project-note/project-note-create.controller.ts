@@ -1,30 +1,43 @@
-import type { HttpContext } from "@scream.js/http/http-context.js";
-import type { Controller } from "../controller.js";
-import type { ListAllProjectsService } from "../project/index.js";
-import { projectNoteCreateInputSchema } from "./project-note.schema.js";
+import type { CommandHandler } from "@scream.js/database/command-handler.js";
+import { CreateController } from "@scream.js/http/controllers/create.controller.js";
+import {
+	type ProjectNoteCreateData,
+	type ProjectNoteCreateInput,
+	projectNoteCreateInputSchema,
+} from "./project-note.schema.js";
 
-export class ProjectNoteCreateController implements Controller {
-	readonly #projects: ListAllProjectsService;
+export class ProjectNoteCreateController extends CreateController<
+	ProjectNoteCreateInput,
+	ProjectNoteCreateData
+> {
+	readonly #projects: CommandHandler<void, ProjectNoteCreateData["projects"]>;
 
-	constructor(projects: ListAllProjectsService) {
+	constructor(
+		projects: CommandHandler<void, ProjectNoteCreateData["projects"]>,
+	) {
+		super();
 		this.#projects = projects;
 	}
 
-	async handle(ctx: HttpContext) {
-		const parsed = projectNoteCreateInputSchema.safeParse(ctx.query());
-		if (!parsed.success) {
-			return ctx.notFound();
-		}
+	protected inputSchema() {
+		return projectNoteCreateInputSchema;
+	}
+
+	protected async load(input: ProjectNoteCreateInput) {
 		const projects = await this.#projects.execute();
-		const projectId = parsed.data.projectId;
+		const projectId = input.projectId;
 		if (
 			projectId !== undefined &&
 			!projects.some((project) => project.id === projectId)
 		) {
-			return ctx.notFound();
+			return undefined;
 		}
 
-		return ctx.render("project-note-form", {
+		return { ...input, projects };
+	}
+
+	protected present({ projectId, projects }: ProjectNoteCreateData) {
+		return {
 			action: "/project-notes",
 			backUrl:
 				projectId === undefined ? "/project-notes" : `/projects/${projectId}`,
@@ -44,6 +57,10 @@ export class ProjectNoteCreateController implements Controller {
 				isSelected: project.id === projectId,
 			})),
 			submitLabel: "Create",
-		});
+		};
+	}
+
+	protected template() {
+		return "project-note-form";
 	}
 }

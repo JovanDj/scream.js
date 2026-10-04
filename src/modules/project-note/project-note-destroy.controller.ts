@@ -1,4 +1,4 @@
-import { DestroyController } from "../destroy.controller.js";
+import { DestroyController } from "@scream.js/http/controllers/destroy.controller.js";
 import {
 	type ProjectNoteShowInput,
 	projectNoteShowInputSchema,

@@ -1,4 +1,4 @@
-import { IndexController } from "../index.controller.js";
+import { IndexController } from "@scream.js/http/controllers/index.controller.js";
 import type { ProjectIndexData, ProjectIndexInput } from "./project.schema.js";
 import { projectIndexInputSchema } from "./project.schema.js";
 

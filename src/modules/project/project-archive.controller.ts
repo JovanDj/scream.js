@@ -1,6 +1,6 @@
 import type { CommandHandler } from "@scream.js/database/command-handler.js";
+import type { Controller } from "@scream.js/http/controller.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
-import type { Controller } from "../controller.js";
 import {
 	type ProjectShowInput,
 	projectShowInputSchema,

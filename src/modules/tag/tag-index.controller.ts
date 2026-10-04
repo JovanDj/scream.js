@@ -1,4 +1,4 @@
-import { IndexController } from "../index.controller.js";
+import { IndexController } from "@scream.js/http/controllers/index.controller.js";
 import type { TagIndexData, TagIndexInput } from "./tag.schema.js";
 import { tagIndexInputSchema } from "./tag.schema.js";
 

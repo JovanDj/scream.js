@@ -1,5 +1,6 @@
 import { schema } from "@scream.js/validator/schema.js";
 import type { z } from "zod/v4";
+import type { ProjectShowData } from "../project/index.js";
 
 export const projectNoteIndexInputSchema = schema.object({
 	page: schema.coerce.number().int().positive().optional().default(1),
@@ -17,6 +18,13 @@ export type ProjectNoteShowInput = z.infer<typeof projectNoteShowInputSchema>;
 export const projectNoteCreateInputSchema = schema.object({
 	projectId: schema.coerce.number().int().positive().optional(),
 });
+
+export type ProjectNoteCreateInput = z.infer<
+	typeof projectNoteCreateInputSchema
+>;
+export type ProjectNoteCreateData = ProjectNoteCreateInput & {
+	readonly projects: readonly Pick<ProjectShowData, "id" | "name">[];
+};
 
 export const projectNoteUpdateInputSchema = schema.object({
 	body: schema

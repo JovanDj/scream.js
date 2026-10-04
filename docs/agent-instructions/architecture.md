@@ -35,7 +35,8 @@ Do not introduce repositories, mappers, or domain models before they are justifi
 
 ## Module Seams
 
-* Keep code under `src/modules/<module>/`.
+* Keep application code under `src/modules/<module>/`.
+* Keep reusable framework abstractions in `lib/`, not application modules. The shared HTTP controller contract belongs in `lib/http/controller.ts`; CRUD lifecycle bases belong in `lib/http/controllers/`.
 * No subfolders inside a module.
 * File names are descriptive, not mandatory architecture boundaries.
 * `index.ts` should expose the smallest useful module API.
@@ -146,6 +147,7 @@ Do not return raw database rows from the persistence boundary.
 ## Types and Abstractions
 
 * Keep only the types that help current code stay clear and safe.
+* Always prefer an existing shared contract when it expresses the required dependency behavior. For `execute(input)` operations, reuse `CommandHandler<Input, Result>` rather than creating action-specific service interfaces or equivalent inline types. Keep meaningful input/result types and no-argument operations unchanged.
 * Schema files are useful for request validation and boundary parsing, but they are optional if inline validation is clearer.
 * Domain models are optional. Keep them only if they contain real behavior worth isolating.
 * Read models and write models may be separate or combined. Choose the simpler shape for the current use case.

@@ -1,4 +1,4 @@
-import type { HttpContext } from "@scream.js/http/http-context.js";
+import type { HttpContext } from "./http-context.js";
 
 export interface Controller {
 	handle(ctx: HttpContext): Promise<void>;

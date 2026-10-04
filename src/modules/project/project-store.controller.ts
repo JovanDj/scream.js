@@ -1,6 +1,9 @@
+import {
+	StoreController,
+	type StoreFailure,
+} from "@scream.js/http/controllers/store.controller.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
-import { StoreController, type StoreFailure } from "../store.controller.js";
 import {
 	type ProjectStoreInput,
 	projectStoreInputSchema,

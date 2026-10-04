@@ -1,16 +1,22 @@
 import type { CommandHandler } from "@scream.js/database/command-handler.js";
+import {
+	StoreController,
+	type StoreFailure,
+} from "@scream.js/http/controllers/store.controller.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
-import { StoreController, type StoreFailure } from "../store.controller.js";
-import type { ListAllTagsService } from "./list-all-tags.service.js";
-import { type TagStoreInput, tagStoreInputSchema } from "./tag.schema.js";
+import {
+	type TagIndexData,
+	type TagStoreInput,
+	tagStoreInputSchema,
+} from "./tag.schema.js";
 
 export class TagStoreController extends StoreController<TagStoreInput, void> {
-	readonly #listAllTags: ListAllTagsService;
+	readonly #listAllTags: CommandHandler<void, TagIndexData>;
 
 	constructor(
 		service: CommandHandler<TagStoreInput>,
-		listAllTags: ListAllTagsService,
+		listAllTags: CommandHandler<void, TagIndexData>,
 	) {
 		super(service);
 		this.#listAllTags = listAllTags;

@@ -19,6 +19,7 @@ This file is intentionally minimal. Read the linked instruction file for any are
 * Evolve narrow abstractions from proven concrete workflows; keep concrete application code easier to understand than the abstraction supporting it.
 * Do not add decorators, reflection, metadata scanning, dependency containers, service locators, or hidden object assembly.
 * Use manual dependency composition; dependencies must be visible in constructors.
+* Prefer existing shared contracts for dependency types whenever they cover the required behavior. Do not duplicate them with per-action interfaces or inline structural types.
 * Treat external input as raw until parsed into trusted values.
 * All tests must be black-box BDD: exercise public boundaries and assert observable behavior, not implementation details. See [Testing Guidelines](docs/agent-instructions/testing.md).
 * All tests must be deterministic with immutable inputs and setup. Use fixed values and `const`; never reassign flags or use invocation counters to change test-double behavior. Use separate immutable scenarios or dependencies instead.

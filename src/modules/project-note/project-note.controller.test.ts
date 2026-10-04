@@ -72,8 +72,20 @@ describe("project note controller", { concurrency: true }, () => {
 			signal: t.signal,
 		});
 		const project = load(await projectResponse.text());
+		const cancelLinks = {
+			default: document("a")
+				.filter((_, link) => document(link).text().trim() === "Cancel")
+				.attr("href"),
+			preset: preset("a")
+				.filter((_, link) => preset(link).text().trim() === "Cancel")
+				.attr("href"),
+		};
 
 		t.assert.deepStrictEqual<number>(response.status, 200);
+		t.assert.deepStrictEqual<typeof cancelLinks>(cancelLinks, {
+			default: "/project-notes",
+			preset: "/projects/202",
+		});
 		t.assert.deepStrictEqual<{ name: string; value: string | undefined }[]>(
 			document("#projectId option")
 				.filter((_, option) => document(option).attr("value") !== "")
@@ -166,8 +178,23 @@ describe("project note controller", { concurrency: true }, () => {
 			signal: t.signal,
 		});
 		const edit = load(await editResponse.text());
+		const editNavigation = {
+			cancel: edit("a")
+				.filter((_, link) => edit(link).text().trim() === "Cancel")
+				.attr("href"),
+			project: edit("p")
+				.filter((_, paragraph) =>
+					edit(paragraph).text().trim().startsWith("Project:"),
+				)
+				.text()
+				.trim(),
+		};
 
 		t.assert.deepStrictEqual<number>(indexResponse.status, 200);
+		t.assert.deepStrictEqual<typeof editNavigation>(editNavigation, {
+			cancel: location,
+			project: "Project: Alpha Project",
+		});
 		t.assert.deepStrictEqual<string>(
 			index(`tbody a[href="${location}"]`).text().trim(),
 			"Planning note",

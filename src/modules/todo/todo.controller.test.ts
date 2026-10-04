@@ -530,6 +530,36 @@ describe("todo controller", { concurrency: true }, () => {
 		t.assert.match(html, /<form action="\/todos" method="POST">/);
 	});
 
+	it("GET /todos/create ignores query fields and renders empty defaults", async (t: TestContext) => {
+		const { port, cleanup } = await setupServer();
+		t.after(() => cleanup());
+
+		const response = await fetch(
+			`http://localhost:${port}/todos/create?title=Injected&dueAt=bad&projectId=999999&extra=a&extra=b`,
+			{ signal: t.signal },
+		);
+		const document = load(await response.text());
+		const result = {
+			action: document("form").attr("action"),
+			dueAt: document('[name="dueAt"]').attr("value"),
+			heading: document("h1").text().trim(),
+			method: document("form").attr("method"),
+			status: response.status,
+			submit: document('button[type="submit"]').text().trim(),
+			title: document('[name="title"]').attr("value"),
+		};
+
+		t.assert.deepStrictEqual<typeof result>(result, {
+			action: "/todos",
+			dueAt: "",
+			heading: "New Todo",
+			method: "POST",
+			status: 200,
+			submit: "Create",
+			title: "",
+		});
+	});
+
 	it("POST /todos trims input before persistence", async (t: TestContext) => {
 		const { cleanup, db, port } = await setupServer();
 		t.after(() => cleanup());
@@ -879,7 +909,7 @@ describe("todo controller", { concurrency: true }, () => {
 	});
 
 	it("GET /todos/:id/edit renders the edit form with existing data", async (t: TestContext) => {
-		t.plan(4);
+		t.plan(5);
 		const { port, cleanup } = await setupServer();
 		t.after(() => cleanup());
 
@@ -893,11 +923,26 @@ describe("todo controller", { concurrency: true }, () => {
 			signal: t.signal,
 		});
 		const html = await res.text();
+		const document = load(html);
+		const result = {
+			action: document("form")
+				.filter((_, form) => document(form).find('[name="title"]').length > 0)
+				.attr("action"),
+			back: document("a")
+				.filter((_, link) => document(link).text().trim() === "Back")
+				.attr("href"),
+			dueAt: document('[name="dueAt"]').attr("value"),
+		};
 
 		t.assert.deepStrictEqual<number>(res.status, 200);
 		t.assert.match(html, new RegExp(`Edit Todo #${id}`));
 		t.assert.match(html, /value="ExistingTitle"/);
 		t.assert.match(html, /<option value="open" selected>Open<\/option>/);
+		t.assert.deepStrictEqual<typeof result>(result, {
+			action: `/todos/${id}`,
+			back: `/todos/${id}`,
+			dueAt: "",
+		});
 	});
 
 	it("GET /todos/:id/edit renders the existing due date", async (t: TestContext) => {

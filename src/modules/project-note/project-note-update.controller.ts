@@ -1,8 +1,8 @@
 import type { CommandHandler } from "@scream.js/database/command-handler.js";
+import type { Controller } from "@scream.js/http/controller.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
-import type { Controller } from "../controller.js";
-import type { GetProjectNoteService } from "./get-project-note.service.js";
 import {
+	type ProjectNoteData,
 	type ProjectNoteShowInput,
 	type ProjectNoteUpdateInput,
 	projectNoteFormFieldsSchema,
@@ -11,7 +11,10 @@ import {
 } from "./project-note.schema.js";
 
 export class ProjectNoteUpdateController implements Controller {
-	readonly #getNote: GetProjectNoteService;
+	readonly #getNote: CommandHandler<
+		ProjectNoteShowInput,
+		ProjectNoteData | undefined
+	>;
 	readonly #updateNote: CommandHandler<
 		ProjectNoteShowInput & ProjectNoteUpdateInput,
 		{ id: number } | undefined
@@ -22,7 +25,7 @@ export class ProjectNoteUpdateController implements Controller {
 			ProjectNoteShowInput & ProjectNoteUpdateInput,
 			{ id: number } | undefined
 		>,
-		getNote: GetProjectNoteService,
+		getNote: CommandHandler<ProjectNoteShowInput, ProjectNoteData | undefined>,
 	) {
 		this.#getNote = getNote;
 		this.#updateNote = updateNote;

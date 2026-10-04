@@ -1,27 +1,20 @@
-import type { HttpContext } from "@scream.js/http/http-context.js";
-import type { Controller } from "../controller.js";
-import type { GetTodoService } from "./get-todo.service.js";
-import { todoShowInputSchema } from "./todo.schema.js";
+import { EditController } from "@scream.js/http/controllers/edit.controller.js";
+import {
+	type TodoShowData,
+	type TodoShowInput,
+	todoShowInputSchema,
+} from "./todo.schema.js";
 
-export class TodosEditController implements Controller {
-	readonly #getTodo: GetTodoService;
-
-	constructor(getTodo: GetTodoService) {
-		this.#getTodo = getTodo;
+export class TodosEditController extends EditController<
+	TodoShowInput,
+	TodoShowData
+> {
+	protected inputSchema() {
+		return todoShowInputSchema;
 	}
 
-	async handle(ctx: HttpContext) {
-		const parsed = todoShowInputSchema.safeParse({ id: ctx.param("id") });
-		if (!parsed.success) {
-			return ctx.notFound();
-		}
-
-		const todo = await this.#getTodo.execute(parsed.data);
-		if (!todo) {
-			return ctx.notFound();
-		}
-
-		return ctx.render("edit", {
+	protected present(todo: TodoShowData) {
+		return {
 			action: `/todos/${todo.id}`,
 			errors: { dueAt: "", title: "" },
 			fields: {
@@ -34,6 +27,10 @@ export class TodosEditController implements Controller {
 			pageTitle: `Edit Todo #${todo.id}`,
 			submitLabel: "Update",
 			todoId: todo.id,
-		});
+		};
+	}
+
+	protected template() {
+		return "edit";
 	}
 }

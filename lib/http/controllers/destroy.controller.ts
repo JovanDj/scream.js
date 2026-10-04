@@ -1,7 +1,7 @@
-import type { CommandHandler } from "@scream.js/database/command-handler.js";
-import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
-import type { Controller } from "./controller.js";
+import type { CommandHandler } from "../../database/command-handler.js";
+import type { Controller } from "../controller.js";
+import type { HttpContext } from "../http-context.js";
 
 export abstract class DestroyController<Input> implements Controller {
 	readonly #service: CommandHandler<Input, boolean>;

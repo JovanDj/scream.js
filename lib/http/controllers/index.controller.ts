@@ -1,24 +1,21 @@
-import type { HttpContext } from "@scream.js/http/http-context.js";
 import type { z } from "zod/v4";
-import type { Controller } from "./controller.js";
+import type { CommandHandler } from "../../database/command-handler.js";
+import type { Controller } from "../controller.js";
+import type { HttpContext } from "../http-context.js";
 
 export type IndexInput<Input> = Input & {
 	readonly limit: number;
 	readonly offset: number;
 };
 
-export interface IndexService<Input, Data> {
-	execute(input: IndexInput<Input>): Promise<Data>;
-}
-
 export abstract class IndexController<
 	Input extends { readonly page: number },
 	Data extends unknown[],
 > implements Controller
 {
-	readonly #service: IndexService<Input, Data>;
+	readonly #service: CommandHandler<IndexInput<Input>, Data>;
 
-	constructor(service: IndexService<Input, Data>) {
+	constructor(service: CommandHandler<IndexInput<Input>, Data>) {
 		this.#service = service;
 	}
 

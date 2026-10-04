@@ -1,27 +1,20 @@
-import type { HttpContext } from "@scream.js/http/http-context.js";
-import type { Controller } from "../controller.js";
-import type { GetProjectNoteService } from "./get-project-note.service.js";
-import { projectNoteShowInputSchema } from "./project-note.schema.js";
+import { EditController } from "@scream.js/http/controllers/edit.controller.js";
+import {
+	type ProjectNoteData,
+	type ProjectNoteShowInput,
+	projectNoteShowInputSchema,
+} from "./project-note.schema.js";
 
-export class ProjectNoteEditController implements Controller {
-	readonly #getNote: GetProjectNoteService;
-
-	constructor(getNote: GetProjectNoteService) {
-		this.#getNote = getNote;
+export class ProjectNoteEditController extends EditController<
+	ProjectNoteShowInput,
+	ProjectNoteData
+> {
+	protected inputSchema() {
+		return projectNoteShowInputSchema;
 	}
 
-	async handle(ctx: HttpContext) {
-		const parsed = projectNoteShowInputSchema.safeParse({
-			id: ctx.param("id"),
-		});
-		if (!parsed.success) {
-			return ctx.notFound();
-		}
-		const note = await this.#getNote.execute(parsed.data);
-		if (note === undefined) {
-			return ctx.notFound();
-		}
-		return ctx.render("project-note-form", {
+	protected present(note: ProjectNoteData) {
+		return {
 			action: `/project-notes/${note.id}`,
 			backUrl: `/project-notes/${note.id}`,
 			cannotSubmit: false,
@@ -37,6 +30,10 @@ export class ProjectNoteEditController implements Controller {
 			projectName: note.projectName,
 			projects: [],
 			submitLabel: "Update",
-		});
+		};
+	}
+
+	protected template() {
+		return "project-note-form";
 	}
 }
