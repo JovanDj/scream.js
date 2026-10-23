@@ -13,6 +13,63 @@ describe("SqliteDatabase", { concurrency: true }, () => {
 	};
 
 	describe("CRUD", () => {
+		it("returns the inserted identifier", async (t: TestContext) => {
+			const { connection, cleanup } = await withConnection();
+			t.after(cleanup);
+			await connection.run(
+				sql`CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);`,
+			);
+			await connection.run(
+				sql`INSERT INTO users (id, name) VALUES (${41}, ${"Existing"});`,
+			);
+
+			const result = await connection.run(
+				sql`INSERT INTO users (name) VALUES (${"Alice"});`,
+			);
+
+			t.assert.strictEqual(result.lastId(), 42);
+		});
+
+		it("binds booleans, nulls, and quoted text without rewriting SQL", async (t: TestContext) => {
+			const { connection, cleanup } = await withConnection();
+			t.after(cleanup);
+			await connection.run(
+				sql`CREATE TABLE values_test (enabled INTEGER, disabled INTEGER, optional TEXT, name TEXT);`,
+			);
+
+			await connection.run(
+				sql`INSERT INTO values_test VALUES (${true}, ${false}, ${null}, ${"O'Reilly"});`,
+			);
+			const row = await connection.get(
+				sql`SELECT * FROM values_test WHERE enabled = ${true} AND optional IS ${null};`,
+			);
+			const rows = await connection.all(
+				sql`SELECT name FROM values_test WHERE disabled = ${false};`,
+			);
+
+			t.assert.deepStrictEqual(row, {
+				disabled: 0,
+				enabled: 1,
+				name: "O'Reilly",
+				optional: null,
+			});
+			t.assert.deepStrictEqual(rows, [{ name: "O'Reilly" }]);
+		});
+
+		it("enforces foreign keys", async (t: TestContext) => {
+			const { connection, cleanup } = await withConnection();
+			t.after(cleanup);
+			await connection.run(sql`CREATE TABLE parents (id INTEGER PRIMARY KEY);`);
+			await connection.run(
+				sql`CREATE TABLE children (parent_id INTEGER REFERENCES parents(id));`,
+			);
+
+			const insert = () =>
+				connection.run(sql`INSERT INTO children VALUES (${99});`);
+
+			await t.assert.rejects(insert, /FOREIGN KEY constraint failed/);
+		});
+
 		it("finds all rows", async (t: TestContext) => {
 			t.plan(1);
 			const { connection, cleanup } = await withConnection();

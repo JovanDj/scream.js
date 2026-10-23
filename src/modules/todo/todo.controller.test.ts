@@ -72,7 +72,7 @@ describe("todo controller", { concurrency: true }, () => {
 		t.assert.match(html, /http:\/\/localhost:5173\/@vite\/client/);
 		t.assert.match(
 			html,
-			/<link rel="stylesheet" href="http:\/\/localhost:5173\/styles\.scss">/,
+			/<link rel="stylesheet" href="http:\/\/localhost:5173\/styles\.css">/,
 		);
 		t.assert.match(html, /http:\/\/localhost:5173\/main\.ts/);
 		t.assert.match(html, /<link rel="icon" href="data:,">/);

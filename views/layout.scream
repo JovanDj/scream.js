@@ -7,7 +7,7 @@
 		<link rel="icon" href="data:,">
         <title>{{pageTitle}}</title>
 
-		<link rel="stylesheet" href="http://localhost:5173/styles.scss">
+		<link rel="stylesheet" href="http://localhost:5173/styles.css">
 		<script type="module" src="http://localhost:5173/@vite/client"></script>
 		<script type="module" src="http://localhost:5173/main.ts"></script>
     </head>

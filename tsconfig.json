@@ -1,6 +1,5 @@
 {
 	"compilerOptions": {
-		"baseUrl": ".",
 		"declaration": true,
 		"emitDecoratorMetadata": false,
 		"experimentalDecorators": false,
@@ -11,7 +10,9 @@
 			"@/*": ["./src/*"],
 			"@/modules/*": ["./src/modules/*/index.ts"],
 			"@scream.js/*": ["./lib/*"]
-		}
+		},
+		"rootDir": ".",
+		"types": ["node"]
 	},
 	"extends": [
 		"@tsconfig/recommended/tsconfig.json",

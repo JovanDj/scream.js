@@ -1,13 +1,12 @@
 {
-	"author": "",
-	"config": {
-		"commitizen": {
-			"path": "./node_modules/cz-conventional-changelog"
-		}
+	"allowScripts": {
+		"better-sqlite3@12.6.2": true,
+		"esbuild@0.27.3": true
 	},
+	"author": "",
 	"dependencies": {
 		"@koa/bodyparser": "^6.1.0",
-		"@koa/router": "^14.0.0",
+		"@koa/router": "^15.7.0",
 		"@popperjs/core": "^2.11.8",
 		"@tsconfig/node24": "^24.0.4",
 		"@types/method-override": "^3.0.0",
@@ -25,10 +24,7 @@
 		"koa-override": "^4.0.0",
 		"method-override": "^3.0.0",
 		"pg": "^8.18.0",
-		"sqlite": "^5.1.1",
-		"sqlite3": "^5.1.7",
 		"superagent": "^10.3.0",
-		"superagent-cheerio": "^1.0.1",
 		"tslib": "^2.8.1",
 		"zod": "^4.3.6"
 	},
@@ -38,38 +34,29 @@
 		"@biomejs/biome": "^2.4.2",
 		"@playwright/test": "^1.58.2",
 		"@stryker-mutator/core": "^9.5.1",
-		"@swc/core": "^1.15.11",
-		"@swc/register": "^0.1.10",
 		"@tsconfig/node-ts": "^23.6.4",
 		"@tsconfig/recommended": "^1.0.13",
 		"@tsconfig/strictest": "^2.0.8",
+		"@types/better-sqlite3": "^9.6.0",
 		"@types/cheerio": "^0.22.35",
 		"@types/cors": "^2.8.19",
 		"@types/csurf": "^1.11.5",
 		"@types/express": "^5.0.6",
 		"@types/koa": "^3.0.1",
-		"@types/koa__router": "^12.0.5",
 		"@types/node": "^22.19.11",
 		"@types/pg": "^8.16.0",
-		"@types/sqlite3": "^3.1.11",
-		"commitizen": "^4.3.1",
 		"cross-env": "^10.1.0",
-		"cz-conventional-changelog": "^3.0.1",
 		"esbuild-register": "^3.6.0",
 		"husky": "^9.1.7",
 		"lint-staged": "^16.2.7",
 		"npm-run-all": "^4.1.5",
 		"playwright": "^1.44.1",
-		"sass": "^1.97.3",
 		"sucrase": "^3.35.1",
-		"ts-node": "^10.9.2",
 		"tsc-alias": "^1.8.16",
 		"tsconfig-paths": "^4.2.0",
 		"tsx": "^4.21.0",
-		"typescript": "^5.9.3",
-		"vite": "^7.3.1",
-		"vite-tsconfig-paths": "^5.1.4",
-		"vitest": "^3.2.4"
+		"typescript": "~7.0.2",
+		"vite": "^7.3.1"
 	},
 	"engines": {
 		"node": "^24"
@@ -81,11 +68,6 @@
 	"files": [
 		"/dist/lib"
 	],
-	"husky": {
-		"hooks": {
-			"prepare-commit-msg": "exec < /dev/tty && npx cz --hook || true"
-		}
-	},
 	"keywords": [],
 	"license": "MIT",
 	"lint-staged": {
@@ -98,6 +80,11 @@
 	},
 	"main": "dist/index.js",
 	"name": "scream.js",
+	"overrides": {
+		"cheerio": {
+			"encoding-sniffer": "1.0.2"
+		}
+	},
 	"scripts": {
 		"build": "tsc && tsc-alias",
 		"check": "run-p typecheck lint:fix test",
@@ -120,6 +107,6 @@
 	"types": "dist/index.d.ts",
 	"version": "0.1.0",
 	"volta": {
-		"node": "24.21.0"
+		"node": "24.22.1"
 	}
 }

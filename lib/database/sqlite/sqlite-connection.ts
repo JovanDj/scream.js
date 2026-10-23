@@ -1,6 +1,4 @@
-import type sqlite from "sqlite";
-import { open } from "sqlite";
-import sqlite3 from "sqlite3";
+import BetterSqlite3 from "better-sqlite3";
 
 import type { Connection } from "../connection.js";
 import type { ConnectionOptions } from "../connection-options.js";
@@ -8,39 +6,46 @@ import { InsertResult } from "../insert-result.js";
 import type { SqlQuery } from "../query-builder/sql-query.js";
 
 export class SqliteConnection implements Connection {
-	readonly #db: sqlite.Database;
+	readonly #db: BetterSqlite3.Database;
 
-	constructor(db: sqlite.Database) {
+	constructor(db: BetterSqlite3.Database) {
 		this.#db = db;
 	}
 
 	async run(query: SqlQuery) {
-		const result = await this.#db.run(query.sql, query.params);
+		const result = this.#prepare(query).run();
 
-		return new InsertResult(result.lastID);
+		return new InsertResult(Number(result.lastInsertRowid));
 	}
 
 	async all<T>(query: SqlQuery) {
-		return this.#db.all<T[]>(query.sql, query.params);
+		return this.#prepare<T>(query).all();
 	}
 
 	async get<T>(query: SqlQuery) {
-		return this.#db.get<T>(query.sql, query.params);
+		return this.#prepare<T>(query).get();
 	}
 
 	async close() {
-		return this.#db.close();
+		this.#db.close();
 	}
 
 	static async connect(database: ConnectionOptions = { database: ":memory:" }) {
-		const db = await open({
-			driver: sqlite3.Database,
-			filename: database.database,
-		});
+		const db = new BetterSqlite3(database.database);
 
-		await db.run("PRAGMA foreign_keys = ON;");
-		await db.run("PRAGMA journal_mode=WAL");
+		db.pragma("foreign_keys = ON");
+		db.pragma("journal_mode = WAL");
 		return new SqliteConnection(db);
+	}
+
+	#prepare<T>(query: SqlQuery) {
+		return this.#db
+			.prepare<unknown[], T>(query.sql)
+			.bind(
+				...query.params.map((value) =>
+					typeof value === "boolean" ? Number(value) : value,
+				),
+			);
 	}
 
 	async transaction<T>(callback: (trx: Connection) => Promise<T>) {

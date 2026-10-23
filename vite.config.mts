@@ -1,6 +1,5 @@
 import { resolve } from "node:path";
-import tsconfigPaths from "vite-tsconfig-paths";
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite";
 
 export default defineConfig({
 	appType: "mpa",
@@ -9,31 +8,21 @@ export default defineConfig({
 		manifest: true,
 		outDir: "public",
 	},
-	css: {
-		preprocessorOptions: {
-			scss: {
-				silenceDeprecations: [
-					"import",
-					"mixed-decls",
-					"color-functions",
-					"global-builtin",
-					"legacy-js-api",
-				],
+	resolve: {
+		alias: [
+			{
+				find: /^@\/modules\/(.+)$/,
+				replacement: resolve(__dirname, "src/modules/$1/index.ts"),
 			},
-		},
+			{ find: /^@\/(.+)$/, replacement: resolve(__dirname, "src/$1") },
+			{
+				find: /^@scream\.js\/(.+)$/,
+				replacement: resolve(__dirname, "lib/$1"),
+			},
+		],
 	},
-	plugins: [tsconfigPaths()],
 	root: resolve(__dirname, "resources"),
 	server: {
 		strictPort: true,
-	},
-	test: {
-		bail: 1,
-		reporters: ["verbose"],
-		sequence: { concurrent: true, shuffle: true },
-		typecheck: {
-			checker: "tsc",
-			tsconfig: "tsconfig.json",
-		},
 	},
 });
