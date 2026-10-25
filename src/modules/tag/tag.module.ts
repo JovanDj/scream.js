@@ -1,6 +1,7 @@
 import type { Database } from "@scream.js/database/db.js";
 import { TransactionHandler } from "@scream.js/database/transaction-handler.js";
 import type { Application } from "@scream.js/http/application.js";
+import type { Controller } from "@scream.js/http/controller.js";
 import type { HttpModule } from "@scream.js/http/module.js";
 import { ReplaceTodoTagsServiceFactory } from "./assign/replace-todo-tags.service.js";
 import { TagAssignController } from "./assign/tag-assign.controller.js";
@@ -15,11 +16,11 @@ import { ListAllTagsService } from "./list-all-tags.service.js";
 import { TagShowController } from "./tag-show.controller.js";
 
 export class TagModule implements HttpModule {
-	readonly #assignController: TagAssignController;
-	readonly #destroyController: TagDestroyController;
-	readonly #indexController: TagIndexController;
-	readonly #showController: TagShowController;
-	readonly #storeController: TagStoreController;
+	readonly #assignController: Controller;
+	readonly #destroyController: Controller;
+	readonly #indexController: Controller;
+	readonly #showController: Controller;
+	readonly #storeController: Controller;
 
 	static create(db: Database) {
 		return new TagModule(
@@ -37,11 +38,11 @@ export class TagModule implements HttpModule {
 	}
 
 	constructor(
-		assignController: TagAssignController,
-		destroyController: TagDestroyController,
-		indexController: TagIndexController,
-		showController: TagShowController,
-		storeController: TagStoreController,
+		assignController: Controller,
+		destroyController: Controller,
+		indexController: Controller,
+		showController: Controller,
+		storeController: Controller,
 	) {
 		this.#assignController = assignController;
 		this.#destroyController = destroyController;

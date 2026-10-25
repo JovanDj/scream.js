@@ -1,6 +1,7 @@
 import type { Database } from "@scream.js/database/db.js";
 import { TransactionHandler } from "@scream.js/database/transaction-handler.js";
 import type { Application } from "@scream.js/http/application.js";
+import type { Controller } from "@scream.js/http/controller.js";
 import type { HttpModule } from "@scream.js/http/module.js";
 import { CreateTodoServiceFactory } from "./create/create-todo.service.js";
 import { TodosCreateController } from "./create/todo-create.controller.js";
@@ -16,13 +17,13 @@ import { TodosUpdateController } from "./update/todo-update.controller.js";
 import { UpdateTodoServiceFactory } from "./update/update-todo.service.js";
 
 export class TodoModule implements HttpModule {
-	readonly #createController: TodosCreateController;
-	readonly #destroyController: TodosDestroyController;
-	readonly #editController: TodosEditController;
-	readonly #indexController: TodosIndexController;
-	readonly #showController: TodosShowController;
-	readonly #storeController: TodosStoreController;
-	readonly #updateController: TodosUpdateController;
+	readonly #createController: Controller;
+	readonly #destroyController: Controller;
+	readonly #editController: Controller;
+	readonly #indexController: Controller;
+	readonly #showController: Controller;
+	readonly #storeController: Controller;
+	readonly #updateController: Controller;
 
 	static create(db: Database) {
 		return new TodoModule(
@@ -41,13 +42,13 @@ export class TodoModule implements HttpModule {
 	}
 
 	constructor(
-		createController: TodosCreateController,
-		destroyController: TodosDestroyController,
-		editController: TodosEditController,
-		indexController: TodosIndexController,
-		showController: TodosShowController,
-		storeController: TodosStoreController,
-		updateController: TodosUpdateController,
+		createController: Controller,
+		destroyController: Controller,
+		editController: Controller,
+		indexController: Controller,
+		showController: Controller,
+		storeController: Controller,
+		updateController: Controller,
 	) {
 		this.#createController = createController;
 		this.#destroyController = destroyController;

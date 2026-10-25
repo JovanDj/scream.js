@@ -1,6 +1,7 @@
 import type { Database } from "@scream.js/database/db.js";
 import { TransactionHandler } from "@scream.js/database/transaction-handler.js";
 import type { Application } from "@scream.js/http/application.js";
+import type { Controller } from "@scream.js/http/controller.js";
 import type { HttpModule } from "@scream.js/http/module.js";
 import { ListAllProjectsService } from "../project/index.js";
 import { CreateProjectNoteServiceFactory } from "./create/create-project-note.service.js";
@@ -17,13 +18,13 @@ import { ProjectNoteUpdateController } from "./update/project-note-update.contro
 import { UpdateProjectNoteServiceFactory } from "./update/update-project-note.service.js";
 
 export class ProjectNoteModule implements HttpModule {
-	readonly #createController: ProjectNoteCreateController;
-	readonly #destroyController: ProjectNoteDestroyController;
-	readonly #editController: ProjectNoteEditController;
-	readonly #indexController: ProjectNoteIndexController;
-	readonly #showController: ProjectNoteShowController;
-	readonly #storeController: ProjectNoteStoreController;
-	readonly #updateController: ProjectNoteUpdateController;
+	readonly #createController: Controller;
+	readonly #destroyController: Controller;
+	readonly #editController: Controller;
+	readonly #indexController: Controller;
+	readonly #showController: Controller;
+	readonly #storeController: Controller;
+	readonly #updateController: Controller;
 
 	static create(db: Database) {
 		const getNote = new GetProjectNoteService(db);
@@ -47,13 +48,13 @@ export class ProjectNoteModule implements HttpModule {
 	}
 
 	constructor(
-		createController: ProjectNoteCreateController,
-		destroyController: ProjectNoteDestroyController,
-		editController: ProjectNoteEditController,
-		indexController: ProjectNoteIndexController,
-		showController: ProjectNoteShowController,
-		storeController: ProjectNoteStoreController,
-		updateController: ProjectNoteUpdateController,
+		createController: Controller,
+		destroyController: Controller,
+		editController: Controller,
+		indexController: Controller,
+		showController: Controller,
+		storeController: Controller,
+		updateController: Controller,
 	) {
 		this.#createController = createController;
 		this.#destroyController = destroyController;
