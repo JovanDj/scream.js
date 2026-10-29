@@ -1,10 +1,14 @@
 import type { TemplateASTNode } from "./ast.js";
-import type { ExpressionNode, PathSegment } from "./expression.js";
+import type {
+	ExpressionNode,
+	PathExpressionNode,
+	PathSegment,
+} from "./expression.js";
 import {
 	type SourceSpan,
 	TemplateSyntaxError,
 } from "./template-syntax-error.js";
-import type { Keyword, Token } from "./tokenizer.js";
+import type { Token } from "./tokenizer.js";
 
 type ParseResult = {
 	readonly ast: readonly TemplateASTNode[];
@@ -36,13 +40,13 @@ export class Parser {
 	#parseTemplate(
 		tokens: readonly Token[],
 		index: number,
-		stopKeywords: readonly Keyword[],
+		stopDirectives: readonly string[],
 	): ParseResult {
 		const ast: TemplateASTNode[] = [];
 		let nextIndex = index;
 
 		while (nextIndex < tokens.length) {
-			if (this.#isStopDirective(tokens, nextIndex, stopKeywords)) {
+			if (this.#isStopDirective(tokens, nextIndex, stopDirectives)) {
 				return { ast, nextIndex };
 			}
 
@@ -51,7 +55,7 @@ export class Parser {
 			nextIndex = result.nextIndex;
 		}
 
-		if (stopKeywords.length > 0) {
+		if (stopDirectives.length > 0) {
 			throw new TemplateSyntaxError("Unexpected end inside block");
 		}
 
@@ -83,38 +87,41 @@ export class Parser {
 	}
 
 	#parseDirective(tokens: readonly Token[], index: number): NodeResult {
-		const firstDirectiveToken = tokens[index + 1];
+		const directive = this.#expectToken(tokens, index + 1, "identifier");
 
-		if (firstDirectiveToken?.type === "identifier") {
-			throw new TemplateSyntaxError("Unknown directive", {
-				span: firstDirectiveToken.span,
-			});
-		}
-
-		const keyword = this.#expectKeyword(tokens, index + 1);
-
-		if (keyword.value === "extends") {
+		if (directive.value === "extends") {
 			return this.#parseExtends(tokens, index);
 		}
 
-		if (keyword.value === "block") {
+		if (directive.value === "block") {
 			return this.#parseBlock(tokens, index);
 		}
 
-		if (keyword.value === "if") {
+		if (directive.value === "if") {
 			return this.#parseIf(tokens, index);
 		}
 
-		if (keyword.value === "for") {
+		if (directive.value === "for") {
 			return this.#parseFor(tokens, index);
 		}
 
-		if (keyword.value === "attr") {
+		if (directive.value === "attr") {
 			return this.#parseAttr(tokens, index);
 		}
 
-		throw new TemplateSyntaxError(`Unexpected directive: ${keyword.value}`, {
-			span: keyword.span,
+		if (
+			["endblock", "else", "endif", "in", "endfor"].includes(directive.value)
+		) {
+			throw new TemplateSyntaxError(
+				`Unexpected directive: ${directive.value}`,
+				{
+					span: directive.span,
+				},
+			);
+		}
+
+		throw new TemplateSyntaxError("Unknown directive", {
+			span: directive.span,
 		});
 	}
 
@@ -147,7 +154,7 @@ export class Parser {
 
 	#parseExtends(tokens: readonly Token[], index: number): NodeResult {
 		const open = this.#expectToken(tokens, index, "openDirective");
-		this.#expectKeyword(tokens, index + 1, "extends");
+		this.#expectDirectiveWord(tokens, index + 1, "extends");
 		const template = this.#expectToken(tokens, index + 2, "string");
 		const close = this.#expectToken(tokens, index + 3, "closeDirective");
 
@@ -163,7 +170,7 @@ export class Parser {
 
 	#parseBlock(tokens: readonly Token[], index: number): NodeResult {
 		const open = this.#expectToken(tokens, index, "openDirective");
-		this.#expectKeyword(tokens, index + 1, "block");
+		this.#expectDirectiveWord(tokens, index + 1, "block");
 		const name = this.#expectToken(tokens, index + 2, "identifier");
 		this.#expectToken(tokens, index + 3, "closeDirective");
 
@@ -188,7 +195,7 @@ export class Parser {
 
 	#parseIf(tokens: readonly Token[], index: number): NodeResult {
 		const open = this.#expectToken(tokens, index, "openDirective");
-		this.#expectKeyword(tokens, index + 1, "if");
+		this.#expectDirectiveWord(tokens, index + 1, "if");
 		const condition = this.#parsePathExpression(
 			tokens,
 			index + 2,
@@ -248,9 +255,9 @@ export class Parser {
 
 	#parseFor(tokens: readonly Token[], index: number): NodeResult {
 		const open = this.#expectToken(tokens, index, "openDirective");
-		this.#expectKeyword(tokens, index + 1, "for");
+		this.#expectDirectiveWord(tokens, index + 1, "for");
 		const iterator = this.#expectToken(tokens, index + 2, "identifier");
-		this.#expectKeyword(tokens, index + 3, "in");
+		this.#expectDirectiveWord(tokens, index + 3, "in");
 		const collection = this.#parsePathExpression(
 			tokens,
 			index + 4,
@@ -281,282 +288,220 @@ export class Parser {
 
 	#parseAttr(tokens: readonly Token[], index: number): NodeResult {
 		const open = this.#expectToken(tokens, index, "openDirective");
-		this.#expectKeyword(tokens, index + 1, "attr");
-		const directive = this.#expectToken(tokens, index + 2, "attrDirective");
-		const close = this.#expectToken(tokens, index + 3, "closeDirective");
-		const parsedDirective = this.#parseAttrDirective(
-			directive.value,
-			directive.span,
-		);
+		this.#expectDirectiveWord(tokens, index + 1, "attr");
+		let closeIndex = index + 2;
+
+		while (tokens[closeIndex]?.type !== "closeDirective") {
+			if (tokens[closeIndex] === undefined) {
+				throw new TemplateSyntaxError("Expected closeDirective token", {
+					span: open.span,
+				});
+			}
+
+			closeIndex++;
+		}
+
+		const close = this.#expectToken(tokens, closeIndex, "closeDirective");
 		const span = { end: close.span.end, start: open.span.start };
+		const separator = this.#findAttrSeparator(tokens, index + 2, closeIndex);
+		let nameEnd = index + 2;
 
-		return {
-			nextIndex: index + 4,
-			node:
-				parsedDirective.value === undefined
-					? {
-							condition: parsedDirective.condition,
-							name: parsedDirective.name,
-							span,
-							type: "attr",
-						}
-					: {
-							condition: parsedDirective.condition,
-							name: parsedDirective.name,
-							span,
-							type: "attr",
-							value: parsedDirective.value,
-						},
-		};
-	}
-
-	#parseAttrDirective(
-		rawDirective: string,
-		span: SourceSpan,
-	): {
-		readonly name: string;
-		readonly condition: ExpressionNode;
-		readonly value?: ExpressionNode;
-	} {
-		const directive = rawDirective.trim();
-
-		if (directive.startsWith("if ")) {
-			throw new TemplateSyntaxError(
-				'Invalid attr directive: expected attribute name after "attr".',
-				{ span },
-			);
+		while (nameEnd < separator && tokens[nameEnd]?.type !== "equals") {
+			nameEnd++;
 		}
 
-		const match = directive.match(/^(.*)\s+if\s+(.+)$/);
+		const name = this.#parseAttrName(tokens.slice(index + 2, nameEnd), span);
+		const condition = this.#parseExpressionRange(
+			tokens.slice(separator + 1, closeIndex),
+			close.span,
+		);
 
-		if (!match) {
-			throw new TemplateSyntaxError(
-				'Invalid attr directive: expected "if" condition.',
-				{ span },
-			);
+		if (nameEnd === separator) {
+			return {
+				nextIndex: closeIndex + 1,
+				node: { condition, name, span, type: "attr" },
+			};
 		}
 
-		const beforeCondition = String(match[1]).trim();
-		const conditionExpression = String(match[2]).trim();
-		const equalsIndex = beforeCondition.indexOf("=");
-		const rawNameEnd =
-			equalsIndex === -1 ? beforeCondition.length : equalsIndex;
-		const rawName = beforeCondition.slice(0, rawNameEnd).trim();
-
-		if (!rawName) {
-			throw new TemplateSyntaxError(
-				'Invalid attr directive: expected attribute name after "attr".',
-				{ span },
-			);
-		}
-
-		if (rawName.includes(".")) {
-			throw new TemplateSyntaxError(
-				"Invalid attr directive: dynamic attribute names are not supported.",
-				{ span },
-			);
-		}
-
-		if (!/^[A-Za-z_:][A-Za-z0-9_.:-]*$/.test(rawName)) {
-			throw new TemplateSyntaxError(
-				`Invalid attr directive: invalid attribute name "${rawName}".`,
-				{ span },
-			);
-		}
-
-		const condition = this.#parseRawExpression(conditionExpression, span);
-
-		if (equalsIndex === -1) {
-			return { condition, name: rawName };
-		}
-
-		const attributeValueExpression = beforeCondition
-			.slice(equalsIndex + 1)
-			.trim();
-
-		if (!attributeValueExpression) {
+		if (nameEnd + 1 === separator) {
 			throw new TemplateSyntaxError(
 				'Invalid attr directive: expected attribute value expression after "=".',
+				{ span: tokens[nameEnd]?.span ?? span },
+			);
+		}
+
+		const value = this.#parseExpressionRange(
+			tokens.slice(nameEnd + 1, separator),
+			span,
+		);
+
+		return {
+			nextIndex: closeIndex + 1,
+			node: { condition, name, span, type: "attr", value },
+		};
+	}
+
+	#findAttrSeparator(
+		tokens: readonly Token[],
+		start: number,
+		end: number,
+	): number {
+		let separator = -1;
+		let bracketDepth = 0;
+
+		for (let index = start; index < end; index++) {
+			const token = tokens[index];
+			const previous = tokens[index - 1];
+			const next = tokens[index + 1];
+
+			if (token?.type === "leftBracket") {
+				bracketDepth++;
+				continue;
+			}
+
+			if (token?.type === "rightBracket") {
+				bracketDepth--;
+				continue;
+			}
+
+			if (
+				bracketDepth !== 0 ||
+				token?.type !== "identifier" ||
+				token.value !== "if" ||
+				previous === undefined ||
+				next === undefined ||
+				index + 1 >= end ||
+				previous.type === "dot" ||
+				next.type === "dot" ||
+				previous.span.end === token.span.start ||
+				token.span.end === next.span.start
+			) {
+				continue;
+			}
+
+			separator = index;
+		}
+
+		if (separator === -1) {
+			const token = tokens[start] ?? tokens[end];
+
+			throw new TemplateSyntaxError(
+				'Invalid attr directive: expected "if" condition.',
+				token === undefined ? {} : { span: token.span },
+			);
+		}
+
+		return separator;
+	}
+
+	#parseAttrName(tokens: readonly Token[], span: SourceSpan): string {
+		if (tokens.length === 0) {
+			throw new TemplateSyntaxError(
+				'Invalid attr directive: expected attribute name after "attr".',
 				{ span },
 			);
 		}
 
-		return {
-			condition,
-			name: rawName,
-			value: this.#parseRawExpression(attributeValueExpression, span),
-		};
+		let name = "";
+		let previousEnd = tokens[0]?.span.start;
+
+		for (const token of tokens) {
+			if (token.span.start !== previousEnd) {
+				throw new TemplateSyntaxError(
+					"Invalid attr directive: invalid attribute name.",
+					{
+						span: token.span,
+					},
+				);
+			}
+
+			if (token.type === "dot") {
+				throw new TemplateSyntaxError(
+					"Invalid attr directive: dynamic attribute names are not supported.",
+					{ span: token.span },
+				);
+			}
+
+			if (token.type === "identifier" || token.type === "number") {
+				name += token.value;
+				previousEnd = token.span.end;
+				continue;
+			}
+
+			if (token.type === "dash" || token.type === "colon") {
+				name += token.type === "dash" ? "-" : ":";
+				previousEnd = token.span.end;
+				continue;
+			}
+
+			throw new TemplateSyntaxError(
+				"Invalid attr directive: invalid attribute name.",
+				{
+					span: token.span,
+				},
+			);
+		}
+
+		if (!/^[A-Za-z_:][A-Za-z0-9_:-]*$/.test(name)) {
+			throw new TemplateSyntaxError(
+				`Invalid attr directive: invalid attribute name "${name}".`,
+				{ span },
+			);
+		}
+
+		return name;
 	}
 
-	#parseRawExpression(rawExpression: string, span: SourceSpan): ExpressionNode {
-		const expression = rawExpression.trim();
+	#parseExpressionRange(
+		tokens: readonly Token[],
+		span: SourceSpan,
+	): ExpressionNode {
+		const first = tokens[0];
 
-		if (!expression) {
+		if (first === undefined) {
 			throw new TemplateSyntaxError("Empty expression", { span });
 		}
 
-		const expressionStartInRaw = rawExpression.indexOf(expression);
-		const expressionSpan = {
-			end: span.start + expressionStartInRaw + expression.length,
-			start: span.start + expressionStartInRaw,
-		};
+		if (tokens.length !== 1) {
+			return this.#parsePathTokens(tokens);
+		}
 
-		if (expression.startsWith('"') || expression.startsWith("'")) {
-			const quote = expression[0] ?? "";
+		if (first.type === "string") {
+			return { span: first.span, type: "literal", value: first.value };
+		}
 
-			if (expression.length < 2 || !expression.endsWith(quote)) {
-				throw new TemplateSyntaxError("Unclosed string literal", {
-					span: expressionSpan,
-				});
-			}
-
+		if (first.type === "number") {
 			return {
-				span: expressionSpan,
+				span: first.span,
 				type: "literal",
-				value: expression.slice(1, -1),
+				value: this.#parseNumber(first),
 			};
 		}
 
-		if (expression === "true") {
-			return { span: expressionSpan, type: "literal", value: true };
+		if (first.type === "identifier" && first.value === "true") {
+			return { span: first.span, type: "literal", value: true };
 		}
 
-		if (expression === "false") {
-			return { span: expressionSpan, type: "literal", value: false };
+		if (first.type === "identifier" && first.value === "false") {
+			return { span: first.span, type: "literal", value: false };
 		}
 
-		if (/^\d+$/.test(expression)) {
-			return {
-				span: expressionSpan,
-				type: "literal",
-				value: Number(expression),
-			};
-		}
-
-		return {
-			segments: this.#parseRawPathSegments(expression, expressionSpan),
-			span: expressionSpan,
-			type: "path",
-		};
+		return this.#parsePathTokens(tokens);
 	}
 
-	#parseRawPathSegments(
-		expression: string,
-		span: SourceSpan,
-	): readonly PathSegment[] {
-		const segments: PathSegment[] = [];
-		let index = 0;
+	#parseNumber(token: Extract<Token, { type: "number" }>): number {
+		const value = Number(token.value);
 
-		const parseIdentifier = () => {
-			const start = index;
-
-			if (!/[A-Za-z_]/.test(expression[index] ?? "")) {
-				throw new TemplateSyntaxError("Malformed path expression", {
-					span: { end: span.start + index + 1, start: span.start + index },
-				});
-			}
-
-			while (
-				index < expression.length &&
-				/[A-Za-z0-9_]/.test(expression[index] ?? "")
-			) {
-				index++;
-			}
-
-			return expression.slice(start, index);
-		};
-
-		segments.push(parseIdentifier());
-
-		while (index < expression.length) {
-			const char = expression[index];
-
-			if (char === ".") {
-				index++;
-				segments.push(parseIdentifier());
-				continue;
-			}
-
-			if (char === "[") {
-				index++;
-				const bracketValue = this.#parseRawBracketSegment(
-					expression,
-					span,
-					index,
-				);
-				segments.push(bracketValue.segment);
-				index = bracketValue.nextIndex;
-				continue;
-			}
-
-			throw new TemplateSyntaxError("Malformed path expression", {
-				span: { end: span.start + index + 1, start: span.start + index },
-			});
+		if (!Number.isSafeInteger(value)) {
+			throw new TemplateSyntaxError(
+				"Numeric literal exceeds safe integer range",
+				{
+					span: token.span,
+				},
+			);
 		}
 
-		return segments;
-	}
-
-	#parseRawBracketSegment(
-		expression: string,
-		span: SourceSpan,
-		index: number,
-	): { readonly segment: PathSegment; readonly nextIndex: number } {
-		const char = expression[index];
-
-		if (char === '"' || char === "'") {
-			const quote = char;
-			const valueStart = index + 1;
-			let nextIndex = valueStart;
-
-			while (nextIndex < expression.length && expression[nextIndex] !== quote) {
-				nextIndex++;
-			}
-
-			if (expression[nextIndex] !== quote) {
-				throw new TemplateSyntaxError("Unclosed string literal", {
-					span: { end: span.end, start: span.start + index },
-				});
-			}
-
-			if (expression[nextIndex + 1] !== "]") {
-				throw new TemplateSyntaxError("Malformed path expression", {
-					span: { end: span.start + nextIndex + 2, start: span.start + index },
-				});
-			}
-
-			return {
-				nextIndex: nextIndex + 2,
-				segment: expression.slice(valueStart, nextIndex),
-			};
-		}
-
-		if (/[0-9]/.test(char ?? "")) {
-			const valueStart = index;
-			let nextIndex = index;
-
-			while (
-				nextIndex < expression.length &&
-				/[0-9]/.test(expression[nextIndex] ?? "")
-			) {
-				nextIndex++;
-			}
-
-			if (expression[nextIndex] !== "]") {
-				throw new TemplateSyntaxError("Malformed path expression", {
-					span: { end: span.start + nextIndex + 1, start: span.start + index },
-				});
-			}
-
-			return {
-				nextIndex: nextIndex + 1,
-				segment: Number(expression.slice(valueStart, nextIndex)),
-			};
-		}
-
-		throw new TemplateSyntaxError("Malformed path expression", {
-			span: { end: span.start + index + 1, start: span.start + index },
-		});
+		return value;
 	}
 
 	#parsePathExpression(
@@ -564,49 +509,52 @@ export class Parser {
 		index: number,
 		stopTokenType: "closeVariable" | "closeDirective",
 	): { expression: ExpressionNode; nextIndex: number } {
-		const maybeStop = tokens[index];
-		if (maybeStop?.type === stopTokenType) {
-			throw new TemplateSyntaxError("Empty expression", {
-				span: maybeStop.span,
-			});
+		const first = tokens[index];
+
+		if (first?.type === stopTokenType) {
+			throw new TemplateSyntaxError("Empty expression", { span: first.span });
 		}
 
-		const first = this.#expectToken(tokens, index, "identifier");
+		let nextIndex = index;
+
+		while (tokens[nextIndex]?.type !== stopTokenType) {
+			if (tokens[nextIndex] === undefined) {
+				throw new TemplateSyntaxError("Unexpected end in expression", {
+					...(first === undefined ? {} : { span: first.span }),
+				});
+			}
+
+			nextIndex++;
+		}
+
+		return {
+			expression: this.#parsePathTokens(tokens.slice(index, nextIndex)),
+			nextIndex,
+		};
+	}
+
+	#parsePathTokens(tokens: readonly Token[]): PathExpressionNode {
+		const first = this.#expectToken(tokens, 0, "identifier");
 		const segments: PathSegment[] = [first.value];
 		let lastSpan = first.span;
-		let nextIndex = index + 1;
+		let nextIndex = 1;
 
 		while (nextIndex < tokens.length) {
 			const token = tokens[nextIndex];
 
-			if (!token) {
-				throw new TemplateSyntaxError("Unexpected end in expression");
-			}
-
-			if (token.type === stopTokenType) {
-				return {
-					expression: {
-						segments,
-						span: { end: lastSpan.end, start: first.span.start },
-						type: "path",
-					},
-					nextIndex,
-				};
-			}
-
-			if (token.type === "dot") {
-				const segment = this.#expectPathPropertyToken(tokens, nextIndex + 1);
+			if (token?.type === "dot") {
+				const segment = this.#expectToken(tokens, nextIndex + 1, "identifier");
 				segments.push(segment.value);
 				lastSpan = segment.span;
 				nextIndex += 2;
 				continue;
 			}
 
-			if (token.type === "leftBracket") {
+			if (token?.type === "leftBracket") {
 				const segment = tokens[nextIndex + 1];
 
 				if (
-					!segment ||
+					segment === undefined ||
 					(segment.type !== "string" && segment.type !== "number")
 				) {
 					throw new TemplateSyntaxError("Malformed path expression", {
@@ -615,30 +563,36 @@ export class Parser {
 				}
 
 				const close = this.#expectToken(tokens, nextIndex + 2, "rightBracket");
-				segments.push(segment.value);
+				segments.push(
+					segment.type === "number"
+						? this.#parseNumber(segment)
+						: segment.value,
+				);
 				lastSpan = close.span;
 				nextIndex += 3;
 				continue;
 			}
 
 			throw new TemplateSyntaxError("Malformed path expression", {
-				span: token.span,
+				span: token?.span ?? lastSpan,
 			});
 		}
 
-		throw new TemplateSyntaxError("Unexpected end in expression", {
-			span: lastSpan,
-		});
+		return {
+			segments,
+			span: { end: lastSpan.end, start: first.span.start },
+			type: "path",
+		};
 	}
 
 	#parseClosingDirective(
 		tokens: readonly Token[],
 		index: number,
-		keyword: Keyword,
+		directive: string,
 		expectedName?: string,
 	): { nextIndex: number; span: { start: number; end: number } } {
 		const open = this.#expectToken(tokens, index, "openDirective");
-		this.#expectKeyword(tokens, index + 1, keyword);
+		this.#expectDirectiveWord(tokens, index + 1, directive);
 		let closeIndex = index + 2;
 
 		if (expectedName !== undefined) {
@@ -666,55 +620,25 @@ export class Parser {
 	#isStopDirective(
 		tokens: readonly Token[],
 		index: number,
-		stopKeywords: readonly Keyword[],
+		stopDirectives: readonly string[],
 	) {
 		const open = tokens[index];
-		const keyword = tokens[index + 1];
+		const directive = tokens[index + 1];
 
 		return (
 			open?.type === "openDirective" &&
-			keyword?.type === "keyword" &&
-			stopKeywords.includes(keyword.value)
+			directive?.type === "identifier" &&
+			stopDirectives.includes(directive.value)
 		);
 	}
 
-	#expectKeyword(tokens: readonly Token[], index: number, value?: Keyword) {
-		const token = tokens[index];
+	#expectDirectiveWord(tokens: readonly Token[], index: number, value: string) {
+		const token = this.#expectToken(tokens, index, "identifier");
 
-		if (!token || token.type !== "keyword") {
-			if (value !== undefined) {
-				throw new TemplateSyntaxError(`Expected ${value} directive`, {
-					...(token === undefined ? {} : { span: token.span }),
-				});
-			}
-
-			if (token) {
-				throw new TemplateSyntaxError("Expected keyword token", {
-					span: token.span,
-				});
-			}
-			throw new TemplateSyntaxError("Expected keyword token");
-		}
-
-		if (value !== undefined && token.value !== value) {
+		if (token.value !== value) {
 			throw new TemplateSyntaxError(`Expected ${value} directive`, {
 				span: token.span,
 			});
-		}
-
-		return token;
-	}
-
-	#expectPathPropertyToken(tokens: readonly Token[], index: number) {
-		const token = tokens[index];
-
-		if (!token || (token.type !== "identifier" && token.type !== "keyword")) {
-			if (token) {
-				throw new TemplateSyntaxError("Expected identifier token", {
-					span: token.span,
-				});
-			}
-			throw new TemplateSyntaxError("Expected identifier token");
 		}
 
 		return token;

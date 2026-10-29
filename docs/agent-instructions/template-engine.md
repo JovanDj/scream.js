@@ -31,6 +31,18 @@ Stage responsibilities:
 
 Every stage receives structured input, returns structured output, and does not do another stage's job.
 
+## Tokenization and Parsing
+
+* The tokenizer is strictly lexical: it emits text, tag delimiters, identifiers, strings, number lexemes, and punctuation with source spans.
+* All words, including `attr`, `if`, `for`, and `in`, are identifiers. Only the parser interprets directive names in directive position.
+* Variable and directive tags use the same content scanner. Closing delimiters inside quoted strings do not end a tag.
+* Both quote styles are supported; backslash escapes are not part of the string syntax. Static text is preserved exactly.
+* Number tokens retain their original digits. The parser converts numeric literals and indexes and rejects values outside JavaScript's safe-integer range. Quoted numeric keys remain strings.
+* The parser takes tokens only. It parses attribute names, assignments, paths, literals, and conditions without rescanning raw source.
+* Attribute names must be contiguous and static; hyphens, colons, underscores, and numeric fragments are preserved. Spaced and dotted names are rejected.
+* An attr condition begins at the last whitespace-delimited `if` outside strings, bracket paths, and dotted-property positions.
+* Expressions must consume their complete token range. Operators and adjacent literals are rejected; operator characters inside a quoted string are ordinary text.
+
 ## Compilation and Rendering
 
 * Layout inheritance is compile-time behavior.

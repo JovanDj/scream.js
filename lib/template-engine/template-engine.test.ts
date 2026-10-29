@@ -1,7 +1,10 @@
 import { describe, it, type TestContext } from "node:test";
 import type { RenderContext } from "./context.js";
 import { InMemoryFileLoader } from "./in-memory-file-loader.js";
-import { ScreamTemplateEngine } from "./template-engine.js";
+import {
+	ScreamTemplateEngine,
+	TemplateSyntaxError,
+} from "./template-engine.js";
 
 describe("ScreamTemplateEngine", { concurrency: true }, () => {
 	const setupTemplateEngine = () => {
@@ -68,6 +71,117 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			t.assert.deepStrictEqual<string>(result, "Required");
 		});
 
+		it("should preserve closing variable delimiters inside quoted bracket keys", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = '{{ user["}}"] }}';
+			const context: RenderContext = { user: { "}}": "Ada" } };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "Ada");
+		});
+
+		it("should preserve closing variable delimiters inside single-quoted bracket keys", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ user['}}'] }}";
+			const context: RenderContext = { user: { "}}": "Ada" } };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "Ada");
+		});
+
+		it("should resolve the maximum safe numeric index", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ values[9007199254740991] }}";
+			const context: RenderContext = {
+				values: { "9007199254740991": "Maximum safe key" },
+			};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "Maximum safe key");
+		});
+
+		it("should reject numeric indexes immediately above the safe integer range", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ values[9007199254740992] }}";
+			const context: RenderContext = {
+				values: { "9007199254740992": "Unsafe key" },
+			};
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, TemplateSyntaxError);
+		});
+
+		it("should preserve large numeric bracket keys as strings with either quote style", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = `{{ values["9007199254740993"] }}|{{ values['9007199254740993'] }}`;
+			const context: RenderContext = {
+				values: {
+					"9007199254740992": "Rounded key",
+					"9007199254740993": "Exact key",
+				},
+			};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "Exact key|Exact key");
+		});
+
+		it("should distinguish leading-zero numeric indexes from quoted string keys", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				'{{ values[001] }}|{{ values["001"] }}<input{% attr value = values[001] if true %}>';
+			const context: RenderContext = {
+				values: { "1": "Numeric key", "001": "String key" },
+			};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'Numeric key|String key<input value="Numeric key">',
+			);
+		});
+
+		it("should report an unclosed bracket string rather than an unclosed variable tag", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = '{{ user["unfinished] }}';
+			const context: RenderContext = { user: {} };
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, {
+				constructor: TemplateSyntaxError,
+				message: /Unclosed string literal/,
+			});
+		});
+
+		it("should reject numeric path segments that cannot be represented exactly", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ values[9007199254740993] }}";
+			const context: RenderContext = {
+				values: {
+					"9007199254740992": "Rounded key",
+					"9007199254740993": "Requested key",
+				},
+			};
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, TemplateSyntaxError);
+		});
+
 		it("should replace keyword-like object keys", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
@@ -79,6 +193,28 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const result = templateEngine.render(template, context);
 
 			t.assert.deepStrictEqual<string>(result, "condition collection loop");
+		});
+
+		it("should replace a root context key named like a directive", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ attr }}";
+			const context: RenderContext = { attr: "Ada" };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "Ada");
+		});
+
+		it("should replace root context keys named if and for", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ if }}|{{ for }}";
+			const context: RenderContext = { for: "Collection", if: "Condition" };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "Condition|Collection");
 		});
 
 		it("should replace multiple variables", (t: TestContext) => {
@@ -331,6 +467,281 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				result,
 				'<input value="A &quot;quoted&quot; title">',
 			);
+		});
+
+		it("should preserve closing directive delimiters inside quoted attribute values", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = '<input{% attr value = "%}" if true %}>';
+			const context: RenderContext = {};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, '<input value="%}">');
+		});
+
+		it("should reject string addition in attribute value expressions", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = '<input{% attr value = "a" + "b" if true %}>';
+			const context: RenderContext = {};
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, TemplateSyntaxError);
+		});
+
+		it("should preserve closing directive delimiters inside single-quoted attribute values", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "<input{% attr value = '%}' if true %}>";
+			const context: RenderContext = {};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, '<input value="%}">');
+		});
+
+		it("should report an unclosed attribute string rather than an unclosed directive tag", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "<input{% attr value = 'unfinished if true %}>";
+			const context: RenderContext = {};
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, {
+				constructor: TemplateSyntaxError,
+				message: /Unclosed string literal/,
+			});
+		});
+
+		it("should render maximum safe numeric attribute literals and indexes", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				"<input{% attr max = 9007199254740991 if true %}{% attr value = values[9007199254740991] if true %}>";
+			const context: RenderContext = {
+				values: { "9007199254740991": "Maximum safe key" },
+			};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<input max="9007199254740991" value="Maximum safe key">',
+			);
+		});
+
+		it("should reject unsafe numeric attribute value literals", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "<input{% attr value = 9007199254740992 if true %}>";
+			const context: RenderContext = {};
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, TemplateSyntaxError);
+		});
+
+		it("should reject unsafe numeric indexes in attribute values", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				"<input{% attr value = values[9007199254740993] if true %}>";
+			const context: RenderContext = {
+				values: {
+					"9007199254740992": "Rounded key",
+					"9007199254740993": "Requested key",
+				},
+			};
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, TemplateSyntaxError);
+		});
+
+		it("should reject unsafe numeric literals and indexes in attribute conditions", (t: TestContext) => {
+			t.plan(2);
+			const { templateEngine } = setupTemplateEngine();
+			const literalTemplate = "<input{% attr disabled if 9007199254740993 %}>";
+			const indexedTemplate =
+				"<input{% attr disabled if flags[9007199254740993] %}>";
+			const context: RenderContext = {
+				flags: {
+					"9007199254740992": true,
+					"9007199254740993": false,
+				},
+			};
+
+			const renderLiteral = () =>
+				templateEngine.render(literalTemplate, context);
+			const renderIndexed = () =>
+				templateEngine.render(indexedTemplate, context);
+
+			t.assert.throws(renderLiteral, TemplateSyntaxError);
+			t.assert.throws(renderIndexed, TemplateSyntaxError);
+		});
+
+		it("should preserve quoted large numeric attribute literals and bracket keys", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				'<input{% attr data-id = "9007199254740993" if true %}{% attr value = values["9007199254740993"] if true %}>';
+			const context: RenderContext = {
+				values: {
+					"9007199254740992": "Rounded key",
+					"9007199254740993": "Exact key",
+				},
+			};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<input data-id="9007199254740993" value="Exact key">',
+			);
+		});
+
+		it("should preserve contiguous hyphenated and namespaced attribute names", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				'<button{% attr aria-expanded = false if true %}{% attr xml:lang = "en" if true %}{% attr data-001 = "item" if true %}>Menu</button>';
+			const context: RenderContext = {};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<button aria-expanded="false" xml:lang="en" data-001="item">Menu</button>',
+			);
+		});
+
+		it("should preserve underscore and colon starts and long digit fragments in attribute names", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				"<input{% attr _private if true %}{% attr :state if true %}{% attr data-0009007199254740993 if true %}>";
+			const context: RenderContext = {};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				"<input _private :state data-0009007199254740993>",
+			);
+		});
+
+		it("should reject attribute names separated by whitespace", (t: TestContext) => {
+			t.plan(2);
+			const { templateEngine } = setupTemplateEngine();
+			const spacedDashTemplate = "<input{% attr aria - expanded if true %}>";
+			const spacedDigitsTemplate = "<input{% attr data-00 1 if true %}>";
+			const context: RenderContext = {};
+
+			const renderSpacedDash = () =>
+				templateEngine.render(spacedDashTemplate, context);
+			const renderSpacedDigits = () =>
+				templateEngine.render(spacedDigitsTemplate, context);
+
+			t.assert.throws(renderSpacedDash, TemplateSyntaxError);
+			t.assert.throws(renderSpacedDigits, TemplateSyntaxError);
+		});
+
+		it("should reject dotted attribute names", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "<input{% attr user.name if true %}>";
+			const context: RenderContext = { user: { name: "value" } };
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, TemplateSyntaxError);
+		});
+
+		it("should use the last standalone if to separate attribute values from conditions", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "<input{% attr value = if if for %}>";
+			const context: RenderContext = { for: true, if: "Selected value" };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<input value="Selected value">',
+			);
+		});
+
+		it("should ignore if text inside quoted value and condition bracket keys", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = `<input{% attr value = values["choice if selected"] if flags['has if permission'] %}>`;
+			const context: RenderContext = {
+				flags: { "has if permission": true },
+				values: { "choice if selected": "Allowed" },
+			};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, '<input value="Allowed">');
+		});
+
+		it("should distinguish dotted if properties from the attribute condition separator despite whitespace", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "<input{% attr value = values . if if flags . if %}>";
+			const context: RenderContext = {
+				flags: { if: true },
+				values: { if: "Allowed" },
+			};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, '<input value="Allowed">');
+		});
+
+		it("should allow operator characters inside attribute string literals", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				'<input{% attr value = "a + b == c && d || e > f" if true %}>';
+			const context: RenderContext = {};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<input value="a + b == c &amp;&amp; d || e &gt; f">',
+			);
+		});
+
+		it("should reject adjacent strings in attribute value expressions", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = '<input{% attr value = "a" "b" if true %}>';
+			const context: RenderContext = {};
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, TemplateSyntaxError);
+		});
+
+		it("should reject operators outside attribute strings in values and conditions", (t: TestContext) => {
+			t.plan(2);
+			const { templateEngine } = setupTemplateEngine();
+			const valueTemplate = "<input{% attr value = 1 - 2 if true %}>";
+			const conditionTemplate =
+				"<input{% attr disabled if enabled || pending %}>";
+			const context: RenderContext = { enabled: true, pending: false };
+
+			const renderValue = () => templateEngine.render(valueTemplate, context);
+			const renderCondition = () =>
+				templateEngine.render(conditionTemplate, context);
+
+			t.assert.throws(renderValue, TemplateSyntaxError);
+			t.assert.throws(renderCondition, TemplateSyntaxError);
 		});
 
 		it("should preserve false as a valued attribute", (t: TestContext) => {

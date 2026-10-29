@@ -3,29 +3,12 @@ import {
 	TemplateSyntaxError,
 } from "./template-syntax-error.js";
 
-export type Keyword =
-	| "extends"
-	| "block"
-	| "endblock"
-	| "if"
-	| "else"
-	| "endif"
-	| "for"
-	| "in"
-	| "endfor"
-	| "attr";
-
 export type Token =
 	| { readonly type: "text"; readonly value: string; readonly span: SourceSpan }
 	| { readonly type: "openVariable"; readonly span: SourceSpan }
 	| { readonly type: "closeVariable"; readonly span: SourceSpan }
 	| { readonly type: "openDirective"; readonly span: SourceSpan }
 	| { readonly type: "closeDirective"; readonly span: SourceSpan }
-	| {
-			readonly type: "keyword";
-			readonly value: Keyword;
-			readonly span: SourceSpan;
-	  }
 	| {
 			readonly type: "identifier";
 			readonly value: string;
@@ -38,14 +21,12 @@ export type Token =
 	  }
 	| {
 			readonly type: "number";
-			readonly value: number;
-			readonly span: SourceSpan;
-	  }
-	| {
-			readonly type: "attrDirective";
 			readonly value: string;
 			readonly span: SourceSpan;
 	  }
+	| { readonly type: "equals"; readonly span: SourceSpan }
+	| { readonly type: "dash"; readonly span: SourceSpan }
+	| { readonly type: "colon"; readonly span: SourceSpan }
 	| { readonly type: "dot"; readonly span: SourceSpan }
 	| { readonly type: "leftBracket"; readonly span: SourceSpan }
 	| { readonly type: "rightBracket"; readonly span: SourceSpan };
@@ -88,7 +69,7 @@ export class Tokenizer {
 	}
 
 	#tokenizeVariableTag(template: string, index: number): TokenizeResult {
-		const closeIndex = template.indexOf("}}", index + 2);
+		const closeIndex = this.#findTagEnd(template, index + 2, "}}");
 
 		if (closeIndex === -1) {
 			throw new TemplateSyntaxError("Unclosed variable tag", {
@@ -103,7 +84,7 @@ export class Tokenizer {
 					span: { end: index + 2, start: index },
 					type: "openVariable",
 				},
-				...this.#tokenizeExpressionContent(
+				...this.#tokenizeTagContent(
 					template.slice(index + 2, closeIndex),
 					index + 2,
 				),
@@ -116,7 +97,7 @@ export class Tokenizer {
 	}
 
 	#tokenizeDirectiveTag(template: string, index: number): TokenizeResult {
-		const closeIndex = template.indexOf("%}", index + 2);
+		const closeIndex = this.#findTagEnd(template, index + 2, "%}");
 
 		if (closeIndex === -1) {
 			throw new TemplateSyntaxError("Unclosed directive tag", {
@@ -131,7 +112,7 @@ export class Tokenizer {
 					span: { end: index + 2, start: index },
 					type: "openDirective",
 				},
-				...this.#tokenizeDirectiveContent(
+				...this.#tokenizeTagContent(
 					template.slice(index + 2, closeIndex),
 					index + 2,
 				),
@@ -163,62 +144,36 @@ export class Tokenizer {
 		};
 	}
 
-	#tokenizeDirectiveContent(
-		input: string,
-		sourceOffset: number,
-	): readonly Token[] {
-		if (/^\s*attr(?:\s|$)/.test(input)) {
-			return this.#tokenizeAttrDirective(input, sourceOffset);
+	#findTagEnd(template: string, start: number, delimiter: string): number {
+		let index = start;
+
+		while (index < template.length) {
+			const char = template[index];
+
+			if (char === '"' || char === "'") {
+				const closeQuote = template.indexOf(char, index + 1);
+
+				if (closeQuote === -1) {
+					throw new TemplateSyntaxError("Unclosed string literal", {
+						span: { end: template.length, start: index },
+					});
+				}
+
+				index = closeQuote + 1;
+				continue;
+			}
+
+			if (template.startsWith(delimiter, index)) {
+				return index;
+			}
+
+			index++;
 		}
 
-		return this.#tokenizeExpressionContent(input, sourceOffset);
+		return -1;
 	}
 
-	#tokenizeAttrDirective(
-		input: string,
-		sourceOffset: number,
-	): readonly Token[] {
-		const match = input.match(/^(\s*)attr(?:\s+([\s\S]*?))?\s*$/);
-
-		if (!match) {
-			throw new TemplateSyntaxError("Invalid attr directive", {
-				span: { end: sourceOffset + input.length, start: sourceOffset },
-			});
-		}
-
-		const leadingWhitespace = match[1] ?? "";
-		const rawDirective = match[2] ?? "";
-		const keywordStart = sourceOffset + leadingWhitespace.length;
-		const directiveValue = rawDirective.trim();
-		const directiveStartInInput =
-			directiveValue.length === 0
-				? input.length
-				: input.indexOf(directiveValue);
-		const directiveStart =
-			sourceOffset +
-			Math.max(directiveStartInInput, leadingWhitespace.length + 4);
-
-		return [
-			{
-				span: { end: keywordStart + "attr".length, start: keywordStart },
-				type: "keyword",
-				value: "attr",
-			},
-			{
-				span: {
-					end: directiveStart + directiveValue.length,
-					start: directiveStart,
-				},
-				type: "attrDirective",
-				value: directiveValue,
-			},
-		];
-	}
-
-	#tokenizeExpressionContent(
-		input: string,
-		sourceOffset: number,
-	): readonly Token[] {
+	#tokenizeTagContent(input: string, sourceOffset: number): readonly Token[] {
 		const tokens: Token[] = [];
 		let index = 0;
 
@@ -245,12 +200,11 @@ export class Tokenizer {
 					value += input[index++];
 				}
 
-				tokens.push(
-					this.#tokenizeWord(value, {
-						end: sourceOffset + index,
-						start: sourceOffset + start,
-					}),
-				);
+				tokens.push({
+					span: { end: sourceOffset + index, start: sourceOffset + start },
+					type: "identifier",
+					value,
+				});
 				continue;
 			}
 
@@ -265,7 +219,7 @@ export class Tokenizer {
 				tokens.push({
 					span: { end: sourceOffset + index, start: sourceOffset + start },
 					type: "number",
-					value: Number(raw),
+					value: raw,
 				});
 				continue;
 			}
@@ -306,6 +260,33 @@ export class Tokenizer {
 				continue;
 			}
 
+			if (char === "=") {
+				tokens.push({
+					span: { end: sourceOffset + index + 1, start: sourceOffset + index },
+					type: "equals",
+				});
+				index++;
+				continue;
+			}
+
+			if (char === "-") {
+				tokens.push({
+					span: { end: sourceOffset + index + 1, start: sourceOffset + index },
+					type: "dash",
+				});
+				index++;
+				continue;
+			}
+
+			if (char === ":") {
+				tokens.push({
+					span: { end: sourceOffset + index + 1, start: sourceOffset + index },
+					type: "colon",
+				});
+				index++;
+				continue;
+			}
+
 			if (char === "[") {
 				tokens.push({
 					span: { end: sourceOffset + index + 1, start: sourceOffset + index },
@@ -330,70 +311,5 @@ export class Tokenizer {
 		}
 
 		return tokens;
-	}
-
-	#tokenizeWord(
-		value: string,
-		span: SourceSpan,
-	): Extract<Token, { readonly type: "keyword" | "identifier" }> {
-		const keyword = this.#toKeyword(value);
-
-		if (keyword) {
-			return {
-				span,
-				type: "keyword",
-				value: keyword,
-			};
-		}
-
-		return {
-			span,
-			type: "identifier",
-			value,
-		};
-	}
-
-	#toKeyword(value: string): Keyword | undefined {
-		if (value === "extends") {
-			return value;
-		}
-
-		if (value === "block") {
-			return value;
-		}
-
-		if (value === "endblock") {
-			return value;
-		}
-
-		if (value === "if") {
-			return value;
-		}
-
-		if (value === "else") {
-			return value;
-		}
-
-		if (value === "endif") {
-			return value;
-		}
-
-		if (value === "for") {
-			return value;
-		}
-
-		if (value === "in") {
-			return value;
-		}
-
-		if (value === "endfor") {
-			return value;
-		}
-
-		if (value === "attr") {
-			return value;
-		}
-
-		return undefined;
 	}
 }
