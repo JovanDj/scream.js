@@ -23,7 +23,7 @@ ScreamJS rejects Express-style chaos, NestJS-style ceremony, Next.js frontend gr
 * **Typed persistence** - explicit persistence boundaries; DB choice is yours.
 * **Opinionated defaults** - conventions over configuration; clear stances keep projects consistent.
 * **First-party batteries** - include as many batteries as practical and hand-craft them when possible.
-* **Zero surprises** - ESM-only, Node 22+, strict TypeScript, Biome for lint/format.
+* **Zero surprises** - ESM-only, Node 26, strict TypeScript, Biome for lint/format.
 
 ## Scope
 

@@ -18,7 +18,7 @@
 	"exclude": ["dist", "node_modules", "resources"],
 	"extends": [
 		"@tsconfig/recommended/tsconfig.json",
-		"@tsconfig/node24/tsconfig.json",
+		"@tsconfig/node26/tsconfig.json",
 		"@tsconfig/node-ts/tsconfig.json",
 		"@tsconfig/strictest/tsconfig.json"
 	]
