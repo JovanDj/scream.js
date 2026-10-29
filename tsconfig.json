@@ -5,6 +5,7 @@
 		"experimentalDecorators": false,
 		"inlineSourceMap": true,
 		"inlineSources": true,
+		"noEmitOnError": true,
 		"outDir": "dist",
 		"paths": {
 			"@/*": ["./src/*"],
@@ -14,6 +15,7 @@
 		"rootDir": ".",
 		"types": ["node"]
 	},
+	"exclude": ["dist", "node_modules", "resources"],
 	"extends": [
 		"@tsconfig/recommended/tsconfig.json",
 		"@tsconfig/node24/tsconfig.json",
