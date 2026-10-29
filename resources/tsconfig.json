@@ -1,12 +1,17 @@
 {
 	"compilerOptions": {
+		"erasableSyntaxOnly": true,
 		"lib": ["ES2024", "DOM", "DOM.Iterable"],
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"noEmit": true,
-		"types": ["vite/client"]
+		"target": "ES2024",
+		"types": ["vite/client"],
+		"verbatimModuleSyntax": true
 	},
-	"exclude": ["../dist", "../node_modules"],
-	"extends": ["../tsconfig.json"],
+	"extends": [
+		"@tsconfig/recommended/tsconfig.json",
+		"@tsconfig/strictest/tsconfig.json"
+	],
 	"include": ["./**/*.ts"]
 }
