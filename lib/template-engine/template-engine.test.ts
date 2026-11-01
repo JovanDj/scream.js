@@ -9,6 +9,7 @@ import {
 	FormattedNumber,
 	ScreamTemplateEngine,
 	TemplateGroupFileLoader,
+	TemplateSyntaxError,
 } from "./template-engine.js";
 
 describe("ScreamTemplateEngine", { concurrency: true }, () => {
@@ -1147,6 +1148,17 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				() => templateEngine.render('<a href="#content">Skip</a>', {}),
 				expectedError,
 			);
+		});
+
+		it("rejects literal URLs when attribute names span conditionals", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = '<a h{% if enabled %}ref{% endif %}="/hardcoded">X</a>';
+			const context = Object.freeze({ enabled: true });
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, TemplateSyntaxError);
 		});
 
 		it("rejects route URLs composed from attributes and literal path fragments", (t: TestContext) => {
