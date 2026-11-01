@@ -21,6 +21,7 @@ This file is intentionally minimal. Read the linked instruction file for any are
 * Use manual dependency composition; dependencies must be visible in constructors.
 * Prefer existing shared contracts for dependency types whenever they cover the required behavior. Do not duplicate them with per-action interfaces or inline structural types.
 * Treat external input as raw until parsed into trusted values.
+* Before investigating, reviewing, or changing the template engine, view templates, rendering integrations, or related tests, read [Template Engine Guidelines](docs/agent-instructions/template-engine.md). Require delegated agents working in these areas to read them first too.
 * All tests must be black-box BDD: exercise public boundaries and assert observable behavior, not implementation details. See [Testing Guidelines](docs/agent-instructions/testing.md).
 * All tests must be deterministic with immutable inputs and setup. Use fixed values and `const`; never reassign flags or use invocation counters to change test-double behavior. Use separate immutable scenarios or dependencies instead.
 * Register test resource cleanup with `t.after()` immediately after setup; do not wrap test bodies in cleanup-only `try/finally`. Keep explicit close/shutdown calls only when their behavior is under test.
