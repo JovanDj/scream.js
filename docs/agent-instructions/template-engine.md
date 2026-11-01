@@ -39,15 +39,13 @@ Every stage receives structured input, returns structured output, and does not d
 
 ## Tokenization and Parsing
 
-* The tokenizer is strictly lexical: it emits text, tag delimiters, identifiers, strings, number lexemes, and punctuation with source spans.
-* All words, including `attr`, `if`, `for`, and `in`, are identifiers. Only the parser interprets directive names in directive position.
+* The tokenizer is strictly lexical: it emits text, tag delimiters, words, strings, and supported punctuation with source spans.
+* All words, including `attr`, `if`, `for`, and `in`, are word tokens. Only the parser interprets directive names in directive position.
 * Variable and directive tags use the same content scanner. Closing delimiters inside quoted strings do not end a tag.
 * Both quote styles are supported; backslash escapes are not part of the string syntax. Static text is preserved exactly.
-* Number tokens retain their original digits. The parser converts numeric literals and indexes and rejects values outside JavaScript's safe-integer range. Quoted numeric keys remain strings.
-* The parser takes tokens only. It parses attribute names, assignments, paths, literals, and conditions without rescanning raw source.
-* Attribute names must be contiguous and static; hyphens, colons, underscores, and numeric fragments are preserved. Spaced and dotted names are rejected.
-* An attr condition begins at the last whitespace-delimited `if` outside strings, bracket paths, and dotted-property positions.
-* Expressions must consume their complete token range. Operators and adjacent literals are rejected; operator characters inside a quoted string are ordinary text.
+* The parser takes tokens only. It parses paths, conditions, static template references, parameter bindings, and the structural `length(path)` builtin without rescanning raw source.
+* Literal expressions, bracket/index paths, and the former `attr` directive are unsupported. Do not restore their grammar while maintaining the lexical boundary.
+* Expressions must consume their complete token range. Operators, adjacent expressions, and arbitrary calls are rejected; characters inside quoted template names are ordinary string content.
 
 ## Compilation and Rendering
 
@@ -64,6 +62,8 @@ Every stage receives structured input, returns structured output, and does not d
 * Invalid direct object/array/function/symbol rendering fails loudly.
 * Filesystem loaders read templates on each render and do not cache compiled output.
 * Template-engine coverage is intentionally black-box at the public `ScreamTemplateEngine` boundary.
+
+For native test tags linking each case to the paper or an explicit ScreamJS policy, see [Parr Test Traceability](../template-engine-parr-traceability.md).
 
 ## Model-View Separation
 
