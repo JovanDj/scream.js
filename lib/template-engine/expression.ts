@@ -6,4 +6,10 @@ export type PathExpressionNode = {
 	readonly span: SourceSpan;
 };
 
-export type ExpressionNode = PathExpressionNode;
+export type LengthExpressionNode = {
+	readonly type: "length";
+	readonly argument: PathExpressionNode;
+	readonly span: SourceSpan;
+};
+
+export type ExpressionNode = PathExpressionNode | LengthExpressionNode;

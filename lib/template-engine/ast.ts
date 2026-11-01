@@ -1,4 +1,4 @@
-import type { ExpressionNode } from "./expression.js";
+import type { ExpressionNode, PathExpressionNode } from "./expression.js";
 import type { SourceSpan } from "./template-syntax-error.js";
 
 export type TemplateASTNode =
@@ -38,13 +38,13 @@ export type IfNode = {
 
 export type InterfaceNode = {
 	readonly type: "interface";
-	readonly attributes: readonly ExpressionNode[];
+	readonly attributes: readonly PathExpressionNode[];
 	readonly span: SourceSpan;
 };
 
 export type ApplyNode = {
 	readonly type: "apply";
-	readonly source: ExpressionNode;
+	readonly source: PathExpressionNode;
 	readonly children: readonly TemplateASTNode[];
 	readonly templates?: readonly ApplyTemplateReference[];
 	readonly templateStages?: readonly (readonly ApplyTemplateReference[])[];
@@ -90,7 +90,7 @@ export type ScopedTemplateNode = {
 
 export type TemplateParameterBinding = {
 	readonly name: string;
-	readonly expression: ExpressionNode;
+	readonly expression: PathExpressionNode;
 	readonly span: SourceSpan;
 };
 

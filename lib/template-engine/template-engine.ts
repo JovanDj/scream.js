@@ -15,7 +15,11 @@ import { Tokenizer } from "./tokenizer.js";
 
 export type { TemplateASTNode } from "./ast.js";
 export type { RenderContext } from "./context.js";
-export type { ExpressionNode, PathExpressionNode } from "./expression.js";
+export type {
+	ExpressionNode,
+	LengthExpressionNode,
+	PathExpressionNode,
+} from "./expression.js";
 export type { RenderNode } from "./render-node.js";
 export { FormattedDate, FormattedNumber } from "./render-values.js";
 export {

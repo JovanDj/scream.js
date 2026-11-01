@@ -3,7 +3,7 @@ import type {
 	TemplateASTNode,
 	TemplateParameterBinding,
 } from "./ast.js";
-import type { PathExpressionNode } from "./expression.js";
+import type { LengthExpressionNode, PathExpressionNode } from "./expression.js";
 import {
 	type SourceSpan,
 	TemplateSyntaxError,
@@ -237,7 +237,7 @@ export class Parser {
 			});
 		}
 
-		const { expression, nextIndex } = this.#parsePathExpression(
+		const { expression, nextIndex } = this.#parseExpression(
 			tokens,
 			index + 1,
 			"closeVariable",
@@ -298,7 +298,7 @@ export class Parser {
 	#parseIf(tokens: readonly Token[], index: number): NodeResult {
 		const open = this.#expectToken(tokens, index, "openDirective");
 		this.#expectWord(tokens, index + 1, "if");
-		const condition = this.#parsePathExpression(
+		const condition = this.#parseExpression(
 			tokens,
 			index + 2,
 			"closeDirective",
@@ -660,6 +660,33 @@ export class Parser {
 			},
 			nextIndex: expression.nextIndex,
 		};
+	}
+
+	#parseExpression(
+		tokens: readonly Token[],
+		index: number,
+		stopTokenType: "closeVariable" | "closeDirective",
+	) {
+		const first = tokens[index];
+		if (
+			first?.type !== "word" ||
+			first.value !== "length" ||
+			tokens[index + 1]?.type !== "openParen"
+		) {
+			return this.#parsePathExpression(tokens, index, stopTokenType);
+		}
+
+		const argument = this.#parsePathExpressionUntil(tokens, index + 2, [
+			"closeParen",
+		]);
+		const close = this.#expectToken(tokens, argument.nextIndex, "closeParen");
+		const expression: LengthExpressionNode = {
+			argument: argument.expression,
+			span: { end: close.span.end, start: first.span.start },
+			type: "length",
+		};
+
+		return { expression, nextIndex: argument.nextIndex + 1 };
 	}
 
 	#parsePathExpression(

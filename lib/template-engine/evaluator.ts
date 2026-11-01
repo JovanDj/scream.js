@@ -7,7 +7,11 @@ import type {
 	TemplateParameterBinding,
 } from "./ast.js";
 import type { RenderContext } from "./context.js";
-import type { ExpressionNode } from "./expression.js";
+import type {
+	ExpressionNode,
+	LengthExpressionNode,
+	PathExpressionNode,
+} from "./expression.js";
 import { RenderError } from "./render-error.js";
 import type { RenderNode } from "./render-node.js";
 import { RenderedTemplateValue } from "./render-values.js";
@@ -49,7 +53,7 @@ export class Evaluator {
 		}
 
 		if (node.type === "variable") {
-			const raw = this.#resolvePath(context, node.expression.segments);
+			const raw = this.#evaluateExpression(node.expression, context);
 
 			return [
 				{
@@ -64,9 +68,11 @@ export class Evaluator {
 		}
 
 		if (node.type === "if") {
-			const selectedBranch = this.#isPresent(node.condition, context)
-				? node.children
-				: node.alternate;
+			const condition =
+				node.condition.type === "length"
+					? this.#length(node.condition, context) > 0
+					: this.#isPresent(node.condition, context);
+			const selectedBranch = condition ? node.children : node.alternate;
 
 			return this.#evaluateNodes(selectedBranch, context, templates);
 		}
@@ -352,13 +358,38 @@ export class Evaluator {
 		return !!x && typeof x === "object" && !Array.isArray(x);
 	}
 
-	#isPresent(expression: ExpressionNode, context: RenderContext) {
+	#evaluateExpression(expression: ExpressionNode, context: RenderContext) {
+		return expression.type === "length"
+			? this.#length(expression, context)
+			: this.#resolvePath(context, expression.segments);
+	}
+
+	#length(expression: LengthExpressionNode, context: RenderContext) {
+		const value = this.#resolvePath(context, expression.argument.segments);
+		if (value === MISSING || value === null || value === undefined) {
+			return 0;
+		}
+
+		if (Array.isArray(value)) {
+			return value.length;
+		}
+
+		throw new RenderError("length() requires an array", {
+			expression: this.#formatExpression(expression),
+		});
+	}
+
+	#isPresent(expression: PathExpressionNode, context: RenderContext) {
 		const value = this.#resolvePath(context, expression.segments);
 
 		return value !== MISSING && value !== null && value !== undefined;
 	}
 
 	#formatExpression(expression: ExpressionNode): string {
+		if (expression.type === "length") {
+			return `length(${this.#formatPath(expression.argument.segments)})`;
+		}
+
 		return this.#formatPath(expression.segments);
 	}
 

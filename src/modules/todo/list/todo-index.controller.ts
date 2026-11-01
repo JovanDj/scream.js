@@ -24,7 +24,6 @@ export class TodosIndexController extends IndexController<
 				dueToday: this.#createUrl(input, { page: 1, status: "dueToday" }),
 				open: this.#createUrl(input, { page: 1, status: "open" }),
 			},
-			hasTodos: todos.length > 0 ? true : undefined,
 			homeUrl: "/",
 			notesUrl: "/project-notes",
 			search: input.search,

@@ -13,7 +13,7 @@
             {% if isFiltered %}<a href="{{ notesUrl }}">All Notes</a>{% endif %}
             <a href="{{ projectUrl }}">{% if isFiltered %}Back to Project{% else %}Projects{% endif %}</a>
         </div>
-        {% if hasNotes %}
+        {% if length(notes) %}
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead><tr><th>Title</th><th>Project</th><th>Actions</th></tr></thead>

@@ -31,7 +31,6 @@ export class ProjectNoteIndexController extends IndexController<
 				input.projectId === undefined
 					? "/project-notes/create"
 					: `/project-notes/create?projectId=${input.projectId}`,
-			hasNotes: notes.length > 0 ? true : undefined,
 			homeUrl: "/",
 			isFiltered: input.projectId !== undefined ? true : undefined,
 			notes: notes.map((note) => ({

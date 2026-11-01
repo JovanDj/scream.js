@@ -71,8 +71,8 @@ Templates follow Parr's strict model-view separation.
 
 The engine has entanglement index 1: it enforces the four decidable separation rules, but it cannot infer whether an otherwise inert pushed value carries display meaning.
 
-* Templates may reference attributes, test attribute presence, include static templates, and apply templates to attributes.
-* Templates must not perform business logic, arbitrary computation, JavaScript truthiness checks, method calls, filters, or collection length checks.
+* Templates may reference attributes, test attribute presence, inspect collection length with `length(path)`, include static templates, and apply templates to attributes.
+* Templates must not perform business logic, arbitrary computation, JavaScript truthiness checks, method calls, or filters. `length(path)` is a structural builtin, not a model-method call.
 * Templates must not hard-code URL values or URL fragments in URL-bearing attributes.
 * Controllers provide complete route and asset URLs as attributes, including row-level URLs used inside template application.
 * Templates own fixed labels, HTML, CSS classes, and attribute layout. Models and controllers must not push those values as data.
@@ -149,23 +149,23 @@ This searches `tenant-a` first and falls back to `default` when a template is mi
 * Variable output is HTML-escaped by default.
 * Missing variable references render as an empty string.
 * Missing, `null`, and `undefined` are absent in presence conditionals.
-* `false`, `0`, and `""` are present values.
+* `false`, `0`, `""`, and `[]` are present values.
 * Paths are dot-separated attribute names only.
 * No raw or unescaped output.
 * No arbitrary JavaScript.
 * No complex inline computation.
 * No bracket/index access.
-* No array length checks.
+* Array length is available only through `length(path)`, not array property traversal.
 * No expression literals.
 * No `Math`, `process`, globals, imports, or arbitrary object method calls.
 * `csrfToken` is a value, not a helper function.
 * Whitespace trimming syntax is excluded.
-* Helper calls are excluded.
+* Helper calls are excluded; the sole builtin expression is `length(path)`.
 * Template comments are not current syntax.
 
 Renderer-level values:
 
-* `FormattedDate.fromDate(...)` and `FormattedNumber.fromNumber(...)` are renderer-level formatting values. Templates still only reference paths.
+* `FormattedDate.fromDate(...)` and `FormattedNumber.fromNumber(...)` are renderer-level formatting values. Templates reference these values through paths.
 * Ordinary strings always render escaped. The public renderer API has no trusted-HTML or prepared-attribute escape value.
 
 Allowed expression examples:
@@ -173,6 +173,7 @@ Allowed expression examples:
 ```scream
 {{ user.name }}
 {{ todo.title }}
+{{ length(todos) }}
 ```
 
 Disallowed expression examples:
@@ -190,12 +191,12 @@ Disallowed expression examples:
 
 ## Conditionals
 
-`{% if attribute.path %}` is a presence check.
+`{% if attribute.path %}` is a presence check. `{% if length(attribute.path) %}` is a structural nonempty-collection check.
 
 * Present means the path resolves to a value that is not `null` and not `undefined`.
 * Missing paths select the `{% else %}` branch when one exists.
-* `false`, `0`, and `""` are present values.
-* Conditionals must not compare values or compute predicates inside the template.
+* `false`, `0`, `""`, and `[]` are present values in ordinary path conditions.
+* Conditionals must not compare values or compute arbitrary predicates inside the template.
 
 Example:
 
@@ -206,6 +207,30 @@ Example:
 <input name="title">
 {% endif %}
 ```
+
+### Collection Length
+
+`length(path)` accepts exactly one dot path, including scoped paths such as `attr.children`. It is supported only in variable output and `if` conditions.
+
+* Arrays return their item count. Missing, `null`, and `undefined` values return `0`.
+* Other values throw `RenderError("length() requires an array")`, identifying the expression and named view when available.
+* Output renders the count as a number. In a condition, a positive count selects the primary branch; zero selects the alternate branch.
+* Ordinary presence checks are unchanged: an empty array is still present.
+* Named fields such as `length` and `box.length` remain ordinary paths.
+* Arbitrary calls, nested calls, literals, additional arguments, arithmetic, and comparisons are not supported.
+* Application sources, include/application parameters, and interfaces remain path-only.
+* Counts may appear in text and permitted quoted non-URL attributes. URL values still require one complete path reference; script/style restrictions remain unchanged.
+
+```scream
+<p>{{ length(todos) }} items on this page</p>
+{% if length(todos) %}
+    {% apply todos %}<p>{{ attr.title }}</p>{% endapply %}
+{% else %}
+    <p>No todos yet.</p>
+{% endif %}
+```
+
+Parr's paper permits structural length tests in Section 7, rule 3, but does not prescribe their syntax or empty-list semantics. The builtin spelling, array-only operands, absent-value count, and conditional behavior above are ScreamJS decisions compatible with that permission. The count describes the supplied collection, not a database-wide total.
 
 ## Interfaces
 

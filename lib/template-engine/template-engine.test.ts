@@ -239,6 +239,226 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		});
 	});
 
+	describe("collection length", () => {
+		it("renders empty and populated collection counts", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "<p>{{ length(empty) }} / {{ length(todos) }}</p>";
+			const context = {
+				empty: [],
+				todos: [{ title: "Plan" }, { title: "Ship" }],
+			};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "<p>0 / 2</p>");
+		});
+
+		it("counts nested and applied collection paths", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				"{{ length(page.todos) }}:{% apply groups %}<p>{{ length(attr.todos) }}</p>{% endapply %}";
+			const context = {
+				groups: [{ todos: ["Plan", "Ship"] }, { todos: [] }],
+				page: { todos: ["Plan"] },
+			};
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "1:<p>2</p><p>0</p>");
+		});
+
+		it("counts missing, null, and undefined collections as zero", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				"{{ length(missing) }}/{{ length(unset) }}/{{ length(optional) }}";
+			const context = { optional: undefined, unset: null };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "0/0/0");
+		});
+
+		it("selects collection branches by whether the count is nonzero", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				"{% if length(empty) %}Projects{% else %}No projects{% endif %}|{% if length(projects) %}Projects{% else %}No projects{% endif %}";
+			const context = { empty: [], projects: [{ name: "Work" }] };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "No projects|Projects");
+		});
+
+		it("keeps ordinary empty collection presence independent of its length", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template =
+				"{% if projects %}Present{% endif %}:{% if length(projects) %}Populated{% else %}Empty{% endif %}";
+			const context = { projects: [] };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "Present:Empty");
+		});
+
+		it("reports the wrong collection field and view name", (t: TestContext) => {
+			t.plan(1);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("count.scream", "{{ length(user.name) }}");
+			const context = { user: { name: "Ada" } };
+
+			const act = () => templateEngine.renderView("count.scream", context);
+
+			t.assert.throws(
+				act,
+				/length\(\) requires an array "length\(user\.name\)" in count\.scream/,
+			);
+		});
+
+		it("rejects an object instead of silently counting it as one", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ length(project) }}";
+			const context = { project: { name: "Work" } };
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(act, /length\(\) requires an array/);
+		});
+
+		it("preserves ordinary fields named length", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = "{{ length }} {{ box.length }} {{ length(items) }}";
+			const context = { box: { length: 3 }, items: [], length: "Length" };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(result, "Length 3 0");
+		});
+
+		it("requires exactly one path argument without nested calls", (t: TestContext) => {
+			t.plan(4);
+			const { templateEngine } = setupTemplateEngine();
+			const context = { items: ["Plan"], other: [] };
+
+			const empty = () => templateEngine.render("{{ length() }}", context);
+			const multiple = () =>
+				templateEngine.render("{{ length(items, other) }}", context);
+			const nested = () =>
+				templateEngine.render("{{ length(length(items)) }}", context);
+			const literal = () =>
+				templateEngine.render('{{ length("items") }}', context);
+
+			t.assert.throws(empty, TemplateSyntaxError);
+			t.assert.throws(multiple, TemplateSyntaxError);
+			t.assert.throws(nested, TemplateSyntaxError);
+			t.assert.throws(literal, TemplateSyntaxError);
+		});
+
+		it("does not introduce arithmetic, comparisons, or arbitrary calls", (t: TestContext) => {
+			t.plan(3);
+			const { templateEngine } = setupTemplateEngine();
+			const context = { items: ["Plan"] };
+
+			const arithmetic = () =>
+				templateEngine.render("{{ length(items) + 1 }}", context);
+			const comparison = () =>
+				templateEngine.render(
+					"{% if length(items) > 1 %}Many{% endif %}",
+					context,
+				);
+			const arbitrary = () =>
+				templateEngine.render("{{ count(items) }}", context);
+
+			t.assert.throws(arithmetic, TemplateSyntaxError);
+			t.assert.throws(comparison, TemplateSyntaxError);
+			t.assert.throws(arbitrary, TemplateSyntaxError);
+		});
+
+		it("keeps application sources, parameters, and interfaces path-only", (t: TestContext) => {
+			t.plan(4);
+			const { fileLoader, templateEngine } = setupTemplateEngine();
+			fileLoader.setTemplate("count.scream", "{{ count }}");
+			const context = { items: ["Plan"] };
+
+			const source = () =>
+				templateEngine.render(
+					"{% apply length(items) %}Item{% endapply %}",
+					context,
+				);
+			const include = () =>
+				templateEngine.render(
+					'{% include "count.scream" with count: length(items) %}',
+					context,
+				);
+			const parameter = () =>
+				templateEngine.render(
+					"{% template row %}{{ count }}{% endtemplate %}{% apply items to row(count: length(items)) %}",
+					context,
+				);
+			const required = () =>
+				templateEngine.render("{% interface length(items) %}", context);
+
+			t.assert.throws(source, TemplateSyntaxError);
+			t.assert.throws(include, TemplateSyntaxError);
+			t.assert.throws(parameter, TemplateSyntaxError);
+			t.assert.throws(required, TemplateSyntaxError);
+		});
+
+		it("renders counts in quoted non-URL attributes", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = '<span data-count="{{ length(items) }}">Items</span>';
+			const context = { items: ["Plan", "Ship"] };
+
+			const result = templateEngine.render(template, context);
+
+			t.assert.deepStrictEqual<string>(
+				result,
+				'<span data-count="2">Items</span>',
+			);
+		});
+
+		it("does not treat collection counts as complete URLs", (t: TestContext) => {
+			t.plan(1);
+			const { templateEngine } = setupTemplateEngine();
+			const template = '<a href="{{ length(items) }}">Items</a>';
+			const context = { items: ["Plan"] };
+
+			const act = () => templateEngine.render(template, context);
+
+			t.assert.throws(
+				act,
+				/URL attributes must use one complete attribute reference/,
+			);
+		});
+
+		it("keeps count expressions out of script and style bodies", (t: TestContext) => {
+			t.plan(2);
+			const { templateEngine } = setupTemplateEngine();
+			const context = { items: ["Plan"] };
+
+			const script = () =>
+				templateEngine.render("<script>{{ length(items) }}</script>", context);
+			const style = () =>
+				templateEngine.render("<style>{{ length(items) }}</style>", context);
+
+			t.assert.throws(
+				script,
+				/Variables are not allowed inside script or style tags/,
+			);
+			t.assert.throws(
+				style,
+				/Variables are not allowed inside script or style tags/,
+			);
+		});
+	});
+
 	describe("presence conditionals", () => {
 		it("renders the primary branch when an attribute is present", (t: TestContext) => {
 			t.plan(1);
@@ -2048,7 +2268,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 				"Page Card Home",
 			);
 			t.assert.deepStrictEqual<string>(
-				templateEngine.renderView("components/card.scream", { title: "Home" }),
+				templateEngine.renderView("components/card.scream", {
+					title: "Home",
+				}),
 				"Card Home",
 			);
 		});
@@ -2185,7 +2407,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			const { fileLoader, templateEngine } = setupTemplateEngine();
 			fileLoader.setTemplate("home.scream", "Hello, {{ name }}!");
 
-			const result = templateEngine.renderView("home.scream", { name: "John" });
+			const result = templateEngine.renderView("home.scream", {
+				name: "John",
+			});
 
 			t.assert.deepStrictEqual<string>(result, "Hello, John!");
 		});

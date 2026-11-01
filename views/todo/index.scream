@@ -32,7 +32,7 @@
 				<a class="btn btn-sm btn-outline-secondary" href="{{ filters.dueToday }}">Due Today</a>
             </div>
 
-            {% if hasTodos %}
+            {% if length(todos) %}
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead>

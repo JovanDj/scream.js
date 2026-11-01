@@ -93,16 +93,40 @@ describe("todo controller", { concurrency: true }, () => {
 	});
 
 	it("GET /todos lists todos", async (t: TestContext) => {
-		t.plan(2);
+		t.plan(4);
 		const { port, cleanup } = await setupServer();
 		t.after(() => cleanup());
 
 		const res = await fetch(`http://localhost:${port}/todos`, {
 			signal: t.signal,
 		});
+		const document = load(await res.text());
 
 		t.assert.ok(res.ok);
 		t.assert.deepStrictEqual<number>(res.status, 200);
+		t.assert.deepStrictEqual<string[]>(
+			document("tbody a")
+				.filter((_, link) =>
+					/^\/todos\/\d+$/.test(document(link).attr("href") ?? ""),
+				)
+				.map((_, link) => document(link).text().trim())
+				.get(),
+			["Completed Todo", "Sample Todo"],
+		);
+		t.assert.doesNotMatch(document("body").text(), /No todos yet\./);
+	});
+
+	it("GET /todos shows the empty state when no todos match the search", async (t: TestContext) => {
+		t.plan(2);
+		const { port, cleanup } = await setupServer();
+		t.after(() => cleanup());
+		const url = `http://localhost:${port}/todos?search=NoMatchingTodoFixture`;
+
+		const response = await fetch(url, { signal: t.signal });
+		const document = load(await response.text());
+
+		t.assert.deepStrictEqual<number>(response.status, 200);
+		t.assert.match(document("body").text(), /No todos yet\./);
 	});
 
 	it("GET /todos?status=open returns 200", async (t: TestContext) => {

@@ -50,6 +50,7 @@ describe("project note controller", { concurrency: true }, () => {
 		const document = load(await response.text());
 
 		t.assert.deepStrictEqual<number>(response.status, 200);
+		t.assert.match(document("body").text(), /No notes yet\./);
 		t.assert.deepStrictEqual<number>(
 			document('a[href="/project-notes/create"]').length,
 			1,
@@ -332,6 +333,7 @@ describe("project note controller", { concurrency: true }, () => {
 		const all = load(await allResponse.text());
 
 		t.assert.deepStrictEqual<number>(firstResponse.status, 200);
+		t.assert.doesNotMatch(first("body").text(), /No notes yet\./);
 		t.assert.deepStrictEqual<number>(first("tbody tr").length, 10);
 		t.assert.deepStrictEqual<string[]>(
 			first("tbody a")

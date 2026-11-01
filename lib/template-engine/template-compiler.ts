@@ -955,6 +955,10 @@ export class TemplateCompiler {
 			const node = input.nodes[index];
 
 			if (node?.type === "variable") {
+				if (node.expression.type !== "path") {
+					this.#throwInvalidUrlAttribute(node.span);
+				}
+
 				parts.push({ span: node.span, type: "variable" });
 				continue;
 			}
