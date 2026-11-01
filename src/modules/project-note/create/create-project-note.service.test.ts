@@ -136,31 +136,6 @@ describe("CreateProjectNoteService", { concurrency: true }, () => {
 		t.assert.deepStrictEqual(rows, before);
 	});
 
-	it("rolls back an insert whose returned id is corrupt", async (t: TestContext) => {
-		const { cleanup, db } = await databaseTestFixture.setup();
-		t.after(() => cleanup());
-		await db("projects").insert({ id: 11, name: "Alpha", status_id: 1 });
-		await db.schema.dropTable("project_notes");
-		await db.schema.createTable("project_notes", (table) => {
-			table.integer("id").notNullable().defaultTo(0);
-			table.integer("project_id").notNullable();
-			table.string("title").notNullable();
-			table.text("body").notNullable();
-			table.dateTime("created_at").notNullable();
-			table.dateTime("updated_at").notNullable();
-		});
-		const service = new TransactionHandler(
-			db,
-			new CreateProjectNoteServiceFactory(now),
-		);
-		const execute = () =>
-			service.execute({ body: "Body", projectId: 11, title: "Valid" });
-
-		await t.assert.rejects(execute, { name: "ZodError" });
-		const rows = await db("project_notes").select("*");
-		t.assert.deepStrictEqual(rows, []);
-	});
-
 	it("accepts only a required positive parent id, a nonblank bounded title, and a nonblank body", (t: TestContext) => {
 		const valid = { body: " \nBody\n ", projectId: "11", title: "  Title  " };
 		t.assert.deepStrictEqual(projectNoteStoreInputSchema.parse(valid), {

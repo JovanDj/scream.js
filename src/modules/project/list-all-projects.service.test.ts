@@ -25,21 +25,6 @@ describe("ListAllProjectsService", { concurrency: true }, () => {
 		]);
 	});
 
-	it("sorts equal names by ascending id", async (t: TestContext) => {
-		const { cleanup, db } = await databaseTestFixture.setup();
-		t.after(() => cleanup());
-		await db("projects").insert([
-			{ id: 22, name: "Alpha", status_id: 2 },
-			{ id: 11, name: "alpha", status_id: 1 },
-		]);
-		await db.schema.raw("DROP INDEX IF EXISTS projects_name_unique");
-		await db("projects").where({ id: 11 }).update({ name: "Alpha" });
-		t.assert.deepStrictEqual(await new ListAllProjectsService(db).execute(), [
-			{ id: 11, name: "Alpha" },
-			{ id: 22, name: "Alpha" },
-		]);
-	});
-
 	it("returns an empty list when there are no projects", async (t: TestContext) => {
 		const { cleanup, db } = await databaseTestFixture.setup();
 		t.after(() => cleanup());

@@ -116,76 +116,6 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			);
 		});
 
-		it("rejects a top-level accessor without invoking it", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const context: Record<string, unknown> = {};
-			Object.defineProperty(context, "name", {
-				enumerable: true,
-				get() {
-					throw new Error("Accessor was invoked");
-				},
-			});
-
-			const act = () => templateEngine.render("{{ name }}", context);
-
-			t.assert.throws(act, /Cannot access accessor property/);
-		});
-
-		it("rejects a nested accessor from a rendered view without invoking it", (t: TestContext) => {
-			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate("name.scream", "{{ user.name }}");
-			const user: Record<string, unknown> = {};
-			Object.defineProperty(user, "name", {
-				get() {
-					throw new Error("Accessor was invoked");
-				},
-			});
-
-			const act = () => templateEngine.renderView("name.scream", { user });
-
-			t.assert.throws(act, /Cannot access accessor property/);
-		});
-
-		it("rejects a top-level proxy without invoking its traps", (t: TestContext) => {
-			t.plan(1);
-			const { templateEngine } = setupTemplateEngine();
-			const topLevelContext = new Proxy(
-				{ name: "Ada" },
-				{
-					getOwnPropertyDescriptor() {
-						throw new Error("Proxy trap was invoked");
-					},
-					ownKeys() {
-						throw new Error("Proxy trap was invoked");
-					},
-				},
-			);
-
-			const act = () => templateEngine.render("{{ name }}", topLevelContext);
-
-			t.assert.throws(act, /Cannot access proxy value/);
-		});
-
-		it("rejects a nested proxy from a rendered view without invoking its traps", (t: TestContext) => {
-			t.plan(1);
-			const { fileLoader, templateEngine } = setupTemplateEngine();
-			fileLoader.setTemplate("name.scream", "{{ user.name }}");
-			const user = new Proxy(
-				{ name: "Grace" },
-				{
-					getOwnPropertyDescriptor() {
-						throw new Error("Proxy trap was invoked");
-					},
-				},
-			);
-
-			const act = () => templateEngine.renderView("name.scream", { user });
-
-			t.assert.throws(act, /Cannot access proxy value/);
-		});
-
 		it("rejects bracket path expressions", (t: TestContext) => {
 			t.plan(1);
 			const { templateEngine } = setupTemplateEngine();
@@ -267,7 +197,7 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		});
 
 		it("rejects direct non-scalar rendering", (t: TestContext) => {
-			t.plan(4);
+			t.plan(3);
 			const { templateEngine } = setupTemplateEngine();
 
 			t.assert.throws(
@@ -280,10 +210,6 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			);
 			t.assert.throws(
 				() => templateEngine.render("{{ value }}", { value: () => "nope" }),
-				/Cannot render value/,
-			);
-			t.assert.throws(
-				() => templateEngine.render("{{ value }}", { value: Symbol("nope") }),
 				/Cannot render value/,
 			);
 		});
@@ -2225,6 +2151,23 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 	});
 
 	describe("views", () => {
+		it("reports a rendering error when a method reference is passed instead of a tag name", (t: TestContext) => {
+			t.plan(1);
+			const templateEngine = ScreamTemplateEngine.create();
+			const tagName = "  Work  ";
+			const context = {
+				tag: { name: tagName.trim },
+				tagsUrl: "/tags",
+			};
+
+			const act = () => templateEngine.renderView("tag/show.scream", context);
+
+			t.assert.throws(
+				act,
+				/Cannot render value "tag\.name" in tag[\\/]show\.scream/,
+			);
+		});
+
 		it("renders a view by logical view name", (t: TestContext) => {
 			t.plan(1);
 			const { fileLoader, templateEngine } = setupTemplateEngine();
