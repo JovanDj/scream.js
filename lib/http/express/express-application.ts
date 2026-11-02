@@ -25,7 +25,7 @@ export class ExpressApp implements Application {
 					assetUrls: {
 						favicon: "data:,",
 						mainScript: "http://localhost:5173/main.ts",
-						mainStyles: "http://localhost:5173/styles.scss",
+						mainStyles: "http://localhost:5173/styles.css",
 						viteClient: "http://localhost:5173/@vite/client",
 					},
 					lang: "en",
