@@ -419,3 +419,8 @@ See [Testing Guidelines](docs/agent-instructions/testing.md) for the complete co
 8. Keep template layout inheritance as compiler-owned static composition.
 9. Restrict template syntax to static composition, escaped output, and simple expressions.
 10. Prove everything with one boring CRUD app.
+
+## Engineering notes
+
+- [Why the template compiler and renderer have separate responsibilities](https://www.jovandjukic.com/projects/screamjs/?utm_source=github.com&utm_medium=referral&utm_campaign=portfolio-notes&utm_content=screamjs-readme)
+- [TypeScript interface methods vs function properties](https://www.jovandjukic.com/posts/interface-method-vs-function/?utm_source=github.com&utm_medium=referral&utm_campaign=portfolio-notes&utm_content=screamjs-readme)
