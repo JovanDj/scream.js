@@ -10,8 +10,10 @@ import { ProjectModule } from "./src/modules/project/index.js";
 import { ProjectNoteModule } from "./src/modules/project-note/index.js";
 import { TagModule } from "./src/modules/tag/index.js";
 import { TodoModule } from "./src/modules/todo/index.js";
+import { createTemplateEngine } from "./src/template-engine.js";
 
 const startServer = () => {
+	const templateEngine = createTemplateEngine(process.env["SCREAM_SKIN"]);
 	const logger: Logger = createLogger();
 	const db: Database = createDB();
 
@@ -23,7 +25,7 @@ const startServer = () => {
 		TodoModule.create(db),
 	];
 
-	const app: Application = ExpressApp.create();
+	const app: Application = ExpressApp.create(templateEngine, "views/default");
 
 	for (const module of modules) {
 		module.mount(app);

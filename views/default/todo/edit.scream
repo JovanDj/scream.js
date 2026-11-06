@@ -9,15 +9,7 @@
 
         <form action="{{ action }}" method="POST">
             <input type="hidden" name="_method" value="PATCH">
-            <div class="mb-3">
-                <label for="title" class="form-label">Title</label>
-                {% if errors.title %}
-                <input type="text" name="title" class="form-control is-invalid" id="title" value="{{ fields.title }}" aria-describedby="title">
-                <div class="invalid-feedback d-block">{{ errors.title }}</div>
-                {% else %}
-                <input type="text" name="title" class="form-control" id="title" value="{{ fields.title }}" aria-describedby="title">
-                {% endif %}
-            </div>
+            {% include "todo/fields/title.scream" with value: fields.title, error: errors.title %}
 
             <div class="mb-3">
                 <label for="statusCode" class="form-label">Status</label>
@@ -27,15 +19,7 @@
                 </select>
             </div>
 
-			<div class="mb-3">
-				<label for="dueAt" class="form-label">Due Date</label>
-				{% if errors.dueAt %}
-				<input type="date" id="dueAt" name="dueAt" class="form-control is-invalid" value="{{ fields.dueAt }}">
-				<div class="invalid-feedback d-block">{{ errors.dueAt }}</div>
-				{% else %}
-				<input type="date" id="dueAt" name="dueAt" class="form-control" value="{{ fields.dueAt }}">
-				{% endif %}
-			</div>
+            {% include "todo/fields/due-at.scream" with value: fields.dueAt, error: errors.dueAt %}
 
             <div class="d-flex gap-2 flex-wrap mt-3">
                 <button type="submit" class="btn btn-primary">Update</button>

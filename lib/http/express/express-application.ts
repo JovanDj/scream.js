@@ -13,14 +13,16 @@ export class ExpressApp implements Application {
 
 	static create(
 		templateEngine: ScreamTemplateEngine = ScreamTemplateEngine.create(),
+		viewsPath = path.join(process.cwd(), "views"),
 	): Application {
 		const app = express();
 
-		const viewsPath = path.join(process.cwd(), "views");
-
 		app.engine("scream", async (filePath, options, callback) => {
 			try {
-				const viewName = path.relative(viewsPath, filePath);
+				const viewName = path
+					.relative(viewsPath, filePath)
+					.split(path.sep)
+					.join("/");
 				const rendered = templateEngine.renderView(viewName, {
 					assetUrls: {
 						favicon: "data:,",

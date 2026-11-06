@@ -1,0 +1,59 @@
+{% extends "layout.scream" %}
+
+{% block title %}Todos{% endblock title %}
+
+{% block content %}
+    <section class="compact-content">
+        <div class="page-head">
+            <h1 class="page-title">Todos</h1>
+            <a class="btn btn-primary" href="{{ createTodoUrl }}">Create Todo</a>
+        </div>
+        <div class="compact-toolbar">
+            <form method="GET" action="{{ todosUrl }}">
+                <input type="hidden" name="direction" value="{{ direction }}">
+                <input type="hidden" name="sort" value="{{ sort }}">
+                <input type="hidden" name="status" value="{{ status }}">
+                <label class="visually-hidden" for="compact-search">Search todos</label>
+                <div class="input-group">
+                    <input class="form-control" id="compact-search" name="search" placeholder="Search todos" value="{{ search }}" type="search">
+                    <button class="btn btn-outline-secondary" type="submit">Search</button>
+                </div>
+            </form>
+            <nav class="compact-filters" aria-label="Todo filters">
+                <a href="{{ sorts.created }}">Newest</a>
+                <a href="{{ filters.all }}">All</a>
+                <a href="{{ filters.open }}">Open</a>
+                <a href="{{ filters.completed }}">Completed</a>
+                <a href="{{ filters.dueToday }}">Due Today</a>
+            </nav>
+        </div>
+        {% if length(todos) %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle caption-top">
+                    <caption>Todo results</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col"><a href="{{ sorts.title }}">Title</a></th>
+                            <th scope="col"><a href="{{ sorts.status }}">Status</a></th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% apply todos %}
+                            <tr data-testid="todo-row">
+                                <td><a data-testid="todo-title" href="{{ attr.showUrl }}">{{ attr.title }}</a></td>
+                                <td><span class="badge text-bg-secondary">{{ attr.statusCode }}</span></td>
+                                <td><a class="btn btn-outline-primary btn-sm" href="{{ attr.editUrl }}">Edit</a></td>
+                            </tr>
+                        {% endapply %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="muted mb-0">No todos yet.</p>
+        {% endif %}
+        <nav class="compact-pagination" aria-label="Todo pages">
+            {% include "shared/pagination-links.scream" with pagination: pagination %}
+        </nav>
+    </section>
+{% endblock content %}

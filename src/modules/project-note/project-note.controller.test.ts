@@ -3,6 +3,7 @@ import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
 import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import { HttpServer } from "@scream.js/http/server.js";
 import { load } from "cheerio";
+import { createTemplateEngine } from "../../template-engine.js";
 import { ProjectModule } from "../project/index.js";
 import { ProjectNoteModule } from "./index.js";
 
@@ -35,7 +36,7 @@ describe("project note controller", { concurrency: true }, () => {
 			},
 		});
 		t.after(() => cleanup());
-		const app = ExpressApp.create();
+		const app = ExpressApp.create(createTemplateEngine(), "views/default");
 		ProjectModule.create(db).mount(app);
 		ProjectNoteModule.create(db).mount(app);
 		const server = HttpServer.start({ app, port: 0 });

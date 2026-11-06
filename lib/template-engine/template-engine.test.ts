@@ -2945,7 +2945,9 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 			{ tags: ["parr-derived", "parr-s7-1", "parr-s8-1"] },
 			(t: TestContext) => {
 				t.plan(1);
-				const templateEngine = ScreamTemplateEngine.create();
+				const templateEngine = ScreamTemplateEngine.create(
+					new TemplateGroupFileLoader({ groups: ["default"] }),
+				);
 				const tagName = "  Work  ";
 				const context = {
 					tag: { name: tagName.trim },

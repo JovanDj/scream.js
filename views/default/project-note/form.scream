@@ -1,6 +1,12 @@
 {% extends "layout.scream" %}
 
-{% block title %}{% if isEditing %}Edit Project Note{% else %}Create Project Note{% endif %}{% endblock title %}
+{% block title %}
+
+{% if isEditing %}
+Edit Project Note
+{% else %}
+Create Project Note
+{% endif %}{% endblock title %}
 
 {% block content %}
 <div class="container py-4 px-3 mx-auto">
@@ -11,31 +17,37 @@
             <input type="hidden" name="_method" value="PATCH">
             <p>Project: {{ projectName }}</p>
             {% else %}
-            {% if cannotSubmit %}<p>Create a <a href="{{ projectsUrl }}">project</a> before adding a note.</p>{% endif %}
+            {% if cannotSubmit %}<p>Create a <a href="{{ projectsUrl }}">project</a> before adding a note.</p>
+            {% endif %}
             <div class="mb-3">
                 <label class="form-label" for="projectId">Project</label>
                 <select class="form-select" id="projectId" name="projectId" required aria-describedby="projectId-error">
                     <option value="">Select a project</option>
                     {% apply projects %}
-                    <option value="{{ attr.id }}"{% if attr.isSelected %} selected{% endif %}>{{ attr.name }}</option>
+                    <option value="{{ attr.id }}" {% if attr.isSelected %} selected{% endif %}>{{ attr.name }}</option>
                     {% endapply %}
                 </select>
-                {% if errors.projectId %}<div class="invalid-feedback d-block" id="projectId-error">{{ errors.projectId }}</div>{% endif %}
+                {% if errors.projectId %}<div class="invalid-feedback d-block" id="projectId-error">
+                    {{ errors.projectId }}</div>{% endif %}
             </div>
             {% endif %}
             <div class="mb-3">
                 <label class="form-label" for="title">Title</label>
-                <input class="form-control" id="title" name="title" type="text" maxlength="255" required value="{{ fields.title }}" aria-describedby="title-error">
-                {% if errors.title %}<div class="invalid-feedback d-block" id="title-error">{{ errors.title }}</div>{% endif %}
+                <input class="form-control" id="title" name="title" type="text" maxlength="255" required
+                    value="{{ fields.title }}" aria-describedby="title-error">
+                {% if errors.title %}<div class="invalid-feedback d-block" id="title-error">{{ errors.title }}</div>
+                {% endif %}
             </div>
             <div class="mb-3">
                 <label class="form-label" for="body">Body</label>
                 <textarea class="form-control" id="body" name="body" rows="10" required aria-describedby="body-error">
 {{ fields.body }}</textarea>
-                {% if errors.body %}<div class="invalid-feedback d-block" id="body-error">{{ errors.body }}</div>{% endif %}
+                {% if errors.body %}<div class="invalid-feedback d-block" id="body-error">{{ errors.body }}</div>
+                {% endif %}
             </div>
             <div class="d-flex flex-wrap gap-2">
-                <button class="btn btn-primary" type="submit"{% if cannotSubmit %} disabled{% endif %}>{% if isEditing %}Update{% else %}Create{% endif %}</button>
+                <button class="btn btn-primary" type="submit" {% if cannotSubmit %}
+                    disabled{% endif %}>{% if isEditing %}Update{% else %}Create{% endif %}</button>
                 <a class="btn btn-outline-secondary" href="{{ backUrl }}">Cancel</a>
             </div>
         </form>

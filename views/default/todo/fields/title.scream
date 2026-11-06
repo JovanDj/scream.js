@@ -1,0 +1,5 @@
+<div class="mb-3">
+    <label for="title" class="form-label">Title</label>
+    <input type="text" name="title" class="form-control{% if error %} is-invalid{% endif %}" id="title" value="{{ value }}" aria-describedby="title">
+    {% if error %}<div class="invalid-feedback d-block">{{ error }}</div>{% endif %}
+</div>

@@ -30,8 +30,7 @@
         </div>
         {% else %}<p class="muted mb-0">No notes yet.</p>{% endif %}
         <nav class="d-flex justify-content-between mt-3" aria-label="Project note pages">
-            {% if pagination.previousUrl %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination.previousUrl }}">Previous</a>{% else %}<span></span>{% endif %}
-            {% if pagination.nextUrl %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination.nextUrl }}">Next</a>{% endif %}
+            {% include "shared/pagination-links.scream" with pagination: pagination %}
         </nav>
     </section>
 </div>

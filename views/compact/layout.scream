@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="{{ lang }}">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" href="{{ assetUrls.favicon }}">
+        <title>{% block title %}ScreamJS{% endblock title %}</title>
+        <link rel="stylesheet" href="{{ assetUrls.mainStyles }}">
+        <script type="module" src="{{ assetUrls.viteClient }}"></script>
+        <script type="module" src="{{ assetUrls.mainScript }}"></script>
+    </head>
+    <body class="app-shell skin-compact">
+        <header class="app-header">
+            <a href="{{ homeUrl }}" class="app-brand">ScreamJS Todo</a>
+            <nav class="app-nav" aria-label="Main navigation">
+                <a href="{{ todosUrl }}">Todos</a>
+                <a href="{{ tagsUrl }}">Tags</a>
+                <a href="{{ notesUrl }}">Notes</a>
+            </nav>
+        </header>
+        <main class="app-main">
+            {% block content %}{% endblock content %}
+        </main>
+        <footer class="app-footer">Built with ScreamJS</footer>
+    </body>
+</html>

@@ -48,6 +48,25 @@ ScreamJS is early-stage framework work. It is best read as a prototype, learning
 
 ## Architecture and Development
 
+### Application Skins
+
+The reference application includes default and compact skins. Choose one when
+starting the server; it applies to everyone until the server restarts.
+
+```powershell
+npm run dev          # Default presentation, with Vite assets
+npm run dev:compact  # Compact presentation, with Vite assets
+```
+
+For server-only startup, use `npm run start` or `npm run start:compact` with Vite
+already running. Alternatively, set `SCREAM_SKIN` to `default` or `compact`.
+An unset value selects `default`; empty or unknown values refuse startup.
+
+Views are grouped under `views/default/` and `views/compact/`. The compact skin
+overrides only the layout and Todo list. Other pages and shared partials fall back
+to `views/default/`, without changing controllers, Services,
+or ViewModels. Compact styles are scoped so the default skin is unchanged.
+
 The reference application groups features by workflow and uses explicitly composed Controllers and caller-independent Services. Framework controller lifecycles live in `lib/http/controllers`; application modules retain their public APIs and `mount(app)` registration.
 
 See [agent instructions](AGENTS.md) and [architecture guidance](docs/agent-instructions/architecture.md) for contributor conventions.

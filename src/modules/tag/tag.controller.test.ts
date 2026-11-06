@@ -5,6 +5,7 @@ import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import type { HttpContext } from "@scream.js/http/http-context.js";
 import { HttpServer } from "@scream.js/http/server.js";
 import { load } from "cheerio";
+import { createTemplateEngine } from "../../template-engine.js";
 import { PagesModule } from "../pages/index.js";
 import { TagModule } from "./index.js";
 import { ListTagsService } from "./list/list-tags.service.js";
@@ -55,7 +56,7 @@ describe("tag controller", { concurrency: true }, () => {
 	const setupServer = async () => {
 		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({});
 		const modules = [PagesModule.create(), TagModule.create(db)];
-		const app = ExpressApp.create();
+		const app = ExpressApp.create(createTemplateEngine(), "views/default");
 
 		for (const module of modules) {
 			module.mount(app);

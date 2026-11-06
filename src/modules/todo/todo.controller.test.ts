@@ -3,6 +3,7 @@ import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
 import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import { HttpServer } from "@scream.js/http/server.js";
 import { load } from "cheerio";
+import { createTemplateEngine } from "../../template-engine.js";
 import { PagesModule } from "../pages/index.js";
 import { TodoModule } from "./todo.module.ts";
 
@@ -12,7 +13,7 @@ describe("todo controller", { concurrency: true }, () => {
 			seed: true,
 		});
 		const modules = [PagesModule.create(), TodoModule.create(db)];
-		const app = ExpressApp.create();
+		const app = ExpressApp.create(createTemplateEngine(), "views/default");
 
 		for (const module of modules) {
 			module.mount(app);
@@ -933,14 +934,14 @@ describe("todo controller", { concurrency: true }, () => {
 	});
 
 	it("GET /todos/:id/edit renders the edit form with existing data", async (t: TestContext) => {
-		t.plan(5);
+		t.plan(4);
 		const { port, cleanup } = await setupServer();
 		t.after(() => cleanup());
 
 		const { id } = await createTodo({
 			port,
 			signal: t.signal,
-			title: "ExistingTitle",
+			title: 'Plan <review> & "ship"',
 		});
 
 		const res = await fetch(`http://localhost:${port}/todos/${id}/edit`, {
@@ -956,16 +957,17 @@ describe("todo controller", { concurrency: true }, () => {
 				.filter((_, link) => document(link).text().trim() === "Back")
 				.attr("href"),
 			dueAt: document('[name="dueAt"]').attr("value"),
+			title: document('[name="title"]').attr("value"),
 		};
 
 		t.assert.deepStrictEqual<number>(res.status, 200);
 		t.assert.match(html, new RegExp(`Edit Todo #${id}`));
-		t.assert.match(html, /value="ExistingTitle"/);
 		t.assert.match(html, /<option value="open" selected>Open<\/option>/);
 		t.assert.deepStrictEqual<typeof result>(result, {
 			action: `/todos/${id}`,
 			back: `/todos/${id}`,
 			dueAt: "",
+			title: 'Plan <review> & "ship"',
 		});
 	});
 

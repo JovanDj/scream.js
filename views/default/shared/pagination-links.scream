@@ -1,0 +1,10 @@
+{% if pagination.previousUrl %}
+<a class="btn btn-sm btn-outline-secondary" href="{{ pagination.previousUrl }}">Previous</a>
+{% else %}
+<span>
+</span>
+{% endif %}
+
+{% if pagination.nextUrl %}
+<a class="btn btn-sm btn-outline-secondary" href="{{ pagination.nextUrl }}">Next</a>
+{% endif %}

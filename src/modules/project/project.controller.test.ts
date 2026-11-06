@@ -4,6 +4,7 @@ import { databaseTestFixture } from "@scream.js/database/test-helpers.js";
 import { ExpressApp } from "@scream.js/http/express/express-application.js";
 import { HttpServer } from "@scream.js/http/server.js";
 import { load } from "cheerio";
+import { createTemplateEngine } from "../../template-engine.js";
 import { ProjectModule } from "./project.module.ts";
 
 describe("project controller", { concurrency: true }, () => {
@@ -33,7 +34,7 @@ describe("project controller", { concurrency: true }, () => {
 	const setupServer = async () => {
 		const { cleanup: cleanupDb, db } = await databaseTestFixture.setup({});
 		const module = ProjectModule.create(db);
-		const app = ExpressApp.create();
+		const app = ExpressApp.create(createTemplateEngine(), "views/default");
 
 		module.mount(app);
 

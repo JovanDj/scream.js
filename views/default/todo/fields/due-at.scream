@@ -1,0 +1,5 @@
+<div class="mb-3">
+    <label for="dueAt" class="form-label">Due Date</label>
+    <input type="date" id="dueAt" name="dueAt" class="form-control{% if error %} is-invalid{% endif %}" value="{{ value }}">
+    {% if error %}<div class="invalid-feedback d-block">{{ error }}</div>{% endif %}
+</div>
