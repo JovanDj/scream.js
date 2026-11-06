@@ -1,0 +1,13 @@
+{
+	"compilerOptions": {
+		"allowJs": true,
+		"checkJs": true,
+		"maxNodeModuleJsDepth": 0,
+		"module": "NodeNext",
+		"noEmit": true,
+		"strict": true,
+		"target": "ESNext",
+		"types": ["node", "vscode"]
+	},
+	"include": ["*.cjs", "test/**/*.cjs"]
+}

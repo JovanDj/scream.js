@@ -1,0 +1,58 @@
+{
+	"activationEvents": [
+		"onLanguage:scream"
+	],
+	"categories": [
+		"Programming Languages",
+		"Formatters"
+	],
+	"contributes": {
+		"grammars": [
+			{
+				"language": "scream",
+				"path": "./syntaxes/scream.tmLanguage.json",
+				"scopeName": "text.html.scream"
+			},
+			{
+				"injectTo": [
+					"text.html.scream"
+				],
+				"path": "./syntaxes/scream-injection.tmLanguage.json",
+				"scopeName": "scream.injection"
+			}
+		],
+		"languages": [
+			{
+				"aliases": [
+					"Scream",
+					"scream"
+				],
+				"extensions": [
+					".scream"
+				],
+				"id": "scream"
+			}
+		]
+	},
+	"dependencies": {
+		"vscode-html-languageservice": "6.0.0-next.2",
+		"vscode-languageserver-textdocument": "1.0.14"
+	},
+	"description": "Repository-local highlighting and HTML formatting for ScreamJS templates.",
+	"devDependencies": {
+		"@types/vscode": "1.90.0"
+	},
+	"displayName": "Scream Syntax (Local)",
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"license": "MIT",
+	"main": "./extension.cjs",
+	"name": "scream-syntax",
+	"private": true,
+	"publisher": "screamjs-local",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p jsconfig.json"
+	},
+	"version": "0.0.4"
+}

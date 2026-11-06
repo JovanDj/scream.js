@@ -1,0 +1,5 @@
+{
+	"name": "Scream",
+	"patterns": [{ "include": "text.html.basic" }],
+	"scopeName": "text.html.scream"
+}

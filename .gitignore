@@ -105,6 +105,9 @@ typings/
 # Output of 'npm pack'
 *.tgz
 
+# Repository-local VS Code extension packages
+/tools/vscode-scream/*.vsix
+
 # Yarn Integrity file
 .yarn-integrity
 

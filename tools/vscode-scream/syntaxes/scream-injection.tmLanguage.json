@@ -1,0 +1,150 @@
+{
+	"injectionSelector": "L:text.html.scream -meta.embedded.scream",
+	"patterns": [
+		{ "include": "#variable" },
+		{ "include": "#named-directive" },
+		{ "include": "#apply-directive" },
+		{ "include": "#include-directive" },
+		{ "include": "#directive" }
+	],
+	"repository": {
+		"apply-directive": {
+			"begin": "(\\{%)(?:\\s*(apply)\\b)",
+			"beginCaptures": {
+				"1": { "name": "punctuation.section.embedded.begin.scream" },
+				"2": { "name": "keyword.control.scream" }
+			},
+			"end": "%\\}",
+			"endCaptures": {
+				"0": { "name": "punctuation.section.embedded.end.scream" }
+			},
+			"name": "meta.embedded.scream",
+			"patterns": [
+				{ "include": "#strings" },
+				{ "include": "#paths" },
+				{
+					"captures": {
+						"1": { "name": "keyword.control.scream" },
+						"2": { "name": "entity.name.function.scream" }
+					},
+					"match": "\\b(to|then)\\b(?:\\s+([A-Za-z_][A-Za-z0-9_]*))?"
+				},
+				{
+					"begin": "\\(",
+					"beginCaptures": {
+						"0": { "name": "punctuation.section.arguments.begin.scream" }
+					},
+					"end": "\\)",
+					"endCaptures": {
+						"0": { "name": "punctuation.section.arguments.end.scream" }
+					},
+					"patterns": [{ "include": "#expressions" }]
+				},
+				{ "include": "#expressions" }
+			]
+		},
+		"directive": {
+			"begin": "(\\{%)(?:\\s*(extends|if|else|endif|interface|endapply)\\b)?",
+			"beginCaptures": {
+				"1": { "name": "punctuation.section.embedded.begin.scream" },
+				"2": { "name": "keyword.control.scream" }
+			},
+			"end": "%\\}",
+			"endCaptures": {
+				"0": { "name": "punctuation.section.embedded.end.scream" }
+			},
+			"name": "meta.embedded.scream",
+			"patterns": [{ "include": "#expressions" }]
+		},
+		"expressions": {
+			"patterns": [
+				{ "include": "#strings" },
+				{ "include": "#paths" },
+				{
+					"match": "\\blength\\b(?=\\s*\\()",
+					"name": "support.function.scream"
+				},
+				{
+					"match": "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*:)",
+					"name": "variable.parameter.scream"
+				},
+				{
+					"match": "\\b[A-Za-z_][A-Za-z0-9_]*",
+					"name": "variable.other.scream"
+				},
+				{
+					"match": "[.,:]",
+					"name": "punctuation.separator.scream"
+				},
+				{
+					"match": "[()]",
+					"name": "punctuation.section.arguments.scream"
+				}
+			]
+		},
+		"include-directive": {
+			"begin": "(\\{%)(?:\\s*(include)\\b)",
+			"beginCaptures": {
+				"1": { "name": "punctuation.section.embedded.begin.scream" },
+				"2": { "name": "keyword.control.scream" }
+			},
+			"end": "%\\}",
+			"endCaptures": {
+				"0": { "name": "punctuation.section.embedded.end.scream" }
+			},
+			"name": "meta.embedded.scream",
+			"patterns": [
+				{
+					"captures": { "1": { "name": "keyword.control.scream" } },
+					"match": "(?<=[\"'])\\s+(with)\\b"
+				},
+				{ "include": "#expressions" }
+			]
+		},
+		"named-directive": {
+			"begin": "(\\{%)\\s*((?:end)?(?:block|template))\\b(?:\\s+([A-Za-z_][A-Za-z0-9_]*))?",
+			"beginCaptures": {
+				"1": { "name": "punctuation.section.embedded.begin.scream" },
+				"2": { "name": "keyword.control.scream" },
+				"3": { "name": "entity.name.function.scream" }
+			},
+			"end": "%\\}",
+			"endCaptures": {
+				"0": { "name": "punctuation.section.embedded.end.scream" }
+			},
+			"name": "meta.embedded.scream",
+			"patterns": [{ "include": "#expressions" }]
+		},
+		"paths": {
+			"match": "\\b[A-Za-z_][A-Za-z0-9_]*(?:\\s*\\.\\s*[A-Za-z_][A-Za-z0-9_]*)+",
+			"name": "variable.other.scream"
+		},
+		"strings": {
+			"patterns": [
+				{
+					"begin": "\"",
+					"end": "\"",
+					"name": "string.quoted.double.scream"
+				},
+				{
+					"begin": "'",
+					"end": "'",
+					"name": "string.quoted.single.scream"
+				}
+			]
+		},
+		"variable": {
+			"begin": "\\{\\{",
+			"beginCaptures": {
+				"0": { "name": "punctuation.section.embedded.begin.scream" }
+			},
+			"end": "\\}\\}",
+			"endCaptures": {
+				"0": { "name": "punctuation.section.embedded.end.scream" }
+			},
+			"name": "meta.embedded.scream",
+			"patterns": [{ "include": "#expressions" }]
+		}
+	},
+	"scopeName": "scream.injection"
+}
