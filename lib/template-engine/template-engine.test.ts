@@ -1709,22 +1709,6 @@ describe("ScreamTemplateEngine", { concurrency: true }, () => {
 		);
 
 		it(
-			"rejects literal URLs when attribute names span conditionals",
-			{ tags: ["parr-derived", "parr-s7-urls"] },
-			(t: TestContext) => {
-				t.plan(1);
-				const { templateEngine } = setupTemplateEngine();
-				const template =
-					'<a h{% if enabled %}ref{% endif %}="/hardcoded">X</a>';
-				const context = Object.freeze({ enabled: true });
-
-				const act = () => templateEngine.render(template, context);
-
-				t.assert.throws(act, TemplateSyntaxError);
-			},
-		);
-
-		it(
 			"rejects route URLs composed from attributes and literal path fragments",
 			{ tags: ["parr-derived", "parr-s7-urls"] },
 			(t: TestContext) => {

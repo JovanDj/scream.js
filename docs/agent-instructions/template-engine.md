@@ -4,6 +4,30 @@
 
 The template engine is a first-class core framework component behind a small rendering contract.
 
+## Governing Philosophy
+
+ScreamJS adopts the [StringTemplate motivation and philosophy](https://github.com/antlr/stringtemplate4/blob/master/doc/motivation.md): keep business logic and data computation separate from output structure, and provide the simplest consistent language that meets real application needs without sacrificing that separation.
+
+This governs language design, implementation, tests, and reviews, not only how application authors write templates.
+
+* Compute application data before rendering and push it into the view. Templates read inert attributes; they do not query services, invoke model behavior, or alter application state.
+* Build presentation from attribute references, template composition, presence-based conditionals, and template application, including recursion. Structural collection inspection with `length(path)` remains supported.
+* Keep HTML, labels, CSS classes, and output layout in templates. Escaping and formatting belong in rendering infrastructure; complete URLs and application decisions come from controllers.
+* Do not grow templates into an imperative programming language with assignments, explicit loops, arithmetic, or arbitrary method calls.
+* Prefer consistency and conceptual simplicity over expressive tricks or exhaustive handling of every syntactically possible construction.
+* ScreamJS remains HTML-focused. Adopting this philosophy does not require StringTemplate syntax/API parity or implementing all of its capabilities.
+
+### Change Gate
+
+Before expanding syntax, validation, abstractions, or edge-case coverage:
+
+1. Establish a credible existing or explicitly approved planned application use case, or a demonstrated security/data-integrity risk. Technical reproducibility alone does not establish application value.
+2. Choose the narrowest solution and weigh its implementation, testing, and maintenance cost against that value. Passing tests do not justify disproportionate machinery.
+3. If unusual accepted syntax requires substantial complexity, stop and discuss documented deferral or an explicit language restriction before implementing it. Do not silently remove existing tests or change contracts.
+4. Verify behavioral changes through focused public-boundary BDD tests. Do not add tests solely for documentation edits or accumulate synthetic cases to protect hypothetical flexibility. Assess meaningful security and data-integrity risks separately rather than dismissing them solely for rarity.
+
+This is a decision gate, not a new framework mechanism or permission to audit, rewrite, or remove existing features. Routine fixes within an established workflow still follow the narrow reproduce-fix-verify loop.
+
 ## Pipeline
 
 The template pipeline is:
@@ -69,7 +93,7 @@ For native test tags linking each case to the paper or an explicit ScreamJS poli
 
 Templates follow Parr's strict model-view separation.
 
-The engine has entanglement index 1: it enforces the four decidable separation rules, but it cannot infer whether an otherwise inert pushed value carries display meaning.
+The engine is designed to enforce strict model-view separation within its supported language. It cannot infer whether an otherwise inert pushed value carries display meaning. Do not claim a formally proven entanglement index or exhaustive enforcement; document known limitations honestly.
 
 * Templates may reference attributes, test attribute presence, inspect collection length with `length(path)`, include static templates, and apply templates to attributes.
 * Templates must not perform business logic, arbitrary computation, JavaScript truthiness checks, method calls, or filters. `length(path)` is a structural builtin, not a model-method call.
@@ -89,6 +113,7 @@ The engine has entanglement index 1: it enforces the four decidable separation r
 * To hide a conditional branch, omit the attribute or set it to `undefined` or `null`.
 * Do not pass `false`, `0`, or an empty string to mean absent. Those values are present.
 * Conditional attributes are written as conditional literal output, not as a special directive.
+* URL validation does not guarantee detection when an attribute name is assembled from fragments across conditionals, includes, or applications. Prefer complete conditional attributes; closing this edge-case gap is deferred until a concrete application need justifies the complexity.
 * Conditional branches, blocks, includes, and applied templates must preserve their surrounding HTML context.
 
 Example:
